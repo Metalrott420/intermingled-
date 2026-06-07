@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "ayFpM-CG_cuz7c3mQp7Tz"
+uri = "file://artifacts/flirtfest-mobile/assets/images/icon.png"
+type = "image"
+title = "generated_image"

@@ -71,7 +71,7 @@ const QUIZ_QUESTIONS = [
 // Only cache the quiz answers and name — never the userId.
 // Each role selection always creates a fresh server-side user with the correct role,
 // so status lifecycle and role assignment are always accurate.
-const STORAGE_KEY = "flirtfest_quiz";
+const STORAGE_KEY = "intermingled_quiz";
 
 interface StoredQuiz {
   name: string;
@@ -168,7 +168,7 @@ export default function Home() {
 
         <div className="z-10 w-full max-w-lg">
           <h1 className="text-4xl md:text-5xl font-black mb-2 uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary text-center">
-            FlirtFest
+            Intermingled
           </h1>
           <p className="text-center font-mono text-muted-foreground mb-8 text-sm">
             Find your perfect match — answer 7 quick questions
@@ -222,7 +222,7 @@ export default function Home() {
 
       <div className="z-10 w-full max-w-md">
         <h1 className="text-4xl md:text-5xl font-black mb-2 uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary text-center">
-          FlirtFest
+          Intermingled
         </h1>
 
         {storedQuiz ? (

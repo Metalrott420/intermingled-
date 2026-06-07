@@ -18,7 +18,7 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const STORAGE_KEY = "flirtfest_user";
+const STORAGE_KEY = "intermingled_user";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUserState] = useState<AppUser | null>(null);

@@ -157,7 +157,7 @@ export default function ChooserRoomScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <View>
-          <Text style={styles.headerTitle}>FLIRTFEST</Text>
+          <Text style={styles.headerTitle}>INTERMINGLED</Text>
           <Text style={styles.headerSub}>ROOM {room.code}</Text>
         </View>
         <View style={styles.headerRight}>

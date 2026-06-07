@@ -163,7 +163,7 @@ export default function Match() {
 
       <div className="z-10 text-center max-w-md w-full">
         <h1 className="text-4xl md:text-5xl font-black mb-2 uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-          FlirtFest
+          Intermingled
         </h1>
         {name && (
           <p className="text-muted-foreground font-mono text-sm mb-6">

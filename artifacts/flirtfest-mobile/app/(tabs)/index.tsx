@@ -169,7 +169,7 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.logo}>FLIRTFEST</Text>
+        <Text style={styles.logo}>INTERMINGLED</Text>
         <Text style={styles.tagline}>Find your perfect match</Text>
       </View>
 

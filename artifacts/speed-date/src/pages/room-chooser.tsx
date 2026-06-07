@@ -211,7 +211,7 @@ export default function RoomChooser() {
       <header className="p-3 sm:p-4 border-b border-border bg-card/50 flex justify-between items-center shrink-0">
         <div>
           <h1 className="text-lg sm:text-2xl font-black text-primary uppercase tracking-widest drop-shadow-[0_0_8px_hsl(var(--primary))]">
-            FlirtFest
+            Intermingled
           </h1>
           <div className="text-xs font-mono text-muted-foreground">
             ROOM: <span className="text-secondary">{room.code}</span>

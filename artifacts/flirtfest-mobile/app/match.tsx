@@ -180,7 +180,7 @@ export default function MatchScreen() {
   return (
     <View style={styles.container}>
       <Animated.View entering={FadeIn} style={styles.inner}>
-        <Text style={styles.logo}>FLIRTFEST</Text>
+        <Text style={styles.logo}>INTERMINGLED</Text>
         <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
           Ready to choose, <Text style={{ color: colors.primary }}>{user.name}</Text>?
         </Text>

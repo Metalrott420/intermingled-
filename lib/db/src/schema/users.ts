@@ -18,6 +18,8 @@ export const usersTable = pgTable("users", {
   status: userStatusEnum("status").notNull().default("looking"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  chooserSessionsToday: integer("chooser_sessions_today").notNull().default(0),
+  chooserLastSessionDate: text("chooser_last_session_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

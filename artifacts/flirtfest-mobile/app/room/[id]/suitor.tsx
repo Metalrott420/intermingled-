@@ -137,26 +137,50 @@ export default function SuitorRoomScreen() {
 
   // ── Elimination screen ─────────────────────────────────────────────────────
   if (isEliminated) {
+    const hasPool = !!user?.userId;
     return (
       <View style={[styles.container, { alignItems: "center", justifyContent: "center", padding: 24 }]}>
-        <View style={[styles.eliminatedCard, { borderColor: `${colors.destructive ?? "#ef4444"}30`, backgroundColor: `${colors.card}` }]}>
-          <Text style={[styles.eliminatedX, { color: `${colors.destructive ?? "#ef4444"}40` }]}>✕</Text>
+        <View style={[styles.eliminatedCard, { borderColor: `${colors.destructive ?? "#ef4444"}30`, backgroundColor: colors.card }]}>
+          <Text style={[styles.eliminatedX, { color: `${colors.destructive ?? "#ef4444"}30` }]}>✕</Text>
           <Text style={[styles.eliminatedTitle, { color: colors.destructive ?? "#ef4444" }]}>ELIMINATED</Text>
           <Text style={[styles.eliminatedSub, { color: colors.mutedForeground }]}>
-            {room.chooserName} has made their choice. You've been eliminated after Round {ROUND_LABELS[currentRound] ?? currentRound}.
+            {room.chooserName} has made their choice. You were cut after Round {ROUND_LABELS[currentRound] ?? currentRound}.
           </Text>
-          <Text style={[styles.eliminatedHint, { color: `${colors.mutedForeground}80` }]}>
-            Better luck next session
+          <Text style={[styles.eliminatedHint, { color: `${colors.mutedForeground}60` }]}>
+            Shake it off — the pool awaits
           </Text>
-          <Pressable
-            onPress={() => router.replace("/")}
-            style={({ pressed }) => [
-              styles.playAgainBtn,
-              { borderColor: colors.border, backgroundColor: pressed ? colors.muted : colors.card },
-            ]}
-          >
-            <Text style={[styles.playAgainText, { color: colors.foreground }]}>Play Again</Text>
-          </Pressable>
+
+          <View style={{ width: "100%", gap: 10, marginTop: 8 }}>
+            {hasPool && (
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  router.replace("/pool");
+                }}
+                style={({ pressed }) => [
+                  styles.rejoinBtn,
+                  { backgroundColor: `${colors.secondary}20`, borderColor: `${colors.secondary}50` },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <Text style={[styles.rejoinBtnText, { color: colors.secondary }]}>↩ Rejoin Pool</Text>
+              </Pressable>
+            )}
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.replace("/");
+              }}
+              style={({ pressed }) => [
+                styles.playAgainBtn,
+                { borderColor: colors.border, backgroundColor: pressed ? colors.muted : colors.card },
+              ]}
+            >
+              <Text style={[styles.playAgainText, { color: colors.foreground }]}>
+                {hasPool ? "Start Fresh" : "Play Again"}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     );
@@ -197,9 +221,6 @@ export default function SuitorRoomScreen() {
           <Text style={[styles.roundStripText, { color: colors.mutedForeground }]}>
             Round {ROUND_LABELS[currentRound] ?? currentRound} — {currentRound <= 3 ? `${6 - currentRound} suitors remain` : "Finals: make your case!"}
           </Text>
-          <Text style={[styles.roundStripRight, { color: `${colors.mutedForeground}60` }]}>
-            {currentRound < 4 ? "1 Q / round" : "3 Q's — finals"}
-          </Text>
         </View>
       )}
 
@@ -224,7 +245,7 @@ export default function SuitorRoomScreen() {
               <MessageBubble msg={item} isMe={item.senderId === participantId} colors={colors} />
             )}
             ListEmptyComponent={
-              <Text style={styles.emptyText}>SAY SOMETHING TO STAND OUT</Text>
+              <Text style={styles.emptyText}>WAITING FOR {room.chooserName?.toUpperCase()}'S QUESTION...</Text>
             }
           />
           <View style={[styles.inputRow, { paddingBottom: insets.bottom + 8 }]}>
@@ -285,13 +306,12 @@ function makeStyles(colors: ReturnType<typeof useColors>, insets: ReturnType<typ
       backgroundColor: `${colors.secondary}05`,
     },
     roundStripText: { fontSize: 11, fontFamily: "Inter_400Regular" },
-    roundStripRight: { fontSize: 10, fontFamily: "Inter_400Regular" },
     waitContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
     waitTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: colors.foreground, marginTop: 12 },
     waitSub: { fontSize: 14, fontFamily: "Inter_400Regular", color: colors.mutedForeground },
     waitHint: { fontSize: 12, fontFamily: "Inter_400Regular", color: `${colors.mutedForeground}80` },
     messageList: { padding: 16, flexGrow: 1 },
-    emptyText: { textAlign: "center", fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 2, marginTop: 40 },
+    emptyText: { textAlign: "center", fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 1, marginTop: 40 },
     inputRow: {
       flexDirection: "row",
       paddingHorizontal: 12,
@@ -328,15 +348,23 @@ function makeStyles(colors: ReturnType<typeof useColors>, insets: ReturnType<typ
     eliminatedTitle: { fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: 2, textTransform: "uppercase" },
     eliminatedSub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
     eliminatedHint: { fontSize: 11, fontFamily: "Inter_400Regular", letterSpacing: 2, textTransform: "uppercase" },
-    playAgainBtn: {
-      marginTop: 8,
+    rejoinBtn: {
       width: "100%",
-      height: 48,
+      height: 50,
       borderWidth: 1,
       borderRadius: 8,
       alignItems: "center",
       justifyContent: "center",
     },
-    playAgainText: { fontSize: 14, fontFamily: "Inter_700Bold", letterSpacing: 2, textTransform: "uppercase" },
+    rejoinBtnText: { fontSize: 14, fontFamily: "Inter_700Bold", letterSpacing: 2, textTransform: "uppercase" },
+    playAgainBtn: {
+      width: "100%",
+      height: 46,
+      borderWidth: 1,
+      borderRadius: 8,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    playAgainText: { fontSize: 13, fontFamily: "Inter_700Bold", letterSpacing: 1.5, textTransform: "uppercase" },
   });
 }

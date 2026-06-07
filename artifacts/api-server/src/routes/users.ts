@@ -7,14 +7,25 @@ import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
+const CHOOSER_DAILY_LIMIT = 3;
+
 function makeId(): string {
   return randomBytes(8).toString("hex");
 }
 
+function todayUtc(): string {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD UTC
+}
+
+function midnightUtc(): string {
+  const d = new Date();
+  d.setUTCHours(24, 0, 0, 0);
+  return d.toISOString();
+}
+
 // POST /api/users — create or update session user
-// If the caller is Clerk-authenticated, we reuse their existing user record so that:
-//   1. matches created during speed-dating use the same ID as the inbox/profile
-//   2. subsequent `GET /api/matches` finds those matches immediately
+// For Clerk users choosing the "chooser" role: enforces a daily limit of CHOOSER_DAILY_LIMIT sessions.
+// When the limit is reached the response includes `cooldown: true` and `cooldownEndsAt`.
 router.post("/users", async (req, res) => {
   const { name, role, personalityVector } = req.body;
   if (
@@ -32,8 +43,8 @@ router.post("/users", async (req, res) => {
   const trimmedName = name.trim();
   const auth = getAuth(req);
   const clerkUserId = auth?.userId;
+  const today = todayUtc();
 
-  // If signed-in, upsert on the Clerk user record so session and profile share one ID
   if (clerkUserId) {
     try {
       const existing = await db.query.usersTable.findFirst({
@@ -41,13 +52,50 @@ router.post("/users", async (req, res) => {
       });
 
       if (existing) {
-        // Update with fresh session data
-        await db.update(usersTable).set({
-          name: trimmedName,
-          role: role as "chooser" | "suitor",
-          personalityVector,
-          status: "looking",
-        }).where(eq(usersTable.clerkId, clerkUserId));
+        // ── Cooldown check (chooser only, Clerk users only) ──────────────────
+        if (role === "chooser") {
+          const sessionsToday =
+            existing.chooserLastSessionDate === today
+              ? (existing.chooserSessionsToday ?? 0)
+              : 0;
+
+          if (sessionsToday >= CHOOSER_DAILY_LIMIT) {
+            logger.info(
+              { userId: existing.id, sessionsToday, limit: CHOOSER_DAILY_LIMIT },
+              "Chooser daily limit reached — returning cooldown",
+            );
+            res.status(200).json({
+              id: existing.id,
+              name: existing.name,
+              role: existing.role ?? "chooser",
+              status: existing.status,
+              createdAt: existing.createdAt.toISOString(),
+              cooldown: true,
+              cooldownEndsAt: midnightUtc(),
+              sessionsToday,
+              chooserDailyLimit: CHOOSER_DAILY_LIMIT,
+            });
+            return;
+          }
+
+          // Not on cooldown — record this session
+          await db.update(usersTable).set({
+            name: trimmedName,
+            role: "chooser",
+            personalityVector,
+            status: "looking",
+            chooserSessionsToday: sessionsToday + 1,
+            chooserLastSessionDate: today,
+          }).where(eq(usersTable.clerkId, clerkUserId));
+        } else {
+          // Suitor — no session limit
+          await db.update(usersTable).set({
+            name: trimmedName,
+            role: "suitor",
+            personalityVector,
+            status: "looking",
+          }).where(eq(usersTable.clerkId, clerkUserId));
+        }
 
         res.status(201).json({
           id: existing.id,
@@ -59,7 +107,7 @@ router.post("/users", async (req, res) => {
         return;
       }
 
-      // Create Clerk-linked user if not yet in DB
+      // ── First-time Clerk user ────────────────────────────────────────────────
       const id = clerkUserId;
       await db.insert(usersTable).values({
         id,
@@ -68,6 +116,8 @@ router.post("/users", async (req, res) => {
         role: role as "chooser" | "suitor",
         personalityVector,
         status: "looking",
+        chooserSessionsToday: role === "chooser" ? 1 : 0,
+        chooserLastSessionDate: role === "chooser" ? today : null,
       });
 
       res.status(201).json({
@@ -80,11 +130,10 @@ router.post("/users", async (req, res) => {
       return;
     } catch (err) {
       logger.error({ err }, "POST /users clerk upsert failed, falling back to session user");
-      // Fall through to anonymous session user
     }
   }
 
-  // Anonymous session user
+  // ── Anonymous session user (no cooldown enforcement) ──────────────────────
   const id = makeId();
   await db.insert(usersTable).values({
     id,
@@ -92,6 +141,8 @@ router.post("/users", async (req, res) => {
     role: role as "chooser" | "suitor",
     personalityVector,
     status: "looking",
+    chooserSessionsToday: role === "chooser" ? 1 : 0,
+    chooserLastSessionDate: role === "chooser" ? today : null,
   });
 
   const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, id) });

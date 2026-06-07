@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useLocation, useParams, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,9 @@ import { useGetRoom, useGetRoomMessages, getGetRoomQueryKey, getGetRoomMessagesQ
 import { useSocket } from "@/hooks/useSocket";
 import { Message } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
 
 const ROUND_LABELS: Record<number, string> = { 1: "I", 2: "II", 3: "III", 4: "FINAL" };
+const SESSION_KEY = "intermingled_last_user";
 
 export default function RoomSuitor() {
   const params = useParams();
@@ -24,10 +24,17 @@ export default function RoomSuitor() {
   const [isEliminated, setIsEliminated] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  // For the "Rejoin Pool" button after elimination
+  const lastUser = useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      return raw ? (JSON.parse(raw) as { id: string; name: string }) : null;
+    } catch { return null; }
+  }, []);
+
   const { data: room, isLoading: isLoadingRoom } = useGetRoom(roomId, {
     query: { enabled: !!roomId, queryKey: getGetRoomQueryKey(roomId) },
   });
-
   const { data: initialMessages } = useGetRoomMessages(roomId, {
     query: { enabled: !!roomId, queryKey: getGetRoomMessagesQueryKey(roomId) },
   });
@@ -50,9 +57,7 @@ export default function RoomSuitor() {
   useEffect(() => {
     if (initialMessages && participantId) {
       setMessages(
-        initialMessages.filter(
-          (m) => m.suitorSlot === (myParticipant?.suitorSlot ?? null),
-        ),
+        initialMessages.filter((m) => m.suitorSlot === (myParticipant?.suitorSlot ?? null)),
       );
     }
   }, [initialMessages, participantId, myParticipant?.suitorSlot]);
@@ -63,19 +68,14 @@ export default function RoomSuitor() {
         setMessages((prev) => [...prev, msg]);
       }
     });
-
     const unsubRoom = subscribe("room_updated", (updatedRoom) => {
       queryClient.setQueryData(getGetRoomQueryKey(roomId), updatedRoom);
     });
-
     const unsubSessionEnded = subscribe("session_ended", () => {
       setLocation(`/result/${roomId}`);
     });
-
     const unsubEliminated = subscribe("suitor_eliminated", ({ participantId: eliminatedId }) => {
-      if (eliminatedId === participantId) {
-        setIsEliminated(true);
-      }
+      if (eliminatedId === participantId) setIsEliminated(true);
     });
 
     return () => { unsubMsg(); unsubRoom(); unsubSessionEnded(); unsubEliminated(); };
@@ -110,28 +110,41 @@ export default function RoomSuitor() {
 
   // ── Elimination screen ───────────────────────────────────────────────────────
   if (isEliminated) {
+    const poolUrl = lastUser
+      ? `/pool?userId=${lastUser.id}&name=${encodeURIComponent(lastUser.name)}`
+      : null;
+
     return (
       <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center p-6 text-center">
         <div className="max-w-md w-full border border-destructive/20 rounded-2xl bg-card/60 backdrop-blur p-10 space-y-5">
           <div className="text-6xl font-black text-destructive/30">✕</div>
-          <h1 className="text-4xl font-black uppercase tracking-tight text-destructive">
-            ELIMINATED
-          </h1>
+          <h1 className="text-4xl font-black uppercase tracking-tight text-destructive">ELIMINATED</h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
             <span className="font-bold text-foreground">{room.chooserName}</span> has made their decision.
-            You've been cut after Round {ROUND_LABELS[currentRound] ?? currentRound}.
+            You were cut after Round {ROUND_LABELS[currentRound] ?? currentRound}.
           </p>
           <p className="text-xs font-mono text-muted-foreground/60 uppercase tracking-widest">
-            Better luck next time
+            Shake it off — the pool awaits
           </p>
-          <Link href="/">
-            <Button
-              variant="outline"
-              className="w-full h-11 font-bold uppercase tracking-widest border-border hover:border-primary/50 hover:text-primary"
-            >
-              Play Again
-            </Button>
-          </Link>
+
+          <div className="pt-2 space-y-3">
+            {poolUrl && (
+              <Button
+                onClick={() => setLocation(poolUrl)}
+                className="w-full h-12 font-bold uppercase tracking-widest bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-[0_0_20px_hsl(var(--secondary)/0.3)]"
+              >
+                ↩ Rejoin Pool
+              </Button>
+            )}
+            <Link href="/">
+              <Button
+                variant="outline"
+                className="w-full h-11 font-bold uppercase tracking-widest border-border hover:border-primary/50 hover:text-primary"
+              >
+                {poolUrl ? "Start Fresh" : "Play Again"}
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -178,7 +191,9 @@ export default function RoomSuitor() {
         {isActive && (
           <div className="px-4 py-1.5 bg-secondary/5 border-b border-border/40 flex items-center justify-between">
             <span className="text-muted-foreground text-[10px] font-mono uppercase tracking-wider">
-              {currentRound <= 3 ? `${6 - currentRound} suitors active · 1 question this round` : "Finals · 3 questions · Show them who you are"}
+              {currentRound <= 3
+                ? `${6 - currentRound} suitors active · 1 question this round`
+                : "Finals · 3 questions · Show them who you are"}
             </span>
           </div>
         )}
@@ -189,12 +204,8 @@ export default function RoomSuitor() {
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-muted border-t-secondary animate-spin mb-6" />
               <h2 className="text-xl sm:text-2xl font-bold uppercase mb-2">Waiting to start</h2>
-              <p className="text-muted-foreground font-mono text-sm">
-                {room.suitorCount} / 5 suitors joined
-              </p>
-              <p className="text-xs text-muted-foreground/60 font-mono mt-2">
-                Session starts when all 5 slots fill
-              </p>
+              <p className="text-muted-foreground font-mono text-sm">{room.suitorCount} / 5 suitors joined</p>
+              <p className="text-xs text-muted-foreground/60 font-mono mt-2">Session starts when all 5 slots fill</p>
             </div>
           ) : (
             <div className="h-full flex flex-col">

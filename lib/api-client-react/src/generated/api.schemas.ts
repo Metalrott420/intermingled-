@@ -36,6 +36,17 @@ export interface UserProfile {
   role: UserProfileRole;
   status: UserProfileStatus;
   createdAt: string;
+  /** True when this Clerk user has hit their daily chooser session limit */
+  cooldown?: boolean;
+  /**
+     * ISO timestamp when the daily cooldown resets (midnight UTC)
+     * @nullable
+     */
+  cooldownEndsAt?: string | null;
+  /** Number of chooser sessions used today */
+  sessionsToday?: number;
+  /** Maximum chooser sessions allowed per day */
+  chooserDailyLimit?: number;
 }
 
 export type CreateUserInputRole = typeof CreateUserInputRole[keyof typeof CreateUserInputRole];

@@ -1,7 +1,7 @@
 import { useCreateUser } from "@workspace/api-client-react";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -87,6 +87,21 @@ const QUIZ_QUESTIONS = [
   },
 ];
 
+interface CooldownInfo {
+  cooldownEndsAt: string;
+  sessionsToday: number;
+  limit: number;
+}
+
+function formatCountdown(endsAt: string): string {
+  const ms = new Date(endsAt).getTime() - Date.now();
+  if (ms <= 0) return "soon";
+  const totalMins = Math.ceil(ms / 60000);
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -98,18 +113,23 @@ export default function HomeScreen() {
   const [nameError, setNameError] = useState("");
   const [answers, setAnswers] = useState<number[]>([]);
   const [role, setRole] = useState<"chooser" | "suitor" | null>(null);
+  const [cooldownInfo, setCooldownInfo] = useState<CooldownInfo | null>(null);
+  const [, forceUpdate] = useState(0);
   const nameRef = useRef<TextInput>(null);
 
-  const totalSteps = 9; // 1 name + 7 quiz + 1 role
+  const totalSteps = 9;
   const progress = step / (totalSteps - 1);
-
   const styles = makeStyles(colors, insets);
 
+  // Tick countdown every 30s when on cooldown
+  useEffect(() => {
+    if (!cooldownInfo) return;
+    const id = setInterval(() => forceUpdate((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, [cooldownInfo]);
+
   const handleNameNext = () => {
-    if (!name.trim()) {
-      setNameError("Enter your name to continue");
-      return;
-    }
+    if (!name.trim()) { setNameError("Enter your name to continue"); return; }
     setNameError("");
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setStep(1);
@@ -119,23 +139,33 @@ export default function HomeScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const next = [...answers, score];
     setAnswers(next);
-    if (step < 7) {
-      setStep(step + 1);
-    } else {
-      setStep(8);
-    }
+    if (step < 7) { setStep(step + 1); } else { setStep(8); }
   };
 
   const handleRoleSelect = async (selectedRole: "chooser" | "suitor") => {
+    // If chooser is locked due to cooldown, redirect to suitor
+    if (selectedRole === "chooser" && cooldownInfo) return;
+
     setRole(selectedRole);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
     const personalityVector = answers.slice(0, 7);
 
     try {
       const userData = await createUser.mutateAsync({
         data: { name: name.trim(), role: selectedRole, personalityVector },
       });
+
+      // Handle chooser cooldown
+      if (selectedRole === "chooser" && userData.cooldown) {
+        setCooldownInfo({
+          cooldownEndsAt: userData.cooldownEndsAt ?? "",
+          sessionsToday: userData.sessionsToday ?? 3,
+          limit: userData.chooserDailyLimit ?? 3,
+        });
+        setRole(null);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        return;
+      }
 
       setUser({
         userId: userData.id,
@@ -157,13 +187,13 @@ export default function HomeScreen() {
   const handleBack = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (step === 0) return;
-    if (step === 8) {
-      setStep(7);
-      return;
-    }
+    if (step === 8) { setStep(7); setCooldownInfo(null); return; }
     setAnswers(answers.slice(0, -1));
     setStep(step - 1);
   };
+
+  const isOnCooldown = !!cooldownInfo;
+  const countdown = cooldownInfo ? formatCountdown(cooldownInfo.cooldownEndsAt) : "";
 
   return (
     <View style={styles.container}>
@@ -198,31 +228,30 @@ export default function HomeScreen() {
             />
             {nameError ? <Text style={styles.errorText}>{nameError}</Text> : null}
             <Pressable
-              style={({ pressed }) => [styles.continueBtn, pressed && styles.btnPressed]}
+              style={({ pressed }) => [styles.continueBtn, { backgroundColor: colors.primary }, pressed && styles.btnPressed]}
               onPress={handleNameNext}
             >
-              <Text style={styles.continueBtnText}>CONTINUE</Text>
+              <Text style={[styles.continueBtnText, { color: colors.primaryForeground }]}>CONTINUE</Text>
             </Pressable>
           </Animated.View>
         )}
 
         {step >= 1 && step <= 7 && (
-          <Animated.View
-            key={`q${step}`}
-            entering={SlideInRight}
-            exiting={SlideOutLeft}
-            style={styles.stepContainer}
-          >
+          <Animated.View key={`q${step}`} entering={SlideInRight} exiting={SlideOutLeft} style={styles.stepContainer}>
             <Text style={styles.stepLabel}>STEP {step + 1} OF 9</Text>
             <Text style={styles.question}>{QUIZ_QUESTIONS[step - 1].question}</Text>
             <View style={styles.optionsContainer}>
               {QUIZ_QUESTIONS[step - 1].options.map((opt, i) => (
                 <Pressable
                   key={i}
-                  style={({ pressed }) => [styles.optionBtn, pressed && styles.optionBtnPressed]}
+                  style={({ pressed }) => [
+                    styles.optionBtn,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                    pressed && { borderColor: colors.primary, backgroundColor: `${colors.primary}18` },
+                  ]}
                   onPress={() => handleAnswer(opt.score)}
                 >
-                  <Text style={styles.optionText}>{opt.label}</Text>
+                  <Text style={[styles.optionText, { color: colors.foreground }]}>{opt.label}</Text>
                 </Pressable>
               ))}
             </View>
@@ -233,28 +262,32 @@ export default function HomeScreen() {
           <Animated.View entering={FadeIn} style={styles.stepContainer}>
             <Text style={styles.stepLabel}>STEP 9 OF 9</Text>
             <Text style={styles.question}>How do you want to play?</Text>
-            <Text style={styles.roleSubtext}>
+            <Text style={[styles.roleSubtext, { color: colors.mutedForeground }]}>
               Choose your role for this round
             </Text>
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.roleBtn,
-                styles.roleBtnChooser,
-                pressed && styles.btnPressed,
-                role === "chooser" && styles.roleBtnSelected,
-              ]}
-              onPress={() => handleRoleSelect("chooser")}
-              disabled={createUser.isPending}
-            >
-              <Text style={[styles.roleBtnTitle, { color: colors.primary }]}>CHOOSER</Text>
-              <Text style={styles.roleBtnDesc}>Chat with 5 matched suitors{"\n"}and pick your favourite</Text>
-            </Pressable>
+            {/* Cooldown notice */}
+            {isOnCooldown && (
+              <View style={[styles.cooldownBox, { backgroundColor: "#f59e0b15", borderColor: "#f59e0b40" }]}>
+                <Text style={styles.cooldownTitle}>⏱ Chooser Cooldown Active</Text>
+                <Text style={[styles.cooldownBody, { color: colors.mutedForeground }]}>
+                  You've used {cooldownInfo!.sessionsToday}/{cooldownInfo!.limit} chooser sessions today.
+                  Resets in <Text style={styles.cooldownHighlight}>{countdown}</Text> at midnight UTC.
+                </Text>
+                <Text style={[styles.cooldownHint, { color: `${colors.mutedForeground}80` }]}>
+                  Join as a suitor while you wait!
+                </Text>
+              </View>
+            )}
 
+            {/* Suitor button */}
             <Pressable
               style={({ pressed }) => [
                 styles.roleBtn,
-                styles.roleBtnSuitor,
+                {
+                  borderColor: isOnCooldown ? colors.secondary : `${colors.secondary}40`,
+                  backgroundColor: isOnCooldown ? `${colors.secondary}20` : `${colors.secondary}10`,
+                },
                 pressed && styles.btnPressed,
                 role === "suitor" && styles.roleBtnSelected,
               ]}
@@ -262,8 +295,43 @@ export default function HomeScreen() {
               disabled={createUser.isPending}
             >
               <Text style={[styles.roleBtnTitle, { color: colors.secondary }]}>SUITOR</Text>
-              <Text style={styles.roleBtnDesc}>Join the pool and get matched{"\n"}to a chooser automatically</Text>
+              <Text style={[styles.roleBtnDesc, { color: colors.mutedForeground }]}>
+                {isOnCooldown
+                  ? "← Your role while on cooldown"
+                  : "Join the pool and get matched\nto a chooser automatically"}
+              </Text>
             </Pressable>
+
+            {/* Chooser button */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.roleBtn,
+                {
+                  borderColor: isOnCooldown ? `${colors.border}` : `${colors.primary}40`,
+                  backgroundColor: isOnCooldown ? `${colors.card}50` : `${colors.primary}10`,
+                  opacity: isOnCooldown ? 0.45 : 1,
+                },
+                pressed && !isOnCooldown && styles.btnPressed,
+                role === "chooser" && styles.roleBtnSelected,
+              ]}
+              onPress={() => handleRoleSelect("chooser")}
+              disabled={createUser.isPending || isOnCooldown}
+            >
+              <Text style={[styles.roleBtnTitle, { color: isOnCooldown ? colors.mutedForeground : colors.primary }]}>
+                {isOnCooldown ? "🔒 CHOOSER" : "CHOOSER"}
+              </Text>
+              <Text style={[styles.roleBtnDesc, { color: colors.mutedForeground }]}>
+                {isOnCooldown
+                  ? `On cooldown · ${cooldownInfo!.sessionsToday}/${cooldownInfo!.limit} sessions today`
+                  : "Chat with 5 matched suitors\nand pick your favourite"}
+              </Text>
+            </Pressable>
+
+            {!isOnCooldown && (
+              <Text style={[styles.limitHint, { color: `${colors.mutedForeground}50` }]}>
+                Signed-in choosers: 3 sessions · resets daily at midnight UTC
+              </Text>
+            )}
 
             {createUser.isPending && (
               <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
@@ -275,10 +343,9 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* Back button */}
       {step > 0 && (
         <Pressable style={styles.backBtn} onPress={handleBack}>
-          <Text style={styles.backBtnText}>← Back</Text>
+          <Text style={[styles.backBtnText, { color: colors.mutedForeground }]}>← Back</Text>
         </Pressable>
       )}
     </View>
@@ -294,76 +361,19 @@ function makeStyles(colors: ReturnType<typeof useColors>, insets: ReturnType<typ
       paddingTop: isWeb ? 67 : insets.top,
       paddingBottom: isWeb ? 34 : insets.bottom,
     },
-    header: {
-      alignItems: "center",
-      paddingVertical: 24,
-    },
-    logo: {
-      fontSize: 36,
-      fontFamily: "Inter_700Bold",
-      color: colors.primary,
-      letterSpacing: 4,
-    },
-    tagline: {
-      fontSize: 13,
-      fontFamily: "Inter_400Regular",
-      color: colors.mutedForeground,
-      marginTop: 4,
-      letterSpacing: 1,
-    },
-    progressTrack: {
-      height: 2,
-      backgroundColor: colors.border,
-      marginHorizontal: 24,
-      borderRadius: 1,
-      overflow: "hidden",
-    },
-    progressFill: {
-      height: 2,
-      backgroundColor: colors.primary,
-      borderRadius: 1,
-    },
-    content: {
-      flex: 1,
-      paddingHorizontal: 24,
-      paddingTop: 32,
-    },
-    stepContainer: {
-      flex: 1,
-    },
-    stepLabel: {
-      fontSize: 11,
-      fontFamily: "Inter_600SemiBold",
-      color: colors.mutedForeground,
-      letterSpacing: 2,
-      marginBottom: 16,
-    },
-    question: {
-      fontSize: 22,
-      fontFamily: "Inter_700Bold",
-      color: colors.foreground,
-      marginBottom: 28,
-      lineHeight: 30,
-    },
-    optionsContainer: {
-      gap: 10,
-    },
-    optionBtn: {
-      backgroundColor: colors.card,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 8,
-      padding: 16,
-    },
-    optionBtnPressed: {
-      borderColor: colors.primary,
-      backgroundColor: `${colors.primary}18`,
-    },
-    optionText: {
-      fontSize: 15,
-      fontFamily: "Inter_500Medium",
-      color: colors.foreground,
-    },
+    header: { alignItems: "center", paddingVertical: 24 },
+    logo: { fontSize: 36, fontFamily: "Inter_700Bold", color: colors.primary, letterSpacing: 4 },
+    tagline: { fontSize: 13, fontFamily: "Inter_400Regular", color: colors.mutedForeground, marginTop: 4, letterSpacing: 1 },
+    progressTrack: { height: 2, backgroundColor: colors.border, marginHorizontal: 24, borderRadius: 1, overflow: "hidden" },
+    progressFill: { height: 2, backgroundColor: colors.primary, borderRadius: 1 },
+    content: { flex: 1, paddingHorizontal: 24, paddingTop: 32 },
+    stepContainer: { flex: 1 },
+    stepLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 2, marginBottom: 16 },
+    question: { fontSize: 22, fontFamily: "Inter_700Bold", color: colors.foreground, marginBottom: 28, lineHeight: 30 },
+    optionsContainer: { gap: 10 },
+    optionBtn: { borderWidth: 1, borderRadius: 8, padding: 16 },
+    optionBtnPressed: { borderColor: colors.primary, backgroundColor: `${colors.primary}18` },
+    optionText: { fontSize: 15, fontFamily: "Inter_500Medium" },
     nameInput: {
       backgroundColor: colors.input,
       borderWidth: 1,
@@ -375,75 +385,29 @@ function makeStyles(colors: ReturnType<typeof useColors>, insets: ReturnType<typ
       color: colors.foreground,
       marginBottom: 16,
     },
-    nameInputError: {
-      borderColor: colors.destructive,
-    },
-    continueBtn: {
-      backgroundColor: colors.primary,
-      borderRadius: 8,
-      padding: 16,
-      alignItems: "center",
-    },
-    btnPressed: {
-      opacity: 0.8,
-    },
-    continueBtnText: {
-      fontSize: 14,
-      fontFamily: "Inter_700Bold",
-      color: colors.primaryForeground,
-      letterSpacing: 2,
-    },
-    errorText: {
-      fontSize: 13,
-      fontFamily: "Inter_400Regular",
-      color: colors.destructive,
-      marginBottom: 12,
-    },
-    roleSubtext: {
-      fontSize: 14,
-      fontFamily: "Inter_400Regular",
-      color: colors.mutedForeground,
-      marginBottom: 24,
-      marginTop: -16,
-    },
-    roleBtn: {
+    nameInputError: { borderColor: colors.destructive },
+    continueBtn: { borderRadius: 8, padding: 16, alignItems: "center" },
+    btnPressed: { opacity: 0.8 },
+    continueBtnText: { fontSize: 14, fontFamily: "Inter_700Bold", letterSpacing: 2 },
+    errorText: { fontSize: 13, fontFamily: "Inter_400Regular", color: colors.destructive, marginBottom: 12 },
+    roleSubtext: { fontSize: 14, fontFamily: "Inter_400Regular", marginBottom: 20, marginTop: -16 },
+    cooldownBox: {
       borderWidth: 1,
       borderRadius: 10,
-      padding: 20,
-      marginBottom: 14,
+      padding: 14,
+      marginBottom: 16,
+      gap: 4,
     },
-    roleBtnChooser: {
-      borderColor: `${colors.primary}40`,
-      backgroundColor: `${colors.primary}10`,
-    },
-    roleBtnSuitor: {
-      borderColor: `${colors.secondary}40`,
-      backgroundColor: `${colors.secondary}10`,
-    },
-    roleBtnSelected: {
-      opacity: 0.7,
-    },
-    roleBtnTitle: {
-      fontSize: 18,
-      fontFamily: "Inter_700Bold",
-      letterSpacing: 2,
-      marginBottom: 6,
-    },
-    roleBtnDesc: {
-      fontSize: 13,
-      fontFamily: "Inter_400Regular",
-      color: colors.mutedForeground,
-      lineHeight: 19,
-    },
-    backBtn: {
-      alignSelf: "center",
-      paddingVertical: 12,
-      paddingBottom: 8,
-    },
-    backBtnText: {
-      fontSize: 13,
-      fontFamily: "Inter_400Regular",
-      color: colors.mutedForeground,
-    },
+    cooldownTitle: { fontSize: 12, fontFamily: "Inter_700Bold", color: "#f59e0b", letterSpacing: 1, textTransform: "uppercase" },
+    cooldownBody: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
+    cooldownHighlight: { color: "#f59e0b", fontFamily: "Inter_700Bold" },
+    cooldownHint: { fontSize: 11, fontFamily: "Inter_400Regular" },
+    roleBtn: { borderWidth: 1, borderRadius: 10, padding: 20, marginBottom: 14 },
+    roleBtnSelected: { opacity: 0.7 },
+    roleBtnTitle: { fontSize: 18, fontFamily: "Inter_700Bold", letterSpacing: 2, marginBottom: 6 },
+    roleBtnDesc: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
+    limitHint: { fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "center", marginTop: -6, marginBottom: 4 },
+    backBtn: { alignSelf: "center", paddingVertical: 12, paddingBottom: 8 },
+    backBtnText: { fontSize: 13, fontFamily: "Inter_400Regular" },
   });
 }

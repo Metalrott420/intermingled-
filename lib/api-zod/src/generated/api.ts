@@ -71,7 +71,11 @@ export const ListLookingUsersResponseItem = zod.object({
   "name": zod.string(),
   "role": zod.enum(['chooser', 'suitor']),
   "status": zod.enum(['looking', 'matched', 'in_room']),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "cooldown": zod.boolean().optional().describe('True when this Clerk user has hit their daily chooser session limit'),
+  "cooldownEndsAt": zod.string().nullish().describe('ISO timestamp when the daily cooldown resets (midnight UTC)'),
+  "sessionsToday": zod.number().optional().describe('Number of chooser sessions used today'),
+  "chooserDailyLimit": zod.number().optional().describe('Maximum chooser sessions allowed per day')
 })
 export const ListLookingUsersResponse = zod.array(ListLookingUsersResponseItem)
 
@@ -92,7 +96,11 @@ export const UpdateUserStatusResponse = zod.object({
   "name": zod.string(),
   "role": zod.enum(['chooser', 'suitor']),
   "status": zod.enum(['looking', 'matched', 'in_room']),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "cooldown": zod.boolean().optional().describe('True when this Clerk user has hit their daily chooser session limit'),
+  "cooldownEndsAt": zod.string().nullish().describe('ISO timestamp when the daily cooldown resets (midnight UTC)'),
+  "sessionsToday": zod.number().optional().describe('Number of chooser sessions used today'),
+  "chooserDailyLimit": zod.number().optional().describe('Maximum chooser sessions allowed per day')
 })
 
 

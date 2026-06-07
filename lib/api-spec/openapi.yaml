@@ -326,6 +326,18 @@ components:
           enum: [looking, matched, in_room]
         createdAt:
           type: string
+        cooldown:
+          type: boolean
+          description: "True when this Clerk user has hit their daily chooser session limit"
+        cooldownEndsAt:
+          type: ["string", "null"]
+          description: "ISO timestamp when the daily cooldown resets (midnight UTC)"
+        sessionsToday:
+          type: integer
+          description: "Number of chooser sessions used today"
+        chooserDailyLimit:
+          type: integer
+          description: "Maximum chooser sessions allowed per day"
       required:
         - id
         - name

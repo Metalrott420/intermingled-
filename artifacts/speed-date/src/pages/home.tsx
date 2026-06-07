@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useCreateUser } from "@workspace/api-client-react";
 import { useUser, useClerk, Show } from "@clerk/react";
-import { User, MessageCircle } from "lucide-react";
+import { User, MessageCircle, Lock, Clock } from "lucide-react";
 
 const QUIZ_QUESTIONS = [
   {
@@ -70,17 +70,30 @@ const QUIZ_QUESTIONS = [
   },
 ];
 
-// Only cache the quiz answers and name — never the userId.
-// Each role selection always creates a fresh server-side user with the correct role,
-// so status lifecycle and role assignment are always accurate.
 const STORAGE_KEY = "intermingled_quiz";
+const SESSION_KEY = "intermingled_last_user";
 
 interface StoredQuiz {
   name: string;
   personalityVector: number[];
 }
 
+interface CooldownInfo {
+  cooldownEndsAt: string;
+  sessionsToday: number;
+  limit: number;
+}
+
 type Phase = "quiz" | "role";
+
+function formatCountdown(endsAt: string): string {
+  const ms = new Date(endsAt).getTime() - Date.now();
+  if (ms <= 0) return "soon";
+  const totalMins = Math.ceil(ms / 60000);
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -90,11 +103,19 @@ export default function Home() {
   const [name, setName] = useState("");
   const [storedQuiz, setStoredQuiz] = useState<StoredQuiz | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useUser();
+  const [cooldownInfo, setCooldownInfo] = useState<CooldownInfo | null>(null);
+  const [, forceUpdate] = useState(0);
   const { signOut } = useClerk();
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
   const createUser = useCreateUser();
+
+  // Tick countdown every 30s
+  useEffect(() => {
+    if (!cooldownInfo) return;
+    const id = setInterval(() => forceUpdate((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, [cooldownInfo]);
 
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -129,25 +150,32 @@ export default function Home() {
 
     try {
       const vector = answers.length === 7 ? answers : storedQuiz!.personalityVector;
-
-      // Always create a fresh user with the chosen role so:
-      //   1. Role is always correct server-side (choosers can't end up as suitors)
-      //   2. Status starts as 'looking' — clean lifecycle each session
-      const user = await createUser.mutateAsync({
+      const userData = await createUser.mutateAsync({
         data: { name: displayName, role, personalityVector: vector },
       });
 
-      // Cache quiz answers + name for next visit (not userId — a fresh user is
-      // created each session so there's no stale status to carry over)
+      // Store for "Rejoin Pool" after elimination
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ id: userData.id, name: displayName }));
+
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({ name: displayName, personalityVector: vector } satisfies StoredQuiz),
       );
 
+      // Cooldown response — chooser limit hit
+      if (userData.cooldown) {
+        setCooldownInfo({
+          cooldownEndsAt: userData.cooldownEndsAt ?? "",
+          sessionsToday: userData.sessionsToday ?? 3,
+          limit: userData.chooserDailyLimit ?? 3,
+        });
+        return;
+      }
+
       if (role === "suitor") {
-        setLocation(`/pool?userId=${user.id}&name=${encodeURIComponent(displayName)}`);
+        setLocation(`/pool?userId=${userData.id}&name=${encodeURIComponent(displayName)}`);
       } else {
-        setLocation(`/match?userId=${user.id}&name=${encodeURIComponent(displayName)}`);
+        setLocation(`/match?userId=${userData.id}&name=${encodeURIComponent(displayName)}`);
       }
     } finally {
       setIsSubmitting(false);
@@ -156,6 +184,7 @@ export default function Home() {
 
   const handleRetakeQuiz = () => {
     localStorage.removeItem(STORAGE_KEY);
+    setCooldownInfo(null);
     setStoredQuiz(null);
     setAnswers([]);
     setStep(0);
@@ -166,28 +195,29 @@ export default function Home() {
   const progress = ((phase === "quiz" ? step : QUIZ_QUESTIONS.length) / QUIZ_QUESTIONS.length) * 100;
   const currentQ = QUIZ_QUESTIONS[step];
 
+  const NavBar = () => (
+    <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+      <Show when="signed-out">
+        <a href={`${base}/sign-in`} className="text-xs font-mono text-muted-foreground hover:text-foreground px-3 py-1.5 border border-border rounded-md transition-colors">Sign in</a>
+        <a href={`${base}/subscribe`} className="text-xs font-mono bg-primary text-white px-3 py-1.5 rounded-md hover:bg-primary/90 transition-colors">Subscribe</a>
+      </Show>
+      <Show when="signed-in">
+        <a href={`${base}/inbox`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="Messages">
+          <MessageCircle size={18} />
+        </a>
+        <a href={`${base}/profile`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="My Profile">
+          <User size={18} />
+        </a>
+        <button onClick={() => signOut()} className="text-xs font-mono text-muted-foreground hover:text-foreground px-3 py-1.5 border border-border rounded-md transition-colors">Sign out</button>
+      </Show>
+    </div>
+  );
+
   if (phase === "quiz") {
     return (
       <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 bg-background text-foreground bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background relative overflow-hidden">
         <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-
-        {/* Auth nav bar */}
-        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-          <Show when="signed-out">
-            <a href={`${base}/sign-in`} className="text-xs font-mono text-muted-foreground hover:text-foreground px-3 py-1.5 border border-border rounded-md transition-colors">Sign in</a>
-            <a href={`${base}/subscribe`} className="text-xs font-mono bg-primary text-white px-3 py-1.5 rounded-md hover:bg-primary/90 transition-colors">Subscribe</a>
-          </Show>
-          <Show when="signed-in">
-            <a href={`${base}/inbox`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="Messages">
-              <MessageCircle size={18} />
-            </a>
-            <a href={`${base}/profile`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="My Profile">
-              <User size={18} />
-            </a>
-            <button onClick={() => signOut()} className="text-xs font-mono text-muted-foreground hover:text-foreground px-3 py-1.5 border border-border rounded-md transition-colors">Sign out</button>
-          </Show>
-        </div>
-
+        <NavBar />
         <div className="z-10 w-full max-w-lg">
           <h1 className="text-4xl md:text-5xl font-black mb-2 uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary text-center">
             Intermingled
@@ -195,23 +225,17 @@ export default function Home() {
           <p className="text-center font-mono text-muted-foreground mb-8 text-sm">
             Find your perfect match — answer 7 quick questions
           </p>
-
           <div className="w-full bg-border rounded-full h-1.5 mb-8">
             <div
               className="bg-gradient-to-r from-primary to-secondary h-1.5 rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
-
           <div className="text-xs font-mono text-muted-foreground text-center mb-6">
             QUESTION {step + 1} OF {QUIZ_QUESTIONS.length}
           </div>
-
           <div className="bg-card/80 backdrop-blur border border-primary/20 rounded-xl p-8 shadow-[0_0_30px_hsl(var(--primary)/0.15)]">
-            <h2 className="text-xl md:text-2xl font-bold text-center mb-8 leading-snug">
-              {currentQ.question}
-            </h2>
-
+            <h2 className="text-xl md:text-2xl font-bold text-center mb-8 leading-snug">{currentQ.question}</h2>
             <div className="grid grid-cols-1 gap-3">
               {currentQ.options.map((opt, i) => (
                 <button
@@ -224,7 +248,6 @@ export default function Home() {
               ))}
             </div>
           </div>
-
           {step > 0 && (
             <button
               onClick={() => { setStep(step - 1); setAnswers(answers.slice(0, -1)); }}
@@ -238,26 +261,14 @@ export default function Home() {
     );
   }
 
+  // ── Role selection screen ────────────────────────────────────────────────────
+  const isOnCooldown = !!cooldownInfo;
+  const countdown = cooldownInfo ? formatCountdown(cooldownInfo.cooldownEndsAt) : "";
+
   return (
     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 bg-background text-foreground bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-secondary/20 via-background to-background relative overflow-hidden">
       <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-
-      {/* Auth nav bar */}
-      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-        <Show when="signed-out">
-          <a href={`${base}/sign-in`} className="text-xs font-mono text-muted-foreground hover:text-foreground px-3 py-1.5 border border-border rounded-md transition-colors">Sign in</a>
-          <a href={`${base}/subscribe`} className="text-xs font-mono bg-primary text-white px-3 py-1.5 rounded-md hover:bg-primary/90 transition-colors">Subscribe</a>
-        </Show>
-        <Show when="signed-in">
-          <a href={`${base}/inbox`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="Messages">
-            <MessageCircle size={18} />
-          </a>
-          <a href={`${base}/profile`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="My Profile">
-            <User size={18} />
-          </a>
-          <button onClick={() => signOut()} className="text-xs font-mono text-muted-foreground hover:text-foreground px-3 py-1.5 border border-border rounded-md transition-colors">Sign out</button>
-        </Show>
-      </div>
+      <NavBar />
 
       <div className="z-10 w-full max-w-md">
         <h1 className="text-4xl md:text-5xl font-black mb-2 uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary text-center">
@@ -275,6 +286,7 @@ export default function Home() {
         )}
 
         <div className="bg-card/80 backdrop-blur border border-secondary/20 rounded-xl p-8 shadow-[0_0_30px_hsl(var(--secondary)/0.15)] space-y-6">
+          {/* Name field */}
           <div className="space-y-2">
             <label className="text-xs uppercase font-mono text-muted-foreground">Your Name</label>
             <input
@@ -286,27 +298,70 @@ export default function Home() {
             />
           </div>
 
+          {/* Cooldown notice */}
+          {isOnCooldown && (
+            <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+              <Clock size={16} className="text-amber-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">Chooser Cooldown Active</p>
+                <p className="text-muted-foreground text-xs leading-relaxed">
+                  You've used {cooldownInfo.sessionsToday}/{cooldownInfo.limit} chooser sessions today.
+                  Resets in <span className="text-amber-400 font-bold">{countdown}</span> at midnight UTC.
+                </p>
+                <p className="text-muted-foreground text-xs mt-1.5">
+                  Join as a suitor while you wait — you'll be matched automatically!
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-3">
             <div className="text-xs uppercase font-mono text-muted-foreground">What's your role today?</div>
 
+            {/* Suitor button */}
             <button
               onClick={() => handleSubmit("suitor")}
               disabled={isSubmitting || !name.trim()}
-              className="w-full h-16 rounded-lg border-2 border-secondary bg-secondary/10 text-secondary font-bold uppercase tracking-widest text-lg hover:bg-secondary/20 hover:shadow-[0_0_20px_hsl(var(--secondary)/0.3)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`w-full h-16 rounded-lg border-2 font-bold uppercase tracking-widest text-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
+                isOnCooldown
+                  ? "border-secondary bg-secondary/20 text-secondary hover:bg-secondary/30 hover:shadow-[0_0_25px_hsl(var(--secondary)/0.4)] shadow-[0_0_15px_hsl(var(--secondary)/0.2)]"
+                  : "border-secondary bg-secondary/10 text-secondary hover:bg-secondary/20 hover:shadow-[0_0_20px_hsl(var(--secondary)/0.3)]"
+              }`}
             >
               I Want to Be Chosen
-              <div className="text-xs font-normal font-mono mt-0.5 opacity-70">Enter the suitor pool</div>
+              <div className="text-xs font-normal font-mono mt-0.5 opacity-70">
+                {isOnCooldown ? "← Your role while on cooldown" : "Enter the suitor pool"}
+              </div>
             </button>
 
+            {/* Chooser button */}
             <button
-              onClick={() => handleSubmit("chooser")}
-              disabled={isSubmitting || !name.trim()}
-              className="w-full h-16 rounded-lg border-2 border-primary bg-primary/10 text-primary font-bold uppercase tracking-widest text-lg hover:bg-primary/20 hover:shadow-[0_0_20px_hsl(var(--primary)/0.3)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => !isOnCooldown && handleSubmit("chooser")}
+              disabled={isSubmitting || !name.trim() || isOnCooldown}
+              className={`w-full h-16 rounded-lg border-2 font-bold uppercase tracking-widest text-lg transition-all active:scale-[0.98] relative ${
+                isOnCooldown
+                  ? "border-border bg-card/30 text-muted-foreground cursor-not-allowed opacity-50"
+                  : "border-primary bg-primary/10 text-primary hover:bg-primary/20 hover:shadow-[0_0_20px_hsl(var(--primary)/0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+              }`}
             >
+              {isOnCooldown && (
+                <Lock size={14} className="inline mr-2 -mt-0.5" />
+              )}
               I Want to Choose
-              <div className="text-xs font-normal font-mono mt-0.5 opacity-70">Find your 5 matches</div>
+              <div className="text-xs font-normal font-mono mt-0.5 opacity-70">
+                {isOnCooldown
+                  ? `On cooldown · ${cooldownInfo!.sessionsToday}/${cooldownInfo!.limit} sessions used`
+                  : "Find your 5 matches"}
+              </div>
             </button>
           </div>
+
+          {/* Sessions indicator (always visible for signed-in users) */}
+          {!isOnCooldown && (
+            <p className="text-center text-[11px] font-mono text-muted-foreground/50">
+              Signed-in choosers get 3 sessions · resets daily at midnight UTC
+            </p>
+          )}
         </div>
 
         <button

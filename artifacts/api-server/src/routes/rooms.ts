@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
-import { db, roomsTable, participantsTable, messagesTable } from "@workspace/db";
+import { db, roomsTable, participantsTable, messagesTable, usersTable } from "@workspace/db";
 import {
   CreateRoomBody,
   GetRoomParams,
@@ -11,7 +11,8 @@ import {
   ChooseWinnerParams,
   ChooseWinnerBody,
 } from "@workspace/api-zod";
-import { getIo } from "../socket";
+import { getIo, isUserInPool } from "../socket";
+import { rankSuitors } from "../lib/matchmaking";
 
 const router: IRouter = Router();
 
@@ -83,6 +84,96 @@ router.post("/rooms", async (req, res) => {
 
   const roomData = await buildRoomResponse(id);
   res.status(201).json(roomData);
+});
+
+router.post("/rooms/match", async (req, res) => {
+  const { chooserUserId } = req.body;
+  if (typeof chooserUserId !== "string" || !chooserUserId) {
+    res.status(400).json({ error: "chooserUserId is required" });
+    return;
+  }
+
+  const chooser = await db.query.usersTable.findFirst({
+    where: and(eq(usersTable.id, chooserUserId), eq(usersTable.role, "chooser")),
+  });
+  if (!chooser) {
+    res.status(404).json({ error: "Chooser user not found" });
+    return;
+  }
+
+  // Find only users who are:
+  //   1. role = suitor (never choosers)
+  //   2. status = looking (not already matched/in_room)
+  //   3. Actively connected to the socket pool (live presence)
+  const dbCandidates = await db.query.usersTable.findMany({
+    where: and(eq(usersTable.status, "looking"), eq(usersTable.role, "suitor")),
+  });
+  const liveSuitorPool = dbCandidates.filter((u) => isUserInPool(u.id));
+
+  if (liveSuitorPool.length < 5) {
+    res.status(409).json({
+      error: "Not enough suitors in pool",
+      count: liveSuitorPool.length,
+    });
+    return;
+  }
+
+  const top5 = rankSuitors(chooser.personalityVector, liveSuitorPool, 5);
+
+  // Create room, start it active immediately
+  const roomId = makeId();
+  const code = makeCode();
+  await db.insert(roomsTable).values({
+    id: roomId,
+    code,
+    chooserName: chooser.name,
+    status: "active",
+    maxSuitors: 5,
+  });
+
+  // Add chooser as participant
+  const chooserParticipantId = makeId();
+  await db.insert(participantsTable).values({
+    id: chooserParticipantId,
+    roomId,
+    name: chooser.name,
+    role: "chooser",
+    suitorSlot: null,
+  });
+
+  // Mark chooser as in_room
+  await db.update(usersTable).set({ status: "in_room" }).where(eq(usersTable.id, chooserUserId));
+
+  const io = getIo();
+
+  // Add top 5 suitors, update their status, notify them via socket, and
+  // emit a per-suitor slot_filled event to the chooser for real-time UI updates
+  for (let i = 0; i < top5.length; i++) {
+    const suitor = top5[i];
+    const participantId = makeId();
+    await db.insert(participantsTable).values({
+      id: participantId,
+      roomId,
+      name: suitor.name,
+      role: "suitor",
+      suitorSlot: i + 1,
+    });
+    await db.update(usersTable).set({ status: "matched" }).where(eq(usersTable.id, suitor.id));
+
+    // Notify suitor — they will auto-redirect to their room
+    io.to(`user_${suitor.id}`).emit("match_found", { roomId, participantId });
+
+    // Notify chooser of each slot being filled in sequence
+    io.to(`user_${chooserUserId}`).emit("slot_filled", {
+      slot: i + 1,
+      suitorName: suitor.name,
+      participantId,
+      roomId,
+    });
+  }
+
+  const roomData = await buildRoomResponse(roomId);
+  res.status(201).json({ ...roomData, chooserParticipantId });
 });
 
 router.get("/rooms/active", async (_req, res) => {

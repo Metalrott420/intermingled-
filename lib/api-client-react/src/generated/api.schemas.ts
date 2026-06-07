@@ -13,6 +13,76 @@ export interface ErrorResponse {
   error: string;
 }
 
+export type UserProfileRole = typeof UserProfileRole[keyof typeof UserProfileRole];
+
+
+export const UserProfileRole = {
+  chooser: 'chooser',
+  suitor: 'suitor',
+} as const;
+
+export type UserProfileStatus = typeof UserProfileStatus[keyof typeof UserProfileStatus];
+
+
+export const UserProfileStatus = {
+  looking: 'looking',
+  matched: 'matched',
+  in_room: 'in_room',
+} as const;
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  role: UserProfileRole;
+  status: UserProfileStatus;
+  createdAt: string;
+}
+
+export type CreateUserInputRole = typeof CreateUserInputRole[keyof typeof CreateUserInputRole];
+
+
+export const CreateUserInputRole = {
+  chooser: 'chooser',
+  suitor: 'suitor',
+} as const;
+
+export interface CreateUserInput {
+  /** @minLength 1 */
+  name: string;
+  role: CreateUserInputRole;
+  /**
+     * @minItems 7
+     * @maxItems 7
+     */
+  personalityVector: number[];
+}
+
+export type UpdateUserStatusInputStatus = typeof UpdateUserStatusInputStatus[keyof typeof UpdateUserStatusInputStatus];
+
+
+export const UpdateUserStatusInputStatus = {
+  looking: 'looking',
+  matched: 'matched',
+  in_room: 'in_room',
+} as const;
+
+export interface UpdateUserStatusInput {
+  status: UpdateUserStatusInputStatus;
+}
+
+export interface MatchInput {
+  chooserUserId: string;
+}
+
+export type RoomStatus = typeof RoomStatus[keyof typeof RoomStatus];
+
+
+export const RoomStatus = {
+  waiting: 'waiting',
+  active: 'active',
+  ended: 'ended',
+} as const;
+
 export type ParticipantRole = typeof ParticipantRole[keyof typeof ParticipantRole];
 
 
@@ -29,15 +99,6 @@ export interface Participant {
   suitorSlot: number | null;
 }
 
-export type RoomStatus = typeof RoomStatus[keyof typeof RoomStatus];
-
-
-export const RoomStatus = {
-  waiting: 'waiting',
-  active: 'active',
-  ended: 'ended',
-} as const;
-
 export interface Room {
   id: string;
   code: string;
@@ -52,6 +113,15 @@ export interface Room {
   winnerName: string | null;
   participants: Participant[];
   createdAt: string;
+}
+
+export type MatchResult = Room & {
+  chooserParticipantId: string;
+};
+
+export interface NotEnoughSuitors {
+  error: string;
+  count: number;
 }
 
 export type MessageSenderRole = typeof MessageSenderRole[keyof typeof MessageSenderRole];

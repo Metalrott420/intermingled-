@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: rooms
     description: Speed dating room operations
+  - name: users
+    description: User and matchmaking operations
 paths:
   /healthz:
     get:
@@ -26,6 +28,71 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /users:
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a user with quiz answers as personality vector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserInput"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /users/looking:
+    get:
+      operationId: listLookingUsers
+      tags: [users]
+      summary: List all users currently in the looking pool
+      responses:
+        "200":
+          description: Users in looking pool
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserProfile"
+
+  /users/{id}/status:
+    put:
+      operationId: updateUserStatus
+      tags: [users]
+      summary: Update a user's status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserStatusInput"
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /rooms:
     post:
@@ -45,6 +112,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Room"
+
+  /rooms/match:
+    post:
+      operationId: matchRoom
+      tags: [rooms]
+      summary: Auto-match a chooser with the top 5 compatible suitors
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchInput"
+      responses:
+        "201":
+          description: Room created and suitors matched
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchResult"
+        "409":
+          description: Not enough suitors in pool
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotEnoughSuitors"
+
+  /rooms/active:
+    get:
+      operationId: listActiveRooms
+      tags: [rooms]
+      summary: List joinable rooms waiting for participants
+      responses:
+        "200":
+          description: Active rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Room"
 
   /rooms/{id}:
     get:
@@ -160,21 +267,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /rooms/active:
-    get:
-      operationId: listActiveRooms
-      tags: [rooms]
-      summary: List joinable rooms waiting for participants
-      responses:
-        "200":
-          description: Active rooms
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Room"
-
 components:
   schemas:
     HealthStatus:
@@ -192,6 +284,86 @@ components:
           type: string
       required:
         - error
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [chooser, suitor]
+        status:
+          type: string
+          enum: [looking, matched, in_room]
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - role
+        - status
+        - createdAt
+
+    CreateUserInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        role:
+          type: string
+          enum: [chooser, suitor]
+        personalityVector:
+          type: array
+          items:
+            type: number
+          minItems: 7
+          maxItems: 7
+      required:
+        - name
+        - role
+        - personalityVector
+
+    UpdateUserStatusInput:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [looking, matched, in_room]
+      required:
+        - status
+
+    MatchInput:
+      type: object
+      properties:
+        chooserUserId:
+          type: string
+      required:
+        - chooserUserId
+
+    MatchResult:
+      allOf:
+        - $ref: "#/components/schemas/Room"
+        - type: object
+          properties:
+            chooserParticipantId:
+              type: string
+          required:
+            - chooserParticipantId
+
+    NotEnoughSuitors:
+      type: object
+      properties:
+        error:
+          type: string
+        count:
+          type: integer
+      required:
+        - error
+        - count
 
     Participant:
       type: object

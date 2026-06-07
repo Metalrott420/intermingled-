@@ -32,7 +32,7 @@ export default function RoomSuitor() {
 
   useEffect(() => {
     if (!participantId) {
-      setLocation("/lobby");
+      setLocation("/");
     }
   }, [participantId, setLocation]);
 

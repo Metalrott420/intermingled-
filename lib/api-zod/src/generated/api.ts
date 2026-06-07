@@ -18,6 +18,55 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Create a user with quiz answers as personality vector
+ */
+
+export const createUserBodyPersonalityVectorMin = 7;
+export const createUserBodyPersonalityVectorMax = 7;
+
+
+
+export const CreateUserBody = zod.object({
+  "name": zod.string().min(1),
+  "role": zod.enum(['chooser', 'suitor']),
+  "personalityVector": zod.array(zod.number()).min(createUserBodyPersonalityVectorMin).max(createUserBodyPersonalityVectorMax)
+})
+
+
+/**
+ * @summary List all users currently in the looking pool
+ */
+export const ListLookingUsersResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['chooser', 'suitor']),
+  "status": zod.enum(['looking', 'matched', 'in_room']),
+  "createdAt": zod.string()
+})
+export const ListLookingUsersResponse = zod.array(ListLookingUsersResponseItem)
+
+
+/**
+ * @summary Update a user's status
+ */
+export const UpdateUserStatusParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateUserStatusBody = zod.object({
+  "status": zod.enum(['looking', 'matched', 'in_room'])
+})
+
+export const UpdateUserStatusResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['chooser', 'suitor']),
+  "status": zod.enum(['looking', 'matched', 'in_room']),
+  "createdAt": zod.string()
+})
+
+
+/**
  * @summary Create a new speed dating room
  */
 
@@ -26,6 +75,37 @@ export const HealthCheckResponse = zod.object({
 export const CreateRoomBody = zod.object({
   "chooserName": zod.string().min(1)
 })
+
+
+/**
+ * @summary Auto-match a chooser with the top 5 compatible suitors
+ */
+export const MatchRoomBody = zod.object({
+  "chooserUserId": zod.string()
+})
+
+
+/**
+ * @summary List joinable rooms waiting for participants
+ */
+export const ListActiveRoomsResponseItem = zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "status": zod.enum(['waiting', 'active', 'ended']),
+  "chooserName": zod.string().nullable(),
+  "suitorCount": zod.number(),
+  "maxSuitors": zod.number(),
+  "winnerId": zod.string().nullable(),
+  "winnerName": zod.string().nullable(),
+  "participants": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['chooser', 'suitor']),
+  "suitorSlot": zod.number().nullable()
+})),
+  "createdAt": zod.string()
+})
+export const ListActiveRoomsResponse = zod.array(ListActiveRoomsResponseItem)
 
 
 /**
@@ -139,28 +219,5 @@ export const ChooseWinnerResponse = zod.object({
 })),
   "createdAt": zod.string()
 })
-
-
-/**
- * @summary List joinable rooms waiting for participants
- */
-export const ListActiveRoomsResponseItem = zod.object({
-  "id": zod.string(),
-  "code": zod.string(),
-  "status": zod.enum(['waiting', 'active', 'ended']),
-  "chooserName": zod.string().nullable(),
-  "suitorCount": zod.number(),
-  "maxSuitors": zod.number(),
-  "winnerId": zod.string().nullable(),
-  "winnerName": zod.string().nullable(),
-  "participants": zod.array(zod.object({
-  "id": zod.string(),
-  "name": zod.string(),
-  "role": zod.enum(['chooser', 'suitor']),
-  "suitorSlot": zod.number().nullable()
-})),
-  "createdAt": zod.string()
-})
-export const ListActiveRoomsResponse = zod.array(ListActiveRoomsResponseItem)
 
 

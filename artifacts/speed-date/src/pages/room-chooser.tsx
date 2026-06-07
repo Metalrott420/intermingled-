@@ -43,7 +43,7 @@ export default function RoomChooser() {
 
   useEffect(() => {
     if (!participantId) {
-      setLocation("/lobby");
+      setLocation("/");
     }
   }, [participantId, setLocation]);
 

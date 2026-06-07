@@ -7,15 +7,25 @@
  */
 
 export * from './chooseInput';
+export * from './createUserInput';
+export * from './createUserInputRole';
 export * from './errorResponse';
 export * from './healthStatus';
 export * from './joinInput';
 export * from './joinInputRole';
 export * from './joinResult';
+export * from './matchInput';
+export * from './matchResult';
 export * from './message';
 export * from './messageSenderRole';
+export * from './notEnoughSuitors';
 export * from './participant';
 export * from './participantRole';
 export * from './room';
 export * from './roomInput';
 export * from './roomStatus';
+export * from './updateUserStatusInput';
+export * from './updateUserStatusInputStatus';
+export * from './userProfile';
+export * from './userProfileRole';
+export * from './userProfileStatus';

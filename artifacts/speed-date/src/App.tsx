@@ -4,7 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
-import Lobby from "@/pages/lobby";
+import Pool from "@/pages/pool";
+import Match from "@/pages/match";
 import RoomChooser from "@/pages/room-chooser";
 import RoomSuitor from "@/pages/room-suitor";
 import Result from "@/pages/result";
@@ -15,7 +16,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/lobby" component={Lobby} />
+      <Route path="/pool" component={Pool} />
+      <Route path="/match" component={Match} />
       <Route path="/room/:id/chooser" component={RoomChooser} />
       <Route path="/room/:id/suitor" component={RoomSuitor} />
       <Route path="/result/:id" component={Result} />

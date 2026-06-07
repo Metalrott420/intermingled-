@@ -9,6 +9,7 @@
 export * from './chooseInput';
 export * from './createUserInput';
 export * from './createUserInputRole';
+export * from './errorEnvelope';
 export * from './errorResponse';
 export * from './healthStatus';
 export * from './joinInput';
@@ -26,6 +27,8 @@ export * from './roomInput';
 export * from './roomStatus';
 export * from './updateUserStatusInput';
 export * from './updateUserStatusInputStatus';
+export * from './uploadUrlRequest';
+export * from './uploadUrlResponse';
 export * from './userProfile';
 export * from './userProfileRole';
 export * from './userProfileStatus';

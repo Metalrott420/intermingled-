@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
-import { db, roomsTable, participantsTable, messagesTable, usersTable } from "@workspace/db";
+import { db, roomsTable, participantsTable, messagesTable, usersTable, matchesTable } from "@workspace/db";
 import {
   CreateRoomBody,
   GetRoomParams,
@@ -353,6 +353,40 @@ router.post("/rooms/:id/choose", async (req, res) => {
       winnerName: winner?.name ?? null,
     })
     .where(eq(roomsTable.id, room.id));
+
+  // Create a 1-on-1 match record so both users get a private DM channel.
+  // Look up both users by name so we can record their actual user IDs.
+  try {
+    const chooserUser = await db.query.usersTable.findFirst({
+      where: eq(usersTable.name, room.chooserName ?? ""),
+    });
+    const suitorUser = winner
+      ? await db.query.usersTable.findFirst({
+          where: eq(usersTable.name, winner.name),
+        })
+      : null;
+
+    if (chooserUser && suitorUser) {
+      const existingMatch = await db.query.matchesTable.findFirst({
+        where: and(
+          eq(matchesTable.chooserUserId, chooserUser.id),
+          eq(matchesTable.suitorUserId, suitorUser.id),
+        ),
+      });
+      if (!existingMatch) {
+        await db.insert(matchesTable).values({
+          id: makeId(),
+          roomId: room.id,
+          chooserUserId: chooserUser.id,
+          suitorUserId: suitorUser.id,
+          chooserName: chooserUser.name,
+          suitorName: suitorUser.name,
+        });
+      }
+    }
+  } catch (matchErr) {
+    // Non-fatal — room result is still valid
+  }
 
   const roomData = await buildRoomResponse(room.id);
   const io = getIo();

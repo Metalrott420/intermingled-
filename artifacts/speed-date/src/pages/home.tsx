@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useCreateUser } from "@workspace/api-client-react";
 import { useUser, useClerk, Show } from "@clerk/react";
+import { User, MessageCircle } from "lucide-react";
 
 const QUIZ_QUESTIONS = [
   {
@@ -177,7 +178,12 @@ export default function Home() {
             <a href={`${base}/subscribe`} className="text-xs font-mono bg-primary text-white px-3 py-1.5 rounded-md hover:bg-primary/90 transition-colors">Subscribe</a>
           </Show>
           <Show when="signed-in">
-            <span className="text-xs font-mono text-muted-foreground">{user?.firstName ?? user?.primaryEmailAddress?.emailAddress}</span>
+            <a href={`${base}/inbox`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="Messages">
+              <MessageCircle size={18} />
+            </a>
+            <a href={`${base}/profile`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="My Profile">
+              <User size={18} />
+            </a>
             <button onClick={() => signOut()} className="text-xs font-mono text-muted-foreground hover:text-foreground px-3 py-1.5 border border-border rounded-md transition-colors">Sign out</button>
           </Show>
         </div>

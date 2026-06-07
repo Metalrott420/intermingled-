@@ -15,6 +15,9 @@ import RoomSuitor from "@/pages/room-suitor";
 import Result from "@/pages/result";
 import Subscribe from "@/pages/subscribe";
 import SubscribeSuccess from "@/pages/subscribe-success";
+import ProfilePage from "@/pages/profile";
+import InboxPage from "@/pages/inbox";
+import ConversationPage from "@/pages/conversation";
 
 const queryClient = new QueryClient();
 
@@ -132,6 +135,9 @@ function AppRoutes() {
       <Route path="/result/:id" component={Result} />
       <Route path="/subscribe" component={Subscribe} />
       <Route path="/subscribe/success" component={SubscribeSuccess} />
+      <Route path="/profile" component={ProfilePage} />
+      <Route path="/inbox" component={InboxPage} />
+      <Route path="/conversation/:matchId" component={ConversationPage} />
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route component={NotFound} />

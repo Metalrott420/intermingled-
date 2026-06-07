@@ -39,6 +39,12 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
       logger.info({ socketId: socket.id, roomId }, "Joined room");
     });
 
+    // Join a private match DM room
+    socket.on("join_match", ({ matchId }: { matchId: string }) => {
+      socket.join(`match_${matchId}`);
+      logger.info({ socketId: socket.id, matchId }, "Joined match DM room");
+    });
+
     // Suitor enters their personal socket room and is marked live in the pool
     socket.on("enter_pool", ({ userId }: { userId: string }) => {
       socket.join(`user_${userId}`);

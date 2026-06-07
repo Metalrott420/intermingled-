@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, pgEnum, jsonb, date, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -10,6 +10,9 @@ export const usersTable = pgTable("users", {
   clerkId: text("clerk_id").unique(),
   email: text("email"),
   name: text("name").notNull(),
+  bio: text("bio"),
+  dateOfBirth: date("date_of_birth"),
+  photos: jsonb("photos").$type<string[]>().default([]),
   personalityVector: jsonb("personality_vector").$type<number[]>(),
   role: userRoleEnum("role"),
   status: userStatusEnum("status").notNull().default("looking"),

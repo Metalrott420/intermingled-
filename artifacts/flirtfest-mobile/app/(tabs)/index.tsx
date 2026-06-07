@@ -1,11 +1,13 @@
+import { useAuth, useUser } from "@clerk/expo";
 import { useCreateUser } from "@workspace/api-client-react";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -87,10 +89,32 @@ const QUIZ_QUESTIONS = [
   },
 ];
 
+const QUIZ_STORAGE_KEY = "intermingled_quiz";
+
+interface StoredQuiz {
+  name: string;
+  personalityVector: number[];
+}
+
 interface CooldownInfo {
   cooldownEndsAt: string;
   sessionsToday: number;
   limit: number;
+}
+
+type Phase = "loading" | "auth" | "profile_setup" | "age_blocked" | "quiz" | "role";
+
+const API = process.env.EXPO_PUBLIC_DOMAIN
+  ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`
+  : "http://localhost:8080/api";
+
+function calculateAge(dob: string): number {
+  const d = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - d.getFullYear();
+  const m = today.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
+  return age;
 }
 
 function formatCountdown(endsAt: string): string {
@@ -102,60 +126,147 @@ function formatCountdown(endsAt: string): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
+// Steps: 0-6 = quiz questions (7 total), 7 = role selection
+const TOTAL_STEPS = 8;
+
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { setUser } = useApp();
   const createUser = useCreateUser();
+  const { isSignedIn, isLoaded, user: clerkUser } = useUser();
+  const { getToken } = useAuth();
 
-  const [step, setStep] = useState(0); // 0=name, 1-7=quiz, 8=role
-  const [name, setName] = useState("");
-  const [nameError, setNameError] = useState("");
+  const [phase, setPhase] = useState<Phase>("loading");
+
+  // Profile setup
+  const [setupName, setSetupName] = useState("");
+  const [setupDob, setSetupDob] = useState("");
+  const [setupError, setSetupError] = useState<string | null>(null);
+  const [setupSaving, setSetupSaving] = useState(false);
+
+  // Quiz / role
+  const [step, setStep] = useState(0); // 0-6 = quiz questions, 7 = role
   const [answers, setAnswers] = useState<number[]>([]);
+  const [sessionName, setSessionName] = useState("");
+  const [storedQuiz, setStoredQuiz] = useState<StoredQuiz | null>(null);
   const [role, setRole] = useState<"chooser" | "suitor" | null>(null);
   const [cooldownInfo, setCooldownInfo] = useState<CooldownInfo | null>(null);
   const [, forceUpdate] = useState(0);
-  const nameRef = useRef<TextInput>(null);
 
-  const totalSteps = 9;
-  const progress = step / (totalSteps - 1);
-  const styles = makeStyles(colors, insets);
-
-  // Tick countdown every 30s when on cooldown
+  // Tick countdown
   useEffect(() => {
     if (!cooldownInfo) return;
     const id = setInterval(() => forceUpdate((n) => n + 1), 30_000);
     return () => clearInterval(id);
   }, [cooldownInfo]);
 
-  const handleNameNext = () => {
-    if (!name.trim()) { setNameError("Enter your name to continue"); return; }
-    setNameError("");
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setStep(1);
+  const authFetch = async (url: string, options: RequestInit = {}) => {
+    const token = await getToken();
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+  };
+
+  // Determine initial phase
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    if (!isSignedIn) {
+      setPhase("auth");
+      return;
+    }
+
+    authFetch(`${API}/profile/me`)
+      .then((r) => r.json())
+      .then((profile) => {
+        const dob: string | null = profile.dateOfBirth ?? null;
+
+        if (!dob) {
+          const clerkName = [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(" ").trim();
+          setSetupName(profile.name && profile.name !== "Anonymous" ? profile.name : clerkName);
+          setPhase("profile_setup");
+          return;
+        }
+
+        const age = calculateAge(dob);
+        if (age < 18) {
+          setPhase("age_blocked");
+          return;
+        }
+
+        // Profile verified — skip to quiz (no cached quiz storage on mobile for now)
+        const profileName = profile.name as string;
+        setSessionName(profileName);
+        setPhase("quiz");
+      })
+      .catch(() => {
+        // Fallback — signed in but profile fetch failed
+        setSessionName(clerkUser?.firstName ?? "");
+        setPhase("quiz");
+      });
+  }, [isLoaded, isSignedIn]);
+
+  const handleProfileSave = async () => {
+    setSetupError(null);
+    if (!setupDob.trim()) { setSetupError("Date of birth is required."); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(setupDob)) { setSetupError("Use format YYYY-MM-DD"); return; }
+
+    const age = calculateAge(setupDob);
+    if (age < 18) { setSetupError("You must be 18 or older to use Intermingled."); return; }
+    if (age > 120) { setSetupError("Please enter a valid date of birth."); return; }
+
+    setSetupSaving(true);
+    try {
+      const res = await authFetch(`${API}/profile/me`, {
+        method: "PUT",
+        body: JSON.stringify({ name: setupName.trim() || undefined, dateOfBirth: setupDob }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        setSetupError(err.error ?? "Failed to save profile.");
+        return;
+      }
+      const updated = await res.json();
+      setSessionName((updated.name as string) || setupName);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setPhase("quiz");
+    } catch {
+      setSetupError("Network error. Please try again.");
+    } finally {
+      setSetupSaving(false);
+    }
   };
 
   const handleAnswer = (score: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const next = [...answers, score];
     setAnswers(next);
-    if (step < 7) { setStep(step + 1); } else { setStep(8); }
+    if (step < 6) {
+      setStep(step + 1);
+    } else {
+      setStep(7); // role selection
+    }
   };
 
   const handleRoleSelect = async (selectedRole: "chooser" | "suitor") => {
-    // If chooser is locked due to cooldown, redirect to suitor
     if (selectedRole === "chooser" && cooldownInfo) return;
-
     setRole(selectedRole);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const displayName = sessionName.trim() || "Player";
     const personalityVector = answers.slice(0, 7);
 
     try {
       const userData = await createUser.mutateAsync({
-        data: { name: name.trim(), role: selectedRole, personalityVector },
+        data: { name: displayName, role: selectedRole, personalityVector },
       });
 
-      // Handle chooser cooldown
       if (selectedRole === "chooser" && userData.cooldown) {
         setCooldownInfo({
           cooldownEndsAt: userData.cooldownEndsAt ?? "",
@@ -167,12 +278,7 @@ export default function HomeScreen() {
         return;
       }
 
-      setUser({
-        userId: userData.id,
-        name: name.trim(),
-        role: selectedRole,
-        personalityVector,
-      });
+      setUser({ userId: userData.id, name: displayName, role: selectedRole, personalityVector });
 
       if (selectedRole === "suitor") {
         router.replace("/pool");
@@ -186,62 +292,158 @@ export default function HomeScreen() {
 
   const handleBack = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (step === 0) return;
-    if (step === 8) { setStep(7); setCooldownInfo(null); return; }
+    if (step === 0) { setPhase("profile_setup"); return; }
+    if (step === 7) { setStep(6); setCooldownInfo(null); return; }
     setAnswers(answers.slice(0, -1));
     setStep(step - 1);
   };
 
+  const styles = makeStyles(colors, insets);
   const isOnCooldown = !!cooldownInfo;
   const countdown = cooldownInfo ? formatCountdown(cooldownInfo.cooldownEndsAt) : "";
+  const progress = step / (TOTAL_STEPS - 1);
 
+  // ── LOADING ──────────────────────────────────────────────────────────────────
+  if (phase === "loading") {
+    return (
+      <View style={[styles.container, { alignItems: "center", justifyContent: "center" }]}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
+
+  // ── AUTH GATE ────────────────────────────────────────────────────────────────
+  if (phase === "auth") {
+    return (
+      <ScrollView contentContainerStyle={[styles.centerContainer, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }]}>
+        <Text style={styles.logo}>INTERMINGLED</Text>
+        <Text style={[styles.tagline, { color: colors.mutedForeground }]}>Real-time speed dating · Find your match</Text>
+
+        <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: `${colors.primary}30` }]}>
+          <Text style={[styles.infoRow, { color: colors.mutedForeground }]}>🔞  18+ only · age-verified</Text>
+          <Text style={[styles.infoRow, { color: colors.mutedForeground }]}>👤  Create a profile before matching</Text>
+          <Text style={[styles.infoRow, { color: colors.mutedForeground }]}>▶  7 questions · choose your role</Text>
+        </View>
+
+        <Pressable
+          onPress={() => router.push("/(auth)/sign-up")}
+          style={({ pressed }) => [styles.primaryBtn, { backgroundColor: colors.primary }, pressed && styles.btnPressed]}
+        >
+          <Text style={[styles.primaryBtnText, { color: colors.primaryForeground }]}>Create Account</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push("/(auth)/sign-in")}
+          style={({ pressed }) => [styles.outlineBtn, { borderColor: colors.border }, pressed && styles.btnPressed]}
+        >
+          <Text style={[styles.outlineBtnText, { color: colors.mutedForeground }]}>Sign In</Text>
+        </Pressable>
+      </ScrollView>
+    );
+  }
+
+  // ── PROFILE SETUP ────────────────────────────────────────────────────────────
+  if (phase === "profile_setup") {
+    return (
+      <ScrollView
+        contentContainerStyle={[styles.centerContainer, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 32 }]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.logo}>INTERMINGLED</Text>
+        <Text style={[styles.tagline, { color: colors.mutedForeground }]}>Let's set up your profile</Text>
+
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: `${colors.primary}30` }]}>
+          <Text style={[styles.cardLabel, { color: `${colors.primary}90` }]}>🛡 Profile Setup</Text>
+
+          <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Display Name</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.foreground }]}
+            value={setupName}
+            onChangeText={setSetupName}
+            placeholder="Your name"
+            placeholderTextColor={colors.mutedForeground}
+            autoFocus
+            maxLength={80}
+          />
+
+          <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+            Date of Birth <Text style={{ color: colors.destructive }}>*</Text>
+          </Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.input, borderColor: setupError && !setupDob ? colors.destructive : colors.border, color: colors.foreground }]}
+            value={setupDob}
+            onChangeText={(t) => { setSetupDob(t); setSetupError(null); }}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={colors.mutedForeground}
+            keyboardType="number-pad"
+            maxLength={10}
+          />
+          <Text style={[styles.hint, { color: `${colors.mutedForeground}70` }]}>
+            You must be 18+. Verified once, cannot be changed.
+          </Text>
+
+          {setupError && <Text style={[styles.errorText, { color: colors.destructive }]}>{setupError}</Text>}
+
+          <Pressable
+            onPress={handleProfileSave}
+            disabled={setupSaving || !setupDob.trim()}
+            style={({ pressed }) => [
+              styles.primaryBtn,
+              { backgroundColor: colors.primary, marginTop: 8 },
+              (setupSaving || !setupDob.trim()) && { opacity: 0.5 },
+              pressed && styles.btnPressed,
+            ]}
+          >
+            {setupSaving
+              ? <ActivityIndicator color={colors.primaryForeground} />
+              : <Text style={[styles.primaryBtnText, { color: colors.primaryForeground }]}>Verify & Continue →</Text>}
+          </Pressable>
+        </View>
+      </ScrollView>
+    );
+  }
+
+  // ── AGE BLOCKED ───────────────────────────────────────────────────────────────
+  if (phase === "age_blocked") {
+    return (
+      <View style={[styles.container, { alignItems: "center", justifyContent: "center", padding: 24 }]}>
+        <Text style={{ fontSize: 56 }}>🔞</Text>
+        <Text style={[styles.blockedTitle, { color: colors.destructive ?? "#ef4444" }]}>18+ Only</Text>
+        <Text style={[styles.blockedBody, { color: colors.mutedForeground }]}>
+          Intermingled is for adults aged 18 and older. You don't meet the age requirement.
+        </Text>
+        <Pressable
+          onPress={() => router.replace("/(auth)/sign-in")}
+          style={({ pressed }) => [styles.outlineBtn, { borderColor: colors.border, marginTop: 24 }, pressed && styles.btnPressed]}
+        >
+          <Text style={[styles.outlineBtnText, { color: colors.mutedForeground }]}>Sign Out</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  // ── QUIZ + ROLE (steps 0-7) ───────────────────────────────────────────────────
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.logo}>INTERMINGLED</Text>
-        <Text style={styles.tagline}>Find your perfect match</Text>
+        <Text style={[styles.logo, { fontSize: 28, marginBottom: 0 }]}>INTERMINGLED</Text>
       </View>
 
       {/* Progress bar */}
       <View style={styles.progressTrack}>
-        <Animated.View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+        <Animated.View style={[styles.progressFill, { backgroundColor: colors.primary, width: `${progress * 100}%` }]} />
       </View>
 
       {/* Step content */}
       <View style={styles.content}>
-        {step === 0 && (
-          <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.stepContainer}>
-            <Text style={styles.stepLabel}>STEP 1 OF 9</Text>
-            <Text style={styles.question}>What's your name?</Text>
-            <TextInput
-              ref={nameRef}
-              style={[styles.nameInput, nameError ? styles.nameInputError : null]}
-              placeholder="Enter your name..."
-              placeholderTextColor={colors.mutedForeground}
-              value={name}
-              onChangeText={(t) => { setName(t); setNameError(""); }}
-              autoFocus
-              returnKeyType="next"
-              onSubmitEditing={handleNameNext}
-              maxLength={30}
-            />
-            {nameError ? <Text style={styles.errorText}>{nameError}</Text> : null}
-            <Pressable
-              style={({ pressed }) => [styles.continueBtn, { backgroundColor: colors.primary }, pressed && styles.btnPressed]}
-              onPress={handleNameNext}
-            >
-              <Text style={[styles.continueBtnText, { color: colors.primaryForeground }]}>CONTINUE</Text>
-            </Pressable>
-          </Animated.View>
-        )}
-
-        {step >= 1 && step <= 7 && (
+        {/* Quiz questions (steps 0-6) */}
+        {step >= 0 && step <= 6 && (
           <Animated.View key={`q${step}`} entering={SlideInRight} exiting={SlideOutLeft} style={styles.stepContainer}>
-            <Text style={styles.stepLabel}>STEP {step + 1} OF 9</Text>
-            <Text style={styles.question}>{QUIZ_QUESTIONS[step - 1].question}</Text>
-            <View style={styles.optionsContainer}>
-              {QUIZ_QUESTIONS[step - 1].options.map((opt, i) => (
+            <Text style={[styles.stepLabel, { color: colors.mutedForeground }]}>QUESTION {step + 1} OF 7</Text>
+            <Text style={[styles.question, { color: colors.foreground }]}>{QUIZ_QUESTIONS[step].question}</Text>
+            <View style={{ gap: 10 }}>
+              {QUIZ_QUESTIONS[step].options.map((opt, i) => (
                 <Pressable
                   key={i}
                   style={({ pressed }) => [
@@ -258,24 +460,30 @@ export default function HomeScreen() {
           </Animated.View>
         )}
 
-        {step === 8 && (
+        {/* Role selection (step 7) */}
+        {step === 7 && (
           <Animated.View entering={FadeIn} style={styles.stepContainer}>
-            <Text style={styles.stepLabel}>STEP 9 OF 9</Text>
-            <Text style={styles.question}>How do you want to play?</Text>
-            <Text style={[styles.roleSubtext, { color: colors.mutedForeground }]}>
-              Choose your role for this round
-            </Text>
+            <Text style={[styles.stepLabel, { color: colors.mutedForeground }]}>CHOOSE YOUR ROLE</Text>
+            <Text style={[styles.question, { color: colors.foreground }]}>How do you want to play?</Text>
+
+            {/* Session name */}
+            <View style={{ marginBottom: 20 }}>
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Your name in this session</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.foreground }]}
+                value={sessionName}
+                onChangeText={setSessionName}
+                maxLength={80}
+              />
+            </View>
 
             {/* Cooldown notice */}
             {isOnCooldown && (
               <View style={[styles.cooldownBox, { backgroundColor: "#f59e0b15", borderColor: "#f59e0b40" }]}>
                 <Text style={styles.cooldownTitle}>⏱ Chooser Cooldown Active</Text>
                 <Text style={[styles.cooldownBody, { color: colors.mutedForeground }]}>
-                  You've used {cooldownInfo!.sessionsToday}/{cooldownInfo!.limit} chooser sessions today.
-                  Resets in <Text style={styles.cooldownHighlight}>{countdown}</Text> at midnight UTC.
-                </Text>
-                <Text style={[styles.cooldownHint, { color: `${colors.mutedForeground}80` }]}>
-                  Join as a suitor while you wait!
+                  {cooldownInfo!.sessionsToday}/{cooldownInfo!.limit} sessions used today.
+                  Resets in <Text style={{ color: "#f59e0b", fontFamily: "Inter_700Bold" }}>{countdown}</Text> at midnight UTC.
                 </Text>
               </View>
             )}
@@ -289,16 +497,14 @@ export default function HomeScreen() {
                   backgroundColor: isOnCooldown ? `${colors.secondary}20` : `${colors.secondary}10`,
                 },
                 pressed && styles.btnPressed,
-                role === "suitor" && styles.roleBtnSelected,
+                role === "suitor" && { opacity: 0.7 },
               ]}
               onPress={() => handleRoleSelect("suitor")}
               disabled={createUser.isPending}
             >
               <Text style={[styles.roleBtnTitle, { color: colors.secondary }]}>SUITOR</Text>
               <Text style={[styles.roleBtnDesc, { color: colors.mutedForeground }]}>
-                {isOnCooldown
-                  ? "← Your role while on cooldown"
-                  : "Join the pool and get matched\nto a chooser automatically"}
+                {isOnCooldown ? "← Your role while on cooldown" : "Join the pool and get matched automatically"}
               </Text>
             </Pressable>
 
@@ -307,12 +513,12 @@ export default function HomeScreen() {
               style={({ pressed }) => [
                 styles.roleBtn,
                 {
-                  borderColor: isOnCooldown ? `${colors.border}` : `${colors.primary}40`,
+                  borderColor: isOnCooldown ? colors.border : `${colors.primary}40`,
                   backgroundColor: isOnCooldown ? `${colors.card}50` : `${colors.primary}10`,
                   opacity: isOnCooldown ? 0.45 : 1,
                 },
                 pressed && !isOnCooldown && styles.btnPressed,
-                role === "chooser" && styles.roleBtnSelected,
+                role === "chooser" && { opacity: 0.7 },
               ]}
               onPress={() => handleRoleSelect("chooser")}
               disabled={createUser.isPending || isOnCooldown}
@@ -323,27 +529,20 @@ export default function HomeScreen() {
               <Text style={[styles.roleBtnDesc, { color: colors.mutedForeground }]}>
                 {isOnCooldown
                   ? `On cooldown · ${cooldownInfo!.sessionsToday}/${cooldownInfo!.limit} sessions today`
-                  : "Chat with 5 matched suitors\nand pick your favourite"}
+                  : "Chat with 5 matched suitors and pick your favourite"}
               </Text>
             </Pressable>
 
-            {!isOnCooldown && (
-              <Text style={[styles.limitHint, { color: `${colors.mutedForeground}50` }]}>
-                Signed-in choosers: 3 sessions · resets daily at midnight UTC
-              </Text>
-            )}
-
-            {createUser.isPending && (
-              <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
-            )}
+            {createUser.isPending && <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />}
             {createUser.isError && (
-              <Text style={styles.errorText}>Something went wrong. Try again.</Text>
+              <Text style={[styles.errorText, { color: colors.destructive }]}>Something went wrong. Try again.</Text>
             )}
           </Animated.View>
         )}
       </View>
 
-      {step > 0 && (
+      {/* Back button */}
+      {(step > 0 || phase === "quiz") && step > 0 && (
         <Pressable style={styles.backBtn} onPress={handleBack}>
           <Text style={[styles.backBtnText, { color: colors.mutedForeground }]}>← Back</Text>
         </Pressable>
@@ -361,52 +560,89 @@ function makeStyles(colors: ReturnType<typeof useColors>, insets: ReturnType<typ
       paddingTop: isWeb ? 67 : insets.top,
       paddingBottom: isWeb ? 34 : insets.bottom,
     },
-    header: { alignItems: "center", paddingVertical: 24 },
-    logo: { fontSize: 36, fontFamily: "Inter_700Bold", color: colors.primary, letterSpacing: 4 },
-    tagline: { fontSize: 13, fontFamily: "Inter_400Regular", color: colors.mutedForeground, marginTop: 4, letterSpacing: 1 },
-    progressTrack: { height: 2, backgroundColor: colors.border, marginHorizontal: 24, borderRadius: 1, overflow: "hidden" },
-    progressFill: { height: 2, backgroundColor: colors.primary, borderRadius: 1 },
-    content: { flex: 1, paddingHorizontal: 24, paddingTop: 32 },
-    stepContainer: { flex: 1 },
-    stepLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 2, marginBottom: 16 },
-    question: { fontSize: 22, fontFamily: "Inter_700Bold", color: colors.foreground, marginBottom: 28, lineHeight: 30 },
-    optionsContainer: { gap: 10 },
-    optionBtn: { borderWidth: 1, borderRadius: 8, padding: 16 },
-    optionBtnPressed: { borderColor: colors.primary, backgroundColor: `${colors.primary}18` },
-    optionText: { fontSize: 15, fontFamily: "Inter_500Medium" },
-    nameInput: {
-      backgroundColor: colors.input,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 8,
-      padding: 16,
-      fontSize: 16,
-      fontFamily: "Inter_400Regular",
-      color: colors.foreground,
-      marginBottom: 16,
+    centerContainer: {
+      flexGrow: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 24,
     },
-    nameInputError: { borderColor: colors.destructive },
-    continueBtn: { borderRadius: 8, padding: 16, alignItems: "center" },
-    btnPressed: { opacity: 0.8 },
-    continueBtnText: { fontSize: 14, fontFamily: "Inter_700Bold", letterSpacing: 2 },
-    errorText: { fontSize: 13, fontFamily: "Inter_400Regular", color: colors.destructive, marginBottom: 12 },
-    roleSubtext: { fontSize: 14, fontFamily: "Inter_400Regular", marginBottom: 20, marginTop: -16 },
-    cooldownBox: {
+    header: { alignItems: "center", paddingVertical: 16 },
+    logo: {
+      fontSize: 32,
+      fontFamily: "Inter_700Bold",
+      color: colors.primary,
+      letterSpacing: 4,
+      textAlign: "center",
+      marginBottom: 8,
+    },
+    tagline: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", letterSpacing: 0.5, marginBottom: 32 },
+    infoCard: {
+      width: "100%",
+      maxWidth: 360,
       borderWidth: 1,
-      borderRadius: 10,
-      padding: 14,
-      marginBottom: 16,
+      borderRadius: 12,
+      padding: 16,
+      gap: 10,
+      marginBottom: 24,
+    },
+    infoRow: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
+    card: {
+      width: "100%",
+      maxWidth: 360,
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 20,
       gap: 4,
     },
+    cardLabel: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 },
+    fieldLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, textTransform: "uppercase", marginTop: 12, marginBottom: 6 },
+    input: {
+      height: 48,
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 14,
+      fontSize: 15,
+      fontFamily: "Inter_400Regular",
+    },
+    hint: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 4 },
+    errorText: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 4 },
+    primaryBtn: {
+      width: "100%",
+      maxWidth: 360,
+      height: 52,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 12,
+    },
+    primaryBtnText: { fontSize: 15, fontFamily: "Inter_700Bold", letterSpacing: 1.5, textTransform: "uppercase" },
+    outlineBtn: {
+      width: "100%",
+      maxWidth: 360,
+      height: 48,
+      borderRadius: 10,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    outlineBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", letterSpacing: 1 },
+    btnPressed: { opacity: 0.75 },
+    blockedTitle: { fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: 2, textTransform: "uppercase", marginTop: 16, marginBottom: 8 },
+    blockedBody: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22, maxWidth: 300 },
+    progressTrack: { height: 2, backgroundColor: colors.border, marginHorizontal: 24, borderRadius: 1, overflow: "hidden" },
+    progressFill: { height: 2, borderRadius: 1 },
+    content: { flex: 1, paddingHorizontal: 24, paddingTop: 28 },
+    stepContainer: { flex: 1 },
+    stepLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 2, marginBottom: 14, textTransform: "uppercase" },
+    question: { fontSize: 20, fontFamily: "Inter_700Bold", marginBottom: 24, lineHeight: 28 },
+    optionBtn: { borderWidth: 1, borderRadius: 8, padding: 16 },
+    optionText: { fontSize: 15, fontFamily: "Inter_500Medium" },
+    cooldownBox: { borderWidth: 1, borderRadius: 10, padding: 14, marginBottom: 16, gap: 4 },
     cooldownTitle: { fontSize: 12, fontFamily: "Inter_700Bold", color: "#f59e0b", letterSpacing: 1, textTransform: "uppercase" },
     cooldownBody: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
-    cooldownHighlight: { color: "#f59e0b", fontFamily: "Inter_700Bold" },
-    cooldownHint: { fontSize: 11, fontFamily: "Inter_400Regular" },
-    roleBtn: { borderWidth: 1, borderRadius: 10, padding: 20, marginBottom: 14 },
-    roleBtnSelected: { opacity: 0.7 },
-    roleBtnTitle: { fontSize: 18, fontFamily: "Inter_700Bold", letterSpacing: 2, marginBottom: 6 },
-    roleBtnDesc: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
-    limitHint: { fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "center", marginTop: -6, marginBottom: 4 },
+    roleBtn: { borderWidth: 1, borderRadius: 10, padding: 18, marginBottom: 12 },
+    roleBtnTitle: { fontSize: 17, fontFamily: "Inter_700Bold", letterSpacing: 2, marginBottom: 5, textTransform: "uppercase" },
+    roleBtnDesc: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
     backBtn: { alignSelf: "center", paddingVertical: 12, paddingBottom: 8 },
     backBtnText: { fontSize: 13, fontFamily: "Inter_400Regular" },
   });

@@ -6,8 +6,6 @@ import { logger } from "./lib/logger";
 
 let io: SocketIOServer;
 
-// In-memory set of userIds who have actively joined the pool via socket.
-// Only users present here are eligible as suitor candidates.
 const activeSuitorPool = new Set<string>();
 
 export function isUserInPool(userId: string): boolean {
@@ -31,7 +29,6 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
   io.on("connection", (socket) => {
     logger.info({ socketId: socket.id }, "Socket connected");
 
-    // Send the current pool count immediately on connect
     socket.emit("pool_count", { count: activeSuitorPool.size });
 
     socket.on("join_room", ({ roomId }: { roomId: string; participantId: string }) => {
@@ -39,13 +36,11 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
       logger.info({ socketId: socket.id, roomId }, "Joined room");
     });
 
-    // Join a private match DM room
     socket.on("join_match", ({ matchId }: { matchId: string }) => {
       socket.join(`match_${matchId}`);
       logger.info({ socketId: socket.id, matchId }, "Joined match DM room");
     });
 
-    // Suitor enters their personal socket room and is marked live in the pool
     socket.on("enter_pool", ({ userId }: { userId: string }) => {
       socket.join(`user_${userId}`);
       activeSuitorPool.add(userId);
@@ -53,7 +48,6 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
       broadcastPoolCount();
     });
 
-    // Chooser joins their personal room so matchmaking can emit slot_filled events
     socket.on("chooser_waiting", ({ userId }: { userId: string }) => {
       socket.join(`user_${userId}`);
       logger.info({ socketId: socket.id, userId }, "Chooser waiting for match");
@@ -75,6 +69,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
         senderRole,
         content,
         suitorSlot,
+        round,
       }: {
         roomId: string;
         participantId: string;
@@ -82,6 +77,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
         senderRole: "chooser" | "suitor";
         content: string;
         suitorSlot: number | null;
+        round?: number;
       }) => {
         try {
           const id = randomBytes(8).toString("hex");
@@ -93,6 +89,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
             senderName,
             senderRole,
             suitorSlot: suitorSlot ?? null,
+            round: round ?? null,
             content,
             createdAt: now,
           });
@@ -104,6 +101,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
             senderName,
             senderRole,
             suitorSlot: suitorSlot ?? null,
+            round: round ?? null,
             content,
             createdAt: now.toISOString(),
           };

@@ -110,6 +110,8 @@ interface RoomSocketOptions {
   onMessage: (msg: Message) => void;
   onRoomUpdated: (room: Room) => void;
   onSessionEnded: (data: { winnerId: string; winnerName: string }) => void;
+  onSuitorEliminated?: (data: { participantId: string }) => void;
+  onRoundAdvanced?: (data: { round: number }) => void;
 }
 
 export function useRoomSocket({
@@ -120,15 +122,21 @@ export function useRoomSocket({
   onMessage,
   onRoomUpdated,
   onSessionEnded,
+  onSuitorEliminated,
+  onRoundAdvanced,
 }: RoomSocketOptions) {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const onMessageRef = useRef(onMessage);
   const onRoomUpdatedRef = useRef(onRoomUpdated);
   const onSessionEndedRef = useRef(onSessionEnded);
+  const onSuitorEliminatedRef = useRef(onSuitorEliminated);
+  const onRoundAdvancedRef = useRef(onRoundAdvanced);
   onMessageRef.current = onMessage;
   onRoomUpdatedRef.current = onRoomUpdated;
   onSessionEndedRef.current = onSessionEnded;
+  onSuitorEliminatedRef.current = onSuitorEliminated;
+  onRoundAdvancedRef.current = onRoundAdvanced;
 
   useEffect(() => {
     if (!roomId || !participantId) return;
@@ -153,6 +161,12 @@ export function useRoomSocket({
       (data: { winnerId: string; winnerName: string }) =>
         onSessionEndedRef.current(data),
     );
+    socket.on("suitor_eliminated", (data: { participantId: string }) => {
+      onSuitorEliminatedRef.current?.(data);
+    });
+    socket.on("round_advanced", (data: { round: number }) => {
+      onRoundAdvancedRef.current?.(data);
+    });
 
     return () => {
       socket.disconnect();
@@ -161,7 +175,7 @@ export function useRoomSocket({
   }, [roomId, participantId]);
 
   const sendMessage = useCallback(
-    (content: string, suitorSlot: number | null) => {
+    (content: string, suitorSlot: number | null, round?: number) => {
       if (
         !socketRef.current?.connected ||
         !roomId ||
@@ -177,6 +191,7 @@ export function useRoomSocket({
         senderRole,
         content,
         suitorSlot,
+        round,
       });
     },
     [roomId, participantId, senderName, senderRole],

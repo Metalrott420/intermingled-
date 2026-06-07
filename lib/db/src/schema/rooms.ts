@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -13,6 +13,8 @@ export const roomsTable = pgTable("rooms", {
   winnerId: text("winner_id"),
   winnerName: text("winner_name"),
   maxSuitors: integer("max_suitors").notNull().default(5),
+  currentRound: integer("current_round").notNull().default(1),
+  eliminatedParticipants: jsonb("eliminated_participants").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -32,6 +34,7 @@ export const messagesTable = pgTable("messages", {
   senderName: text("sender_name").notNull(),
   senderRole: participantRoleEnum("sender_role").notNull(),
   suitorSlot: integer("suitor_slot"),
+  round: integer("round"),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

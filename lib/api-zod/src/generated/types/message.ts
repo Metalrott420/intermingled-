@@ -15,6 +15,11 @@ export interface Message {
   senderRole: MessageSenderRole;
   /** @nullable */
   suitorSlot: number | null;
+  /**
+     * Which speed-dating round this message belongs to
+     * @nullable
+     */
+  round: number | null;
   content: string;
   createdAt: string;
 }

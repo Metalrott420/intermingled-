@@ -16,6 +16,10 @@ export interface Room {
   chooserName: string | null;
   suitorCount: number;
   maxSuitors: number;
+  /** Current round (1-4). Rounds 1-3: 1 question/suitor then eliminate. Round 4: 3 questions/suitor then choose winner. */
+  currentRound: number;
+  /** Array of participant IDs who have been eliminated */
+  eliminatedParticipants: string[];
   /** @nullable */
   winnerId: string | null;
   /** @nullable */

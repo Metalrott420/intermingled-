@@ -43,6 +43,8 @@ async function buildRoomResponse(roomId: string) {
     chooserName: room.chooserName ?? null,
     suitorCount,
     maxSuitors: room.maxSuitors,
+    currentRound: room.currentRound,
+    eliminatedParticipants: (room.eliminatedParticipants ?? []) as string[],
     winnerId: room.winnerId ?? null,
     winnerName: room.winnerName ?? null,
     participants: participants.map((p) => ({
@@ -315,10 +317,65 @@ router.get("/rooms/:id/messages", async (req, res) => {
       senderName: m.senderName,
       senderRole: m.senderRole,
       suitorSlot: m.suitorSlot ?? null,
+      round: m.round ?? null,
       content: m.content,
       createdAt: m.createdAt.toISOString(),
     })),
   );
+});
+
+// POST /api/rooms/:id/eliminate — chooser eliminates one suitor (rounds 1-3)
+router.post("/rooms/:id/eliminate", async (req, res) => {
+  const { participantId } = req.body;
+  if (typeof participantId !== "string" || !participantId) {
+    res.status(400).json({ error: "participantId is required" });
+    return;
+  }
+
+  const room = await db.query.roomsTable.findFirst({
+    where: eq(roomsTable.id, req.params.id),
+  });
+  if (!room) {
+    res.status(404).json({ error: "Room not found" });
+    return;
+  }
+
+  const alreadyEliminated = (room.eliminatedParticipants ?? []) as string[];
+  if (alreadyEliminated.includes(participantId)) {
+    res.status(400).json({ error: "Already eliminated" });
+    return;
+  }
+
+  const newEliminated = [...alreadyEliminated, participantId];
+  await db.update(roomsTable).set({ eliminatedParticipants: newEliminated }).where(eq(roomsTable.id, room.id));
+
+  const roomData = await buildRoomResponse(room.id);
+  const io = getIo();
+  io.to(room.id).emit("room_updated", roomData);
+  io.to(room.id).emit("suitor_eliminated", { participantId });
+
+  res.json(roomData);
+});
+
+// POST /api/rooms/:id/advance-round — move to the next round
+router.post("/rooms/:id/advance-round", async (req, res) => {
+  const room = await db.query.roomsTable.findFirst({
+    where: eq(roomsTable.id, req.params.id),
+  });
+  if (!room) {
+    res.status(404).json({ error: "Room not found" });
+    return;
+  }
+
+  const newRound = room.currentRound + 1;
+  await db.update(roomsTable).set({ currentRound: newRound }).where(eq(roomsTable.id, room.id));
+
+  const roomData = await buildRoomResponse(room.id);
+  const io = getIo();
+  io.to(room.id).emit("room_updated", roomData);
+  io.to(room.id).emit("round_advanced", { round: newRound });
+
+  res.json(roomData);
 });
 
 router.post("/rooms/:id/choose", async (req, res) => {

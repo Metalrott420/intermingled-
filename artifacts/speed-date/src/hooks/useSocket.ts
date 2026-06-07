@@ -10,6 +10,8 @@ interface ServerToClientEvents {
   match_found: (data: { roomId: string; participantId: string }) => void;
   slot_filled: (data: { slot: number; suitorName: string; participantId: string; roomId: string }) => void;
   pool_count: (data: { count: number }) => void;
+  suitor_eliminated: (data: { participantId: string }) => void;
+  round_advanced: (data: { round: number }) => void;
 }
 
 interface ClientToServerEvents {
@@ -24,6 +26,7 @@ interface ClientToServerEvents {
     senderRole: 'chooser' | 'suitor';
     content: string;
     suitorSlot: number | null;
+    round?: number;
   }) => void;
 }
 
@@ -60,9 +63,9 @@ export function useSocket(
   }, [roomId, participantId]);
 
   const sendMessage = useCallback(
-    (content: string, suitorSlot: number | null) => {
+    (content: string, suitorSlot: number | null, round?: number) => {
       if (socketRef.current && isConnected && roomId && participantId && senderName && senderRole) {
-        socketRef.current.emit('send_message', { roomId, participantId, senderName, senderRole, content, suitorSlot });
+        socketRef.current.emit('send_message', { roomId, participantId, senderName, senderRole, content, suitorSlot, round });
       }
     },
     [isConnected, roomId, participantId, senderName, senderRole],
@@ -80,7 +83,6 @@ export function useSocket(
   return { isConnected, sendMessage, subscribe, socket: socketRef.current };
 }
 
-// Hook for suitors waiting in the pool
 export function usePoolSocket(userId?: string) {
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -131,7 +133,6 @@ export function usePoolSocket(userId?: string) {
   return { isConnected, poolCount, leavePool, subscribe };
 }
 
-// Hook for choosers waiting for auto-match results
 export function useChooserSocket(userId?: string) {
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const [isConnected, setIsConnected] = useState(false);

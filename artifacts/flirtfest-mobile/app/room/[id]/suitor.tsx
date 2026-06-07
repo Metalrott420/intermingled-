@@ -26,16 +26,12 @@ import { useApp } from "@/contexts/AppContext";
 import { useRoomSocket } from "@/hooks/useSocket";
 import { useColors } from "@/hooks/useColors";
 
+const ROUND_LABELS: Record<number, string> = { 1: "I", 2: "II", 3: "III", 4: "FINAL" };
+
 function MessageBubble({ msg, isMe, colors }: { msg: Message; isMe: boolean; colors: any }) {
   return (
     <View style={{ alignSelf: isMe ? "flex-end" : "flex-start", maxWidth: "78%", marginBottom: 6 }}>
-      <Text style={{
-        fontSize: 10,
-        fontFamily: "Inter_400Regular",
-        color: colors.mutedForeground,
-        marginBottom: 2,
-        marginLeft: 4,
-      }}>
+      <Text style={{ fontSize: 10, fontFamily: "Inter_400Regular", color: colors.mutedForeground, marginBottom: 2, marginLeft: 4 }}>
         {isMe ? "YOU" : msg.senderName}
       </Text>
       <View style={{
@@ -64,6 +60,7 @@ export default function SuitorRoomScreen() {
   const [participantId, setParticipantId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [isEliminated, setIsEliminated] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -78,6 +75,7 @@ export default function SuitorRoomScreen() {
   });
 
   const myParticipant = room?.participants.find((p) => p.id === participantId);
+  const currentRound = room?.currentRound ?? 1;
 
   useEffect(() => {
     if (initialMessages && myParticipant) {
@@ -100,6 +98,13 @@ export default function SuitorRoomScreen() {
     router.replace(`/result/${roomId}`);
   }, [roomId]);
 
+  const onSuitorEliminated = useCallback(({ participantId: eliminatedId }: { participantId: string }) => {
+    if (eliminatedId === participantId) {
+      setIsEliminated(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  }, [participantId]);
+
   const { isConnected, sendMessage } = useRoomSocket({
     roomId: roomId ?? undefined,
     participantId: participantId ?? undefined,
@@ -108,11 +113,12 @@ export default function SuitorRoomScreen() {
     onMessage,
     onRoomUpdated,
     onSessionEnded,
+    onSuitorEliminated,
   });
 
   const handleSend = () => {
-    if (!input.trim()) return;
-    sendMessage(input, myParticipant?.suitorSlot ?? null);
+    if (!input.trim() || isEliminated) return;
+    sendMessage(input, myParticipant?.suitorSlot ?? null, currentRound);
     setInput("");
     inputRef.current?.focus();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -125,6 +131,33 @@ export default function SuitorRoomScreen() {
     return (
       <View style={[styles.container, { alignItems: "center", justifyContent: "center" }]}>
         <ActivityIndicator color={colors.secondary} />
+      </View>
+    );
+  }
+
+  // ── Elimination screen ─────────────────────────────────────────────────────
+  if (isEliminated) {
+    return (
+      <View style={[styles.container, { alignItems: "center", justifyContent: "center", padding: 24 }]}>
+        <View style={[styles.eliminatedCard, { borderColor: `${colors.destructive ?? "#ef4444"}30`, backgroundColor: `${colors.card}` }]}>
+          <Text style={[styles.eliminatedX, { color: `${colors.destructive ?? "#ef4444"}40` }]}>✕</Text>
+          <Text style={[styles.eliminatedTitle, { color: colors.destructive ?? "#ef4444" }]}>ELIMINATED</Text>
+          <Text style={[styles.eliminatedSub, { color: colors.mutedForeground }]}>
+            {room.chooserName} has made their choice. You've been eliminated after Round {ROUND_LABELS[currentRound] ?? currentRound}.
+          </Text>
+          <Text style={[styles.eliminatedHint, { color: `${colors.mutedForeground}80` }]}>
+            Better luck next session
+          </Text>
+          <Pressable
+            onPress={() => router.replace("/")}
+            style={({ pressed }) => [
+              styles.playAgainBtn,
+              { borderColor: colors.border, backgroundColor: pressed ? colors.muted : colors.card },
+            ]}
+          >
+            <Text style={[styles.playAgainText, { color: colors.foreground }]}>Play Again</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -142,13 +175,33 @@ export default function SuitorRoomScreen() {
             </Text>
           )}
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {isActive && (
+            <View style={{ alignItems: "center" }}>
+              <Text style={[styles.roundValue, { color: currentRound === 4 ? colors.primary : colors.secondary }]}>
+                {ROUND_LABELS[currentRound] ?? currentRound}
+              </Text>
+              <Text style={styles.roundLabel}>ROUND</Text>
+            </View>
+          )}
           <View style={[styles.connDot, { backgroundColor: isConnected ? colors.secondary : colors.mutedForeground }]} />
           <Text style={[styles.statusText, { color: isActive ? colors.primary : colors.mutedForeground }]}>
             {isActive ? "LIVE" : "WAITING"}
           </Text>
         </View>
       </View>
+
+      {/* Round info strip */}
+      {isActive && (
+        <View style={[styles.roundStrip, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.roundStripText, { color: colors.mutedForeground }]}>
+            Round {ROUND_LABELS[currentRound] ?? currentRound} — {currentRound <= 3 ? `${6 - currentRound} suitors remain` : "Finals: make your case!"}
+          </Text>
+          <Text style={[styles.roundStripRight, { color: `${colors.mutedForeground}60` }]}>
+            {currentRound < 4 ? "1 Q / round" : "3 Q's — finals"}
+          </Text>
+        </View>
+      )}
 
       {!isActive ? (
         <View style={styles.waitContainer}>
@@ -178,7 +231,7 @@ export default function SuitorRoomScreen() {
             <TextInput
               ref={inputRef}
               style={styles.textInput}
-              placeholder="Say something to stand out..."
+              placeholder="Your answer..."
               placeholderTextColor={colors.mutedForeground}
               value={input}
               onChangeText={setInput}
@@ -217,55 +270,28 @@ function makeStyles(colors: ReturnType<typeof useColors>, insets: ReturnType<typ
       borderBottomColor: `${colors.secondary}30`,
       backgroundColor: `${colors.secondary}08`,
     },
-    headerTitle: {
-      fontSize: 16,
-      fontFamily: "Inter_700Bold",
-      color: colors.secondary,
-      letterSpacing: 1,
-    },
-    headerSub: {
-      fontSize: 11,
-      fontFamily: "Inter_400Regular",
-      color: colors.mutedForeground,
-      marginTop: 2,
-    },
+    headerTitle: { fontSize: 16, fontFamily: "Inter_700Bold", color: colors.secondary, letterSpacing: 1 },
+    headerSub: { fontSize: 11, fontFamily: "Inter_400Regular", color: colors.mutedForeground, marginTop: 2 },
+    roundValue: { fontSize: 18, fontFamily: "Inter_700Bold" },
+    roundLabel: { fontSize: 7, fontFamily: "Inter_400Regular", color: colors.mutedForeground, letterSpacing: 2, textTransform: "uppercase" },
     connDot: { width: 6, height: 6, borderRadius: 3 },
-    statusText: {
-      fontSize: 11,
-      fontFamily: "Inter_700Bold",
-      letterSpacing: 2,
+    statusText: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 2 },
+    roundStrip: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      paddingVertical: 6,
+      borderBottomWidth: 1,
+      backgroundColor: `${colors.secondary}05`,
     },
-    waitContainer: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 12,
-    },
-    waitTitle: {
-      fontSize: 20,
-      fontFamily: "Inter_700Bold",
-      color: colors.foreground,
-      marginTop: 12,
-    },
-    waitSub: {
-      fontSize: 14,
-      fontFamily: "Inter_400Regular",
-      color: colors.mutedForeground,
-    },
-    waitHint: {
-      fontSize: 12,
-      fontFamily: "Inter_400Regular",
-      color: `${colors.mutedForeground}80`,
-    },
+    roundStripText: { fontSize: 11, fontFamily: "Inter_400Regular" },
+    roundStripRight: { fontSize: 10, fontFamily: "Inter_400Regular" },
+    waitContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
+    waitTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: colors.foreground, marginTop: 12 },
+    waitSub: { fontSize: 14, fontFamily: "Inter_400Regular", color: colors.mutedForeground },
+    waitHint: { fontSize: 12, fontFamily: "Inter_400Regular", color: `${colors.mutedForeground}80` },
     messageList: { padding: 16, flexGrow: 1 },
-    emptyText: {
-      textAlign: "center",
-      fontSize: 12,
-      fontFamily: "Inter_600SemiBold",
-      color: colors.mutedForeground,
-      letterSpacing: 2,
-      marginTop: 40,
-    },
+    emptyText: { textAlign: "center", fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 2, marginTop: 40 },
     inputRow: {
       flexDirection: "row",
       paddingHorizontal: 12,
@@ -287,13 +313,30 @@ function makeStyles(colors: ReturnType<typeof useColors>, insets: ReturnType<typ
       fontFamily: "Inter_400Regular",
       color: colors.foreground,
     },
-    sendBtn: {
-      width: 44,
-      height: 44,
+    sendBtn: { width: 44, height: 44, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+    sendBtnText: { fontSize: 20, fontFamily: "Inter_700Bold" },
+    eliminatedCard: {
+      width: "100%",
+      maxWidth: 360,
+      borderWidth: 1,
+      borderRadius: 16,
+      padding: 32,
+      alignItems: "center",
+      gap: 12,
+    },
+    eliminatedX: { fontSize: 56, fontFamily: "Inter_700Bold" },
+    eliminatedTitle: { fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: 2, textTransform: "uppercase" },
+    eliminatedSub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
+    eliminatedHint: { fontSize: 11, fontFamily: "Inter_400Regular", letterSpacing: 2, textTransform: "uppercase" },
+    playAgainBtn: {
+      marginTop: 8,
+      width: "100%",
+      height: 48,
+      borderWidth: 1,
       borderRadius: 8,
       alignItems: "center",
       justifyContent: "center",
     },
-    sendBtnText: { fontSize: 20, fontFamily: "Inter_700Bold" },
+    playAgainText: { fontSize: 14, fontFamily: "Inter_700Bold", letterSpacing: 2, textTransform: "uppercase" },
   });
 }

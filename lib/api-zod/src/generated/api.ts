@@ -125,6 +125,8 @@ export const ListActiveRoomsResponseItem = zod.object({
   "chooserName": zod.string().nullable(),
   "suitorCount": zod.number(),
   "maxSuitors": zod.number(),
+  "currentRound": zod.number().describe('Current round (1-4). Rounds 1-3: 1 question\/suitor then eliminate. Round 4: 3 questions\/suitor then choose winner.'),
+  "eliminatedParticipants": zod.array(zod.string()).describe('Array of participant IDs who have been eliminated'),
   "winnerId": zod.string().nullable(),
   "winnerName": zod.string().nullable(),
   "participants": zod.array(zod.object({
@@ -152,6 +154,8 @@ export const GetRoomResponse = zod.object({
   "chooserName": zod.string().nullable(),
   "suitorCount": zod.number(),
   "maxSuitors": zod.number(),
+  "currentRound": zod.number().describe('Current round (1-4). Rounds 1-3: 1 question\/suitor then eliminate. Round 4: 3 questions\/suitor then choose winner.'),
+  "eliminatedParticipants": zod.array(zod.string()).describe('Array of participant IDs who have been eliminated'),
   "winnerId": zod.string().nullable(),
   "winnerName": zod.string().nullable(),
   "participants": zod.array(zod.object({
@@ -188,6 +192,8 @@ export const JoinRoomResponse = zod.object({
   "chooserName": zod.string().nullable(),
   "suitorCount": zod.number(),
   "maxSuitors": zod.number(),
+  "currentRound": zod.number().describe('Current round (1-4). Rounds 1-3: 1 question\/suitor then eliminate. Round 4: 3 questions\/suitor then choose winner.'),
+  "eliminatedParticipants": zod.array(zod.string()).describe('Array of participant IDs who have been eliminated'),
   "winnerId": zod.string().nullable(),
   "winnerName": zod.string().nullable(),
   "participants": zod.array(zod.object({
@@ -215,6 +221,7 @@ export const GetRoomMessagesResponseItem = zod.object({
   "senderName": zod.string(),
   "senderRole": zod.enum(['chooser', 'suitor']),
   "suitorSlot": zod.number().nullable(),
+  "round": zod.number().nullable().describe('Which speed-dating round this message belongs to'),
   "content": zod.string(),
   "createdAt": zod.string()
 })
@@ -239,6 +246,8 @@ export const ChooseWinnerResponse = zod.object({
   "chooserName": zod.string().nullable(),
   "suitorCount": zod.number(),
   "maxSuitors": zod.number(),
+  "currentRound": zod.number().describe('Current round (1-4). Rounds 1-3: 1 question\/suitor then eliminate. Round 4: 3 questions\/suitor then choose winner.'),
+  "eliminatedParticipants": zod.array(zod.string()).describe('Array of participant IDs who have been eliminated'),
   "winnerId": zod.string().nullable(),
   "winnerName": zod.string().nullable(),
   "participants": zod.array(zod.object({

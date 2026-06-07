@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useLocation, useParams } from "wouter";
+import { useLocation, useParams, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -7,6 +7,9 @@ import { useGetRoom, useGetRoomMessages, getGetRoomQueryKey, getGetRoomMessagesQ
 import { useSocket } from "@/hooks/useSocket";
 import { Message } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { X } from "lucide-react";
+
+const ROUND_LABELS: Record<number, string> = { 1: "I", 2: "II", 3: "III", 4: "FINAL" };
 
 export default function RoomSuitor() {
   const params = useParams();
@@ -18,6 +21,7 @@ export default function RoomSuitor() {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
+  const [isEliminated, setIsEliminated] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const { data: room, isLoading: isLoadingRoom } = useGetRoom(roomId, {
@@ -30,6 +34,8 @@ export default function RoomSuitor() {
 
   const myParticipant = room?.participants.find((p) => p.id === participantId);
   const myParticipantName = myParticipant?.name;
+  const currentRound = room?.currentRound ?? 1;
+
   const { isConnected, sendMessage, subscribe } = useSocket(
     roomId,
     participantId || undefined,
@@ -66,8 +72,14 @@ export default function RoomSuitor() {
       setLocation(`/result/${roomId}`);
     });
 
-    return () => { unsubMsg(); unsubRoom(); unsubSessionEnded(); };
-  }, [subscribe, roomId, setLocation, queryClient, myParticipant]);
+    const unsubEliminated = subscribe("suitor_eliminated", ({ participantId: eliminatedId }) => {
+      if (eliminatedId === participantId) {
+        setIsEliminated(true);
+      }
+    });
+
+    return () => { unsubMsg(); unsubRoom(); unsubSessionEnded(); unsubEliminated(); };
+  }, [subscribe, roomId, setLocation, queryClient, myParticipant, participantId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -83,8 +95,8 @@ export default function RoomSuitor() {
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
-    sendMessage(inputValue, myParticipant?.suitorSlot ?? null);
+    if (!inputValue.trim() || isEliminated) return;
+    sendMessage(inputValue, myParticipant?.suitorSlot ?? null, currentRound);
     setInputValue("");
   };
 
@@ -92,6 +104,35 @@ export default function RoomSuitor() {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-background text-primary font-mono">
         LOADING DATABANKS...
+      </div>
+    );
+  }
+
+  // ── Elimination screen ───────────────────────────────────────────────────────
+  if (isEliminated) {
+    return (
+      <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center p-6 text-center">
+        <div className="max-w-md w-full border border-destructive/20 rounded-2xl bg-card/60 backdrop-blur p-10 space-y-5">
+          <div className="text-6xl font-black text-destructive/30">✕</div>
+          <h1 className="text-4xl font-black uppercase tracking-tight text-destructive">
+            ELIMINATED
+          </h1>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            <span className="font-bold text-foreground">{room.chooserName}</span> has made their decision.
+            You've been cut after Round {ROUND_LABELS[currentRound] ?? currentRound}.
+          </p>
+          <p className="text-xs font-mono text-muted-foreground/60 uppercase tracking-widest">
+            Better luck next time
+          </p>
+          <Link href="/">
+            <Button
+              variant="outline"
+              className="w-full h-11 font-bold uppercase tracking-widest border-border hover:border-primary/50 hover:text-primary"
+            >
+              Play Again
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -115,6 +156,14 @@ export default function RoomSuitor() {
             )}
           </div>
           <div className="flex items-center gap-3">
+            {isActive && (
+              <div className="text-center border-r border-border pr-3">
+                <div className="text-[9px] uppercase text-muted-foreground font-mono">Round</div>
+                <div className={`font-black text-lg leading-none ${currentRound === 4 ? "text-primary" : "text-secondary"}`}>
+                  {ROUND_LABELS[currentRound] ?? currentRound}
+                </div>
+              </div>
+            )}
             <div className="text-right">
               <div className="text-xs uppercase text-muted-foreground font-mono">Status</div>
               <div className={`font-bold uppercase text-sm ${isActive ? "text-primary animate-pulse" : "text-muted-foreground"}`}>
@@ -124,6 +173,15 @@ export default function RoomSuitor() {
             <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-secondary animate-pulse" : "bg-muted-foreground"}`} />
           </div>
         </header>
+
+        {/* Round info strip */}
+        {isActive && (
+          <div className="px-4 py-1.5 bg-secondary/5 border-b border-border/40 flex items-center justify-between">
+            <span className="text-muted-foreground text-[10px] font-mono uppercase tracking-wider">
+              {currentRound <= 3 ? `${6 - currentRound} suitors active · 1 question this round` : "Finals · 3 questions · Show them who you are"}
+            </span>
+          </div>
+        )}
 
         {/* Body */}
         <main className="flex-1 overflow-hidden relative">
@@ -144,7 +202,7 @@ export default function RoomSuitor() {
                 <div className="flex flex-col gap-3">
                   {messages.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground font-mono text-xs">
-                      SAY SOMETHING TO STAND OUT
+                      WAITING FOR {room.chooserName?.toUpperCase()}'S QUESTION...
                     </div>
                   )}
                   {messages.map((msg) => {
@@ -174,7 +232,7 @@ export default function RoomSuitor() {
                   <Input
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    placeholder="Say something to stand out..."
+                    placeholder="Your answer..."
                     className="h-11 sm:h-12 bg-input border-border focus-visible:ring-secondary text-sm sm:text-base"
                     autoFocus
                   />

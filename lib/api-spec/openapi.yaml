@@ -3,13 +3,15 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Speed dating chatroom API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: rooms
+    description: Speed dating room operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,155 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /rooms:
+    post:
+      operationId: createRoom
+      tags: [rooms]
+      summary: Create a new speed dating room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoomInput"
+      responses:
+        "201":
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+
+  /rooms/{id}:
+    get:
+      operationId: getRoom
+      tags: [rooms]
+      summary: Get room details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Room details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rooms/{id}/join:
+    post:
+      operationId: joinRoom
+      tags: [rooms]
+      summary: Join a room as chooser or suitor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinInput"
+      responses:
+        "200":
+          description: Joined successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JoinResult"
+        "400":
+          description: Room full or invalid role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rooms/{id}/messages:
+    get:
+      operationId: getRoomMessages
+      tags: [rooms]
+      summary: Get message history for the chooser's view (all suitor chats)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: All messages grouped by suitor
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+
+  /rooms/{id}/choose:
+    post:
+      operationId: chooseWinner
+      tags: [rooms]
+      summary: Chooser picks their favourite suitor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChooseInput"
+      responses:
+        "200":
+          description: Winner chosen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rooms/active:
+    get:
+      operationId: listActiveRooms
+      tags: [rooms]
+      summary: List joinable rooms waiting for participants
+      responses:
+        "200":
+          description: Active rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Room"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +185,137 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Participant:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [chooser, suitor]
+        suitorSlot:
+          type: ["integer", "null"]
+      required:
+        - id
+        - name
+        - role
+        - suitorSlot
+
+    Room:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        status:
+          type: string
+          enum: [waiting, active, ended]
+        chooserName:
+          type: ["string", "null"]
+        suitorCount:
+          type: integer
+        maxSuitors:
+          type: integer
+        winnerId:
+          type: ["string", "null"]
+        winnerName:
+          type: ["string", "null"]
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/Participant"
+        createdAt:
+          type: string
+      required:
+        - id
+        - code
+        - status
+        - chooserName
+        - suitorCount
+        - maxSuitors
+        - winnerId
+        - winnerName
+        - participants
+        - createdAt
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        roomId:
+          type: string
+        senderId:
+          type: string
+        senderName:
+          type: string
+        senderRole:
+          type: string
+          enum: [chooser, suitor]
+        suitorSlot:
+          type: ["integer", "null"]
+        content:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - roomId
+        - senderId
+        - senderName
+        - senderRole
+        - suitorSlot
+        - content
+        - createdAt
+
+    RoomInput:
+      type: object
+      properties:
+        chooserName:
+          type: string
+          minLength: 1
+      required:
+        - chooserName
+
+    JoinInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        role:
+          type: string
+          enum: [chooser, suitor]
+      required:
+        - name
+        - role
+
+    JoinResult:
+      type: object
+      properties:
+        participantId:
+          type: string
+        room:
+          $ref: "#/components/schemas/Room"
+      required:
+        - participantId
+        - room
+
+    ChooseInput:
+      type: object
+      properties:
+        winnerId:
+          type: string
+      required:
+        - winnerId

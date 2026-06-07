@@ -40,12 +40,17 @@ export default function InboxPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isLoaded || !clerkUser) return;
+    if (!isLoaded) return;
+    if (!clerkUser) { setLoading(false); return; }
     fetch("/api/matches", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => setMatches(data.matches ?? []))
       .finally(() => setLoading(false));
   }, [isLoaded, clerkUser]);
+
+  useEffect(() => {
+    if (isLoaded && !clerkUser && !loading) setLocation("/sign-in");
+  }, [isLoaded, clerkUser, loading]);
 
   if (!isLoaded || loading) {
     return (
@@ -55,10 +60,7 @@ export default function InboxPage() {
     );
   }
 
-  if (!clerkUser) {
-    setLocation("/sign-in");
-    return null;
-  }
+  if (!clerkUser) return null;
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground">

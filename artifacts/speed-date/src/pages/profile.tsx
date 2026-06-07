@@ -111,7 +111,8 @@ export default function ProfilePage() {
   const [editDob, setEditDob] = useState("");
 
   useEffect(() => {
-    if (!isLoaded || !clerkUser) return;
+    if (!isLoaded) return;
+    if (!clerkUser) { setLoading(false); return; }
     fetch("/api/profile/me", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => {
@@ -211,6 +212,10 @@ export default function ProfilePage() {
     setProfile((p) => p ? { ...p, photos } : p);
   };
 
+  useEffect(() => {
+    if (isLoaded && !clerkUser && !loading) setLocation("/sign-in");
+  }, [isLoaded, clerkUser, loading]);
+
   if (!isLoaded || loading) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-background">
@@ -219,10 +224,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!clerkUser) {
-    setLocation("/sign-in");
-    return null;
-  }
+  if (!clerkUser) return null;
 
   const age = profile?.dateOfBirth ? calculateAge(profile.dateOfBirth) : null;
   const hasPhotos = (profile?.photos?.length ?? 0) > 0;

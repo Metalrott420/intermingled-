@@ -242,6 +242,23 @@ export default function Home() {
     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 bg-background text-foreground bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-secondary/20 via-background to-background relative overflow-hidden">
       <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
 
+      {/* Auth nav bar */}
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+        <Show when="signed-out">
+          <a href={`${base}/sign-in`} className="text-xs font-mono text-muted-foreground hover:text-foreground px-3 py-1.5 border border-border rounded-md transition-colors">Sign in</a>
+          <a href={`${base}/subscribe`} className="text-xs font-mono bg-primary text-white px-3 py-1.5 rounded-md hover:bg-primary/90 transition-colors">Subscribe</a>
+        </Show>
+        <Show when="signed-in">
+          <a href={`${base}/inbox`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="Messages">
+            <MessageCircle size={18} />
+          </a>
+          <a href={`${base}/profile`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="My Profile">
+            <User size={18} />
+          </a>
+          <button onClick={() => signOut()} className="text-xs font-mono text-muted-foreground hover:text-foreground px-3 py-1.5 border border-border rounded-md transition-colors">Sign out</button>
+        </Show>
+      </div>
+
       <div className="z-10 w-full max-w-md">
         <h1 className="text-4xl md:text-5xl font-black mb-2 uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary text-center">
           Intermingled

@@ -38,7 +38,9 @@ export default function ConversationPage() {
   const socketRef = useRef<ReturnType<typeof socketIO> | null>(null);
 
   useEffect(() => {
-    if (!isLoaded || !clerkUser || !matchId) return;
+    if (!isLoaded) return;
+    if (!clerkUser || !matchId) { setLoading(false); return; }
+    
 
     // Load own profile to get userId
     fetch("/api/profile/me", { credentials: "include" })
@@ -99,6 +101,10 @@ export default function ConversationPage() {
     }
   };
 
+  useEffect(() => {
+    if (isLoaded && !clerkUser && !loading) setLocation("/sign-in");
+  }, [isLoaded, clerkUser, loading]);
+
   if (!isLoaded || loading) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-background">
@@ -107,10 +113,7 @@ export default function ConversationPage() {
     );
   }
 
-  if (!clerkUser) {
-    setLocation("/sign-in");
-    return null;
-  }
+  if (!clerkUser) return null;
 
   const otherPhoto = matchInfo?.otherPhotos?.[0];
 

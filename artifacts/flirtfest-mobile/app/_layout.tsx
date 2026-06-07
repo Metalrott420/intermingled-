@@ -39,6 +39,7 @@ function RootLayoutNav() {
       <Stack.Screen name="room/[id]/chooser" />
       <Stack.Screen name="room/[id]/suitor" />
       <Stack.Screen name="result/[id]" />
+      <Stack.Screen name="conversation/[matchId]" />
     </Stack>
   );
 }

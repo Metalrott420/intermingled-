@@ -14,6 +14,14 @@ export function isUserInPool(userId: string): boolean {
   return activeSuitorPool.has(userId);
 }
 
+export function getPoolCount(): number {
+  return activeSuitorPool.size;
+}
+
+function broadcastPoolCount() {
+  io.emit("pool_count", { count: activeSuitorPool.size });
+}
+
 export function initSocket(httpServer: HttpServer): SocketIOServer {
   io = new SocketIOServer(httpServer, {
     path: "/ws/socket.io",
@@ -22,6 +30,9 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
 
   io.on("connection", (socket) => {
     logger.info({ socketId: socket.id }, "Socket connected");
+
+    // Send the current pool count immediately on connect
+    socket.emit("pool_count", { count: activeSuitorPool.size });
 
     socket.on("join_room", ({ roomId }: { roomId: string; participantId: string }) => {
       socket.join(roomId);
@@ -32,7 +43,8 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
     socket.on("enter_pool", ({ userId }: { userId: string }) => {
       socket.join(`user_${userId}`);
       activeSuitorPool.add(userId);
-      logger.info({ socketId: socket.id, userId }, "User entered pool");
+      logger.info({ socketId: socket.id, userId, poolSize: activeSuitorPool.size }, "User entered pool");
+      broadcastPoolCount();
     });
 
     // Chooser joins their personal room so matchmaking can emit slot_filled events
@@ -44,7 +56,8 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
     socket.on("leave_pool", ({ userId }: { userId: string }) => {
       socket.leave(`user_${userId}`);
       activeSuitorPool.delete(userId);
-      logger.info({ socketId: socket.id, userId }, "User left pool");
+      logger.info({ socketId: socket.id, userId, poolSize: activeSuitorPool.size }, "User left pool");
+      broadcastPoolCount();
     });
 
     socket.on(
@@ -97,14 +110,16 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
     );
 
     socket.on("disconnect", () => {
-      // Clean up pool membership on disconnect; socket rooms are auto-cleaned by socket.io
+      const before = activeSuitorPool.size;
       for (const userId of activeSuitorPool) {
-        // We don't have a userId→socketId map, but socket.io rooms let us check membership
         const room = io.sockets.adapter.rooms.get(`user_${userId}`);
         if (!room || room.size === 0) {
           activeSuitorPool.delete(userId);
           logger.info({ userId }, "Removed from active pool on disconnect");
         }
+      }
+      if (activeSuitorPool.size !== before) {
+        broadcastPoolCount();
       }
       logger.info({ socketId: socket.id }, "Socket disconnected");
     });

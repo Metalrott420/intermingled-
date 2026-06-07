@@ -1,7 +1,9 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
+import { getAuth } from "@clerk/express";
 import { db, usersTable } from "@workspace/db";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -9,6 +11,10 @@ function makeId(): string {
   return randomBytes(8).toString("hex");
 }
 
+// POST /api/users — create or update session user
+// If the caller is Clerk-authenticated, we reuse their existing user record so that:
+//   1. matches created during speed-dating use the same ID as the inbox/profile
+//   2. subsequent `GET /api/matches` finds those matches immediately
 router.post("/users", async (req, res) => {
   const { name, role, personalityVector } = req.body;
   if (
@@ -23,10 +29,66 @@ router.post("/users", async (req, res) => {
     return;
   }
 
+  const trimmedName = name.trim();
+  const auth = getAuth(req);
+  const clerkUserId = auth?.userId;
+
+  // If signed-in, upsert on the Clerk user record so session and profile share one ID
+  if (clerkUserId) {
+    try {
+      const existing = await db.query.usersTable.findFirst({
+        where: eq(usersTable.clerkId, clerkUserId),
+      });
+
+      if (existing) {
+        // Update with fresh session data
+        await db.update(usersTable).set({
+          name: trimmedName,
+          role: role as "chooser" | "suitor",
+          personalityVector,
+          status: "looking",
+        }).where(eq(usersTable.clerkId, clerkUserId));
+
+        res.status(201).json({
+          id: existing.id,
+          name: trimmedName,
+          role,
+          status: "looking",
+          createdAt: existing.createdAt.toISOString(),
+        });
+        return;
+      }
+
+      // Create Clerk-linked user if not yet in DB
+      const id = clerkUserId;
+      await db.insert(usersTable).values({
+        id,
+        clerkId: clerkUserId,
+        name: trimmedName,
+        role: role as "chooser" | "suitor",
+        personalityVector,
+        status: "looking",
+      });
+
+      res.status(201).json({
+        id,
+        name: trimmedName,
+        role,
+        status: "looking",
+        createdAt: new Date().toISOString(),
+      });
+      return;
+    } catch (err) {
+      logger.error({ err }, "POST /users clerk upsert failed, falling back to session user");
+      // Fall through to anonymous session user
+    }
+  }
+
+  // Anonymous session user
   const id = makeId();
   await db.insert(usersTable).values({
     id,
-    name: name.trim(),
+    name: trimmedName,
     role: role as "chooser" | "suitor",
     personalityVector,
     status: "looking",

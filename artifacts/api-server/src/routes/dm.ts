@@ -21,6 +21,32 @@ const requireAuth = (req: any, res: any, next: any) => {
   next();
 };
 
+// GET /api/rooms/:roomId/match — look up the match for a room (public, by roomId)
+router.get("/rooms/:roomId/match", async (req, res) => {
+  try {
+    const match = await db.query.matchesTable.findFirst({
+      where: eq(matchesTable.roomId, req.params.roomId),
+    });
+    if (!match) {
+      res.json({ match: null });
+      return;
+    }
+    res.json({
+      match: {
+        id: match.id,
+        roomId: match.roomId,
+        chooserUserId: match.chooserUserId,
+        suitorUserId: match.suitorUserId,
+        chooserName: match.chooserName,
+        suitorName: match.suitorName,
+        createdAt: match.createdAt.toISOString(),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/matches — list all matches for the current user
 router.get("/matches", requireAuth, async (req: any, res) => {
   try {

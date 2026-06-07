@@ -1,0 +1,1 @@
+- [Session/Clerk user linkage](session-clerk-linkage.md) — POST /api/users is Clerk-aware; signed-in users reuse Clerk user record so inbox/DMs work after speed-dating sessions.

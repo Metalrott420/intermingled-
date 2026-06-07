@@ -7,10 +7,14 @@ export const userRoleEnum = pgEnum("user_role", ["chooser", "suitor"]);
 
 export const usersTable = pgTable("users", {
   id: text("id").primaryKey(),
+  clerkId: text("clerk_id").unique(),
+  email: text("email"),
   name: text("name").notNull(),
-  personalityVector: jsonb("personality_vector").notNull().$type<number[]>(),
-  role: userRoleEnum("role").notNull(),
+  personalityVector: jsonb("personality_vector").$type<number[]>(),
+  role: userRoleEnum("role"),
   status: userStatusEnum("status").notNull().default("looking"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

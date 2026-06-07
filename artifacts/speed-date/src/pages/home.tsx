@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useCreateUser } from "@workspace/api-client-react";
+import { useUser, useClerk, Show } from "@clerk/react";
 
 const QUIZ_QUESTIONS = [
   {
@@ -88,6 +89,9 @@ export default function Home() {
   const [name, setName] = useState("");
   const [storedQuiz, setStoredQuiz] = useState<StoredQuiz | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
   const createUser = useCreateUser();
 
@@ -165,6 +169,18 @@ export default function Home() {
     return (
       <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 bg-background text-foreground bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background relative overflow-hidden">
         <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+
+        {/* Auth nav bar */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+          <Show when="signed-out">
+            <a href={`${base}/sign-in`} className="text-xs font-mono text-muted-foreground hover:text-foreground px-3 py-1.5 border border-border rounded-md transition-colors">Sign in</a>
+            <a href={`${base}/subscribe`} className="text-xs font-mono bg-primary text-white px-3 py-1.5 rounded-md hover:bg-primary/90 transition-colors">Subscribe</a>
+          </Show>
+          <Show when="signed-in">
+            <span className="text-xs font-mono text-muted-foreground">{user?.firstName ?? user?.primaryEmailAddress?.emailAddress}</span>
+            <button onClick={() => signOut()} className="text-xs font-mono text-muted-foreground hover:text-foreground px-3 py-1.5 border border-border rounded-md transition-colors">Sign out</button>
+          </Show>
+        </div>
 
         <div className="z-10 w-full max-w-lg">
           <h1 className="text-4xl md:text-5xl font-black mb-2 uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary text-center">

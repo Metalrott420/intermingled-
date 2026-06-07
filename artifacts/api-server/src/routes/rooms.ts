@@ -118,7 +118,15 @@ router.post("/rooms/match", async (req, res) => {
     return;
   }
 
-  const top5 = rankSuitors(chooser.personalityVector, liveSuitorPool, 5);
+  if (!chooser.personalityVector) {
+    res.status(400).json({ error: "Chooser has no personality vector" });
+    return;
+  }
+
+  const suitorsWithVector = liveSuitorPool.filter(
+    (u): u is typeof u & { personalityVector: number[] } => u.personalityVector !== null,
+  );
+  const top5 = rankSuitors(chooser.personalityVector, suitorsWithVector, 5);
 
   // Create room, start it active immediately
   const roomId = makeId();

@@ -1,4 +1,4 @@
-import { useSignIn } from "@clerk/expo";
+import { useSignIn } from "@clerk/expo/legacy";
 import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -14,33 +14,42 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function SignInScreen() {
-  const { signIn, errors, fetchStatus } = useSignIn();
+  const { signIn, setActive, isLoaded } = useSignIn();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    const { error } = await signIn.password({ emailAddress: email, password });
-    if (error) return;
-
-    if (signIn.status === "complete") {
-      await signIn.finalize({
-        navigate: ({ decorateUrl }) => {
-          const url = decorateUrl("/");
-          if (url.startsWith("http")) {
-            // no-op in native
-          } else {
-            router.replace("/(tabs)");
-          }
-        },
+    if (!isLoaded || !signIn) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await signIn.create({
+        identifier: email.trim(),
+        password,
       });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        router.replace("/(tabs)");
+      } else {
+        setError("Sign-in incomplete. Please try again.");
+      }
+    } catch (err: any) {
+      const msg =
+        err?.errors?.[0]?.longMessage ??
+        err?.errors?.[0]?.message ??
+        "Invalid email or password.";
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const isLoading = fetchStatus === "fetching";
-  const canSubmit = !!email && !!password && !isLoading;
+  const canSubmit = !!email && !!password && !loading;
 
   return (
     <KeyboardAvoidingView
@@ -48,7 +57,7 @@ export default function SignInScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.inner}>
-        <Text style={styles.logo}>Intermingled</Text>
+        <Text style={styles.logo}>INTERMINGLED</Text>
         <Text style={styles.subtitle}>Sign in to your account</Text>
 
         <View style={styles.form}>
@@ -56,41 +65,36 @@ export default function SignInScreen() {
           <TextInput
             style={styles.input}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(t) => { setEmail(t); setError(null); }}
             placeholder="you@example.com"
             placeholderTextColor="#7d8899"
             autoCapitalize="none"
             keyboardType="email-address"
             autoComplete="email"
+            autoFocus
           />
-          {errors?.fields?.identifier && (
-            <Text style={styles.error}>{errors.fields.identifier.message}</Text>
-          )}
 
           <Text style={styles.label}>Password</Text>
           <TextInput
             style={styles.input}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(t) => { setPassword(t); setError(null); }}
             placeholder="••••••••"
             placeholderTextColor="#7d8899"
             secureTextEntry
             autoComplete="password"
           />
-          {errors?.fields?.password && (
-            <Text style={styles.error}>{errors.fields.password.message}</Text>
-          )}
+
+          {error && <Text style={styles.error}>{error}</Text>}
 
           <Pressable
             style={[styles.button, !canSubmit && styles.buttonDisabled]}
             onPress={handleSubmit}
             disabled={!canSubmit}
           >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
-            )}
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.buttonText}>Sign In</Text>}
           </Pressable>
         </View>
 
@@ -109,12 +113,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0b0d12" },
   inner: { flex: 1, paddingHorizontal: 24, justifyContent: "center" },
   logo: {
-    fontSize: 32,
-    fontWeight: "900",
+    fontSize: 30,
+    fontFamily: "Inter_700Bold",
     color: "#8b5cf6",
     textAlign: "center",
-    letterSpacing: -1,
-    textTransform: "uppercase",
+    letterSpacing: 4,
     marginBottom: 8,
   },
   subtitle: {
@@ -125,7 +128,14 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
   },
   form: { gap: 8 },
-  label: { fontSize: 12, color: "#7d8899", textTransform: "uppercase", letterSpacing: 1, marginTop: 8 },
+  label: {
+    fontSize: 12,
+    color: "#7d8899",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginTop: 8,
+    fontFamily: "Inter_600SemiBold",
+  },
   input: {
     backgroundColor: "#181b24",
     borderWidth: 1,
@@ -137,7 +147,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Inter_400Regular",
   },
-  error: { color: "#ef4444", fontSize: 12, marginTop: 2 },
+  error: {
+    color: "#ef4444",
+    fontSize: 13,
+    marginTop: 6,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 18,
+  },
   button: {
     backgroundColor: "#8b5cf6",
     borderRadius: 8,
@@ -147,8 +163,14 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: "#fff", fontWeight: "700", fontSize: 16, letterSpacing: 0.5 },
+  buttonText: {
+    color: "#fff",
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+  },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 32 },
-  footerText: { color: "#7d8899", fontSize: 14 },
-  link: { color: "#8b5cf6", fontSize: 14, fontWeight: "600" },
+  footerText: { color: "#7d8899", fontSize: 14, fontFamily: "Inter_400Regular" },
+  link: { color: "#8b5cf6", fontSize: 14, fontFamily: "Inter_600SemiBold" },
 });

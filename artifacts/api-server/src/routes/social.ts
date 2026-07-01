@@ -135,12 +135,39 @@ router.get("/rooms/:roomId/group-messages", async (req, res) => {
   }
 });
 
+// Patterns that suggest contact info being shared
+const CONTACT_INFO_PATTERNS = [
+  // Phone numbers — 7+ digit sequences with optional separators
+  /(\+?\d[\s\-.]?){7,}/,
+  // Email addresses
+  /[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/i,
+  // Instagram / Snapchat / TikTok / Twitter handles  e.g. "my ig is @foo" or just "@foo"
+  /@[a-z0-9_.]{2,}/i,
+  // Common social shorthand: "ig:", "snap:", "sc:", "tt:", "fb:", "discord:"
+  /\b(instagram|insta|ig|snapchat|snap|sc|tiktok|tt|facebook|fb|discord|whatsapp|wapp|wa|telegram|tg|kik|signal)\s*[:/]?\s*[a-z0-9_.]{2,}/i,
+  // Explicit "find me on" / "dm me on" phrasing
+  /\b(find me on|dm me on|hit me on|message me on|add me on|follow me)\b/i,
+];
+
+function containsContactInfo(text: string): boolean {
+  return CONTACT_INFO_PATTERNS.some((re) => re.test(text));
+}
+
 router.post("/rooms/:roomId/group-messages", requireAuth, async (req: any, res) => {
   try {
     const senderId = await getDbUserId(req.clerkUserId);
     if (!senderId) { res.status(404).json({ error: "User not found" }); return; }
     const { content, senderName } = req.body;
     if (!content?.trim()) { res.status(400).json({ error: "Content required" }); return; }
+
+    if (containsContactInfo(content.trim())) {
+      res.status(422).json({
+        error: "contact_info_blocked",
+        message: "Contact info isn't allowed here — use your private match chat instead.",
+      });
+      return;
+    }
+
     const id = genId();
     const now = new Date();
     const [msg] = await db.insert(groupMessagesTable).values({

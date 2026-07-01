@@ -40,6 +40,7 @@ export default function Result() {
   const [groupInput, setGroupInput] = useState("");
   const [sendingGroup, setSendingGroup] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [groupError, setGroupError] = useState<string | null>(null);
   const groupBottomRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<ReturnType<typeof socketIO> | null>(null);
 
@@ -84,6 +85,7 @@ export default function Result() {
   const handleSendGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!groupInput.trim() || !myProfile || sendingGroup) return;
+    setGroupError(null);
     setSendingGroup(true);
     try {
       const res = await fetch(`/api/rooms/${roomId}/group-messages`, {
@@ -93,6 +95,10 @@ export default function Result() {
         body: JSON.stringify({ content: groupInput.trim(), senderName: myProfile.name }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setGroupError(data.message ?? "Could not send message.");
+        return;
+      }
       if (data.message) {
         setGroupMessages((prev) => {
           if (prev.some((m) => m.id === data.message.id)) return prev;
@@ -339,24 +345,37 @@ export default function Result() {
 
               {/* Input */}
               {isLoaded && clerkUser ? (
-                <form
-                  onSubmit={handleSendGroup}
-                  className="flex gap-2 p-3 border-t border-border/40"
-                >
-                  <input
-                    value={groupInput}
-                    onChange={(e) => setGroupInput(e.target.value)}
-                    placeholder="Chat with everyone..."
-                    className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                  <button
-                    type="submit"
-                    disabled={sendingGroup || !groupInput.trim()}
-                    className="p-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-colors"
+                <div className="border-t border-border/40">
+                  {groupError && (
+                    <div className="flex items-start gap-2 px-3 pt-2.5 pb-0">
+                      <span className="text-[10px] font-mono text-elimination leading-snug">
+                        🚫 {groupError}
+                      </span>
+                    </div>
+                  )}
+                  <form
+                    onSubmit={handleSendGroup}
+                    className="flex gap-2 p-3"
                   >
-                    <Send size={16} />
-                  </button>
-                </form>
+                    <input
+                      value={groupInput}
+                      onChange={(e) => { setGroupInput(e.target.value); if (groupError) setGroupError(null); }}
+                      placeholder="Chat with everyone..."
+                      className={`flex-1 bg-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 transition-colors ${
+                        groupError
+                          ? "border-elimination/60 focus:ring-elimination"
+                          : "border-border focus:ring-primary"
+                      }`}
+                    />
+                    <button
+                      type="submit"
+                      disabled={sendingGroup || !groupInput.trim()}
+                      className="p-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-colors"
+                    >
+                      <Send size={16} />
+                    </button>
+                  </form>
+                </div>
               ) : (
                 <div className="p-3 border-t border-border/40 text-center text-xs text-muted-foreground font-mono">
                   <Link href="/sign-in" className="text-primary hover:underline">Sign in</Link> to chat

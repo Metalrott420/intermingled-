@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation, useParams, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useGetRoom, getGetRoomQueryKey } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
-import { MessageCircle, User } from "lucide-react";
+import { MessageCircle, User, Send, Trophy, X, Users } from "lucide-react";
+import { io as socketIO } from "socket.io-client";
 
 interface MatchInfo {
   id: string;
@@ -11,6 +12,15 @@ interface MatchInfo {
   suitorUserId: string;
   chooserName: string;
   suitorName: string;
+}
+
+interface GroupMsg {
+  id: string;
+  roomId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  createdAt: string;
 }
 
 export default function Result() {
@@ -25,6 +35,13 @@ export default function Result() {
 
   const [matchInfo, setMatchInfo] = useState<MatchInfo | null>(null);
   const [matchLoading, setMatchLoading] = useState(true);
+  const [myProfile, setMyProfile] = useState<{ id: string; name: string } | null>(null);
+  const [groupMessages, setGroupMessages] = useState<GroupMsg[]>([]);
+  const [groupInput, setGroupInput] = useState("");
+  const [sendingGroup, setSendingGroup] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const groupBottomRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<ReturnType<typeof socketIO> | null>(null);
 
   useEffect(() => {
     if (!roomId) return;
@@ -34,10 +51,69 @@ export default function Result() {
       .finally(() => setMatchLoading(false));
   }, [roomId]);
 
+  useEffect(() => {
+    if (!isLoaded || !clerkUser) return;
+    fetch("/api/profile/me", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => setMyProfile({ id: data.id, name: data.name }));
+  }, [isLoaded, clerkUser]);
+
+  // Load group messages + join socket room
+  useEffect(() => {
+    if (!roomId) return;
+    fetch(`/api/rooms/${roomId}/group-messages`)
+      .then((r) => r.json())
+      .then((data) => setGroupMessages(data.messages ?? []));
+
+    const socket = socketIO(window.location.origin, { path: "/ws/socket.io" });
+    socketRef.current = socket;
+    socket.emit("join_room", { roomId });
+    socket.on("group_message", (msg: GroupMsg) => {
+      setGroupMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+    });
+    return () => { socket.disconnect(); };
+  }, [roomId]);
+
+  useEffect(() => {
+    groupBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [groupMessages, showChat]);
+
+  const handleSendGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!groupInput.trim() || !myProfile || sendingGroup) return;
+    setSendingGroup(true);
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/group-messages`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: groupInput.trim(), senderName: myProfile.name }),
+      });
+      const data = await res.json();
+      if (data.message) {
+        setGroupMessages((prev) => {
+          if (prev.some((m) => m.id === data.message.id)) return prev;
+          return [...prev, data.message];
+        });
+      }
+      setGroupInput("");
+    } finally {
+      setSendingGroup(false);
+    }
+  };
+
   if (isLoading || !room) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background text-primary font-mono">
-        COMPILING RESULTS...
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="font-display text-xl font-black uppercase tracking-widest text-primary animate-pulse">
+            COMPILING RESULTS...
+          </div>
+        </div>
       </div>
     );
   }
@@ -45,135 +121,259 @@ export default function Result() {
   const isWinner = room.winnerId === participantId;
   const isChooser = room.participants.find((p) => p.id === participantId)?.role === "chooser";
   const isInvolved = isWinner || isChooser;
+  const isLoser = participantId && !isWinner && !isChooser;
+
+  const participantNames = room.participants
+    .filter((p) => p.role === "suitor")
+    .map((p) => p.name);
 
   return (
-    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 bg-background text-foreground relative overflow-hidden">
-      {/* Background glow */}
-      <div
-        className={`absolute inset-0 z-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] ${
-          isInvolved
-            ? "from-primary via-background to-background"
-            : "from-muted via-background to-background"
-        }`}
-      />
+    <div className={`min-h-[100dvh] w-full bg-background text-foreground relative overflow-hidden ${
+      isWinner || isChooser ? "stage-bg" : "spotlight-bg"
+    }`}>
+      {/* Stage lights for winner/chooser */}
+      {(isWinner || isChooser) && (
+        <>
+          <div className="stage-light-1 pointer-events-none" />
+          <div className="stage-light-2 pointer-events-none" />
+        </>
+      )}
 
-      <div className="z-10 text-center max-w-2xl w-full border border-border p-10 bg-card/60 backdrop-blur rounded-xl shadow-2xl space-y-6">
-        <div className="text-sm font-mono text-muted-foreground uppercase tracking-widest">
-          Match Result
+      <div className="relative z-10 flex flex-col items-center justify-start min-h-[100dvh] p-4 sm:p-6 py-8">
+        {/* Status label */}
+        <div className="mb-4 px-4 py-1.5 rounded-full border border-border/60 bg-card/60 backdrop-blur">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+            Episode Complete · Room {room.code}
+          </span>
         </div>
 
-        <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter">
-          {isWinner ? (
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary drop-shadow-[0_0_20px_hsl(var(--primary))]">
-              YOU WON
-            </span>
-          ) : isChooser ? (
-            <span className="text-primary drop-shadow-[0_0_15px_hsl(var(--primary))]">
-              MATCH CONFIRMED
-            </span>
-          ) : (
-            <span className="text-muted-foreground">GAME OVER</span>
-          )}
-        </h1>
-
-        <div className="text-xl">
-          {isWinner ? (
-            <p>
-              <span className="font-bold text-secondary">{room.chooserName}</span> chose you!
-            </p>
-          ) : isChooser ? (
-            <p>
-              You selected <span className="font-bold text-secondary">{room.winnerName}</span>!
-            </p>
-          ) : (
-            <p>
-              {room.chooserName} chose{" "}
-              <span className="font-bold text-secondary">{room.winnerName}</span>.
-            </p>
-          )}
-        </div>
-
-        {/* Match DM CTA — only for the two people involved */}
-        {isInvolved && !matchLoading && (
-          <div className="border border-border rounded-xl p-6 bg-background/60 space-y-3 text-left">
-            <div className="flex items-center gap-2 text-sm font-mono text-muted-foreground uppercase tracking-wider">
-              <MessageCircle size={14} />
-              <span>Private Message</span>
-            </div>
-
-            {matchInfo ? (
-              isLoaded && clerkUser ? (
-                // Signed in → go straight to conversation
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    You have a private conversation with{" "}
-                    <strong>{isChooser ? room.winnerName : room.chooserName}</strong>.
-                  </p>
-                  <Link href={`/conversation/${matchInfo.id}`}>
-                    <Button className="w-full h-11 font-bold tracking-widest gap-2">
-                      <MessageCircle size={16} />
-                      OPEN CONVERSATION
-                    </Button>
-                  </Link>
-                </div>
-              ) : (
-                // Not signed in → prompt to sign in
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    Sign in to message{" "}
-                    <strong>{isChooser ? room.winnerName : room.chooserName}</strong>{" "}
-                    and keep the spark going.
-                  </p>
-                  <Link href="/sign-in">
-                    <Button variant="outline" className="w-full h-11 font-bold tracking-widest gap-2 border-primary text-primary hover:bg-primary/10">
-                      <User size={16} />
-                      SIGN IN TO MESSAGE
-                    </Button>
-                  </Link>
-                </div>
-              )
+        {/* Main result card */}
+        <div className={`w-full max-w-xl rounded-2xl overflow-hidden border shadow-2xl mb-6 ${
+          isWinner
+            ? "border-secondary/60 gameshow-card-gold"
+            : isChooser
+              ? "border-primary/50"
+              : "border-border/30"
+        } bg-card/70 backdrop-blur`}>
+          {/* Hero banner */}
+          <div className={`p-8 sm:p-10 text-center relative overflow-hidden ${
+            isWinner
+              ? "bg-gradient-to-b from-secondary/15 to-transparent"
+              : isChooser
+                ? "bg-gradient-to-b from-primary/15 to-transparent"
+                : "bg-gradient-to-b from-muted/20 to-transparent"
+          }`}>
+            {/* Icon */}
+            {isWinner ? (
+              <div className="winner-entrance mb-4 inline-block">
+                <Trophy size={64} className="mx-auto text-secondary drop-shadow-[0_0_20px_hsl(var(--secondary)/0.8)]" />
+              </div>
+            ) : isChooser ? (
+              <div className="winner-entrance mb-4 inline-block">
+                <Trophy size={64} className="mx-auto text-primary drop-shadow-[0_0_20px_hsl(var(--primary)/0.8)]" />
+              </div>
             ) : (
-              // Match not yet created (e.g. both users anonymous)
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  {isLoaded && clerkUser
-                    ? "Sign in before your next session to unlock private messaging with your match."
-                    : "Create an account to unlock private messaging after each session."}
-                </p>
-                <Link href={clerkUser ? "/inbox" : "/sign-up"}>
-                  <Button variant="outline" className="w-full h-11 font-bold tracking-widest gap-2 border-primary/50 text-primary hover:bg-primary/10">
-                    <User size={16} />
-                    {clerkUser ? "VIEW INBOX" : "CREATE ACCOUNT"}
-                  </Button>
-                </Link>
+              <div className="mb-4">
+                <X size={56} className="mx-auto text-muted-foreground/40" />
               </div>
             )}
-          </div>
-        )}
 
-        {/* Action buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
-          <Link href="/" className="flex-1">
-            <Button
-              size="lg"
-              className="w-full h-12 font-bold uppercase tracking-widest bg-card border border-border hover:bg-secondary/20 hover:border-secondary hover:text-secondary transition-all"
-            >
-              Play Again
-            </Button>
-          </Link>
-          {isLoaded && clerkUser && (
-            <Link href="/profile" className="flex-1">
+            <h1 className={`font-display text-5xl sm:text-7xl font-black uppercase tracking-tight leading-none mb-3 ${
+              isWinner
+                ? "text-transparent bg-clip-text bg-gradient-to-r from-secondary via-yellow-300 to-secondary drop-shadow-[0_0_30px_hsl(var(--secondary)/0.5)]"
+                : isChooser
+                  ? "text-primary drop-shadow-[0_0_20px_hsl(var(--primary)/0.6)]"
+                  : "text-muted-foreground"
+            }`}>
+              {isWinner ? "YOU WON!" : isChooser ? "MATCH CONFIRMED" : "GAME OVER"}
+            </h1>
+
+            <p className="text-base sm:text-lg text-muted-foreground">
+              {isWinner ? (
+                <>
+                  <span className="font-bold text-foreground">{room.chooserName}</span>
+                  {" "}chose you from {participantNames.length} suitors
+                </>
+              ) : isChooser ? (
+                <>
+                  You selected{" "}
+                  <span className="font-bold text-secondary">{room.winnerName}</span>
+                </>
+              ) : (
+                <>
+                  <span className="font-bold text-foreground">{room.chooserName}</span>{" "}
+                  chose{" "}
+                  <span className="font-bold text-secondary">{room.winnerName}</span>
+                </>
+              )}
+            </p>
+          </div>
+
+          {/* Match DM CTA */}
+          {isInvolved && !matchLoading && (
+            <div className="px-6 pb-2">
+              <div className="border border-border/60 rounded-xl p-4 bg-background/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                  <MessageCircle size={13} />
+                  <span>Private Conversation</span>
+                </div>
+                {matchInfo ? (
+                  isLoaded && clerkUser ? (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Your private channel with{" "}
+                        <strong className="text-foreground">
+                          {isChooser ? room.winnerName : room.chooserName}
+                        </strong>{" "}
+                        is open.
+                      </p>
+                      <Link href={`/conversation/${matchInfo.id}`}>
+                        <Button className="w-full h-11 font-display font-bold tracking-widest gap-2 text-sm bg-primary hover:bg-primary/90 shadow-[0_0_20px_hsl(var(--primary)/0.4)]">
+                          <MessageCircle size={16} />
+                          OPEN PRIVATE CHAT
+                        </Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Sign in to message{" "}
+                        <strong>{isChooser ? room.winnerName : room.chooserName}</strong>.
+                      </p>
+                      <Link href="/sign-in">
+                        <Button variant="outline" className="w-full h-11 font-display font-bold tracking-widest gap-2 border-primary text-primary hover:bg-primary/10">
+                          <User size={16} />
+                          SIGN IN TO MESSAGE
+                        </Button>
+                      </Link>
+                    </div>
+                  )
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Create an account to unlock private messaging after each session.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="px-6 py-5 flex flex-col sm:flex-row gap-3">
+            <Link href="/" className="flex-1">
               <Button
                 size="lg"
-                variant="outline"
-                className="w-full h-12 font-bold uppercase tracking-widest border-primary/30 text-primary hover:bg-primary/10 transition-all"
+                className="w-full h-12 font-display font-black uppercase tracking-widest bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_hsl(var(--primary)/0.3)]"
               >
-                My Profile
+                PLAY AGAIN
               </Button>
             </Link>
+            {isLoaded && clerkUser && (
+              <Link href="/profile" className="flex-1">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full h-12 font-display font-black uppercase tracking-widest border-border hover:border-primary/50 hover:text-primary"
+                >
+                  MY PROFILE
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* ── Post-game Group Chat ── */}
+        <div className="w-full max-w-xl">
+          <button
+            onClick={() => setShowChat((v) => !v)}
+            className="w-full flex items-center justify-between p-4 rounded-xl border border-border/50 bg-card/50 backdrop-blur hover:border-primary/40 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <Users size={18} className="text-primary" />
+              <div className="text-left">
+                <div className="font-display font-bold uppercase tracking-wide text-sm">Post-Game Group Chat</div>
+                <div className="text-xs text-muted-foreground font-mono">
+                  {groupMessages.length > 0
+                    ? `${groupMessages.length} message${groupMessages.length !== 1 ? "s" : ""} from everyone`
+                    : "All players can chat here"}
+                </div>
+              </div>
+            </div>
+            <div className={`text-muted-foreground transition-transform ${showChat ? "rotate-90" : ""}`}>
+              <ChevronRight size={18} />
+            </div>
+          </button>
+
+          {showChat && (
+            <div className="mt-2 rounded-xl border border-border/50 bg-card/60 backdrop-blur overflow-hidden">
+              {/* Messages */}
+              <div className="h-64 overflow-y-auto p-4 space-y-2">
+                {groupMessages.length === 0 ? (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-xs font-mono text-muted-foreground text-center">
+                      Be the first to break the silence...
+                    </p>
+                  </div>
+                ) : (
+                  groupMessages.map((msg) => {
+                    const isMine = myProfile && msg.senderId === myProfile.id;
+                    return (
+                      <div key={msg.id} className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
+                        {!isMine && (
+                          <span className="text-[10px] font-mono text-muted-foreground/60 mb-0.5 px-1">
+                            {msg.senderName}
+                          </span>
+                        )}
+                        <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                          isMine
+                            ? "bg-primary/20 border border-primary/40 text-foreground"
+                            : "bg-muted/60 border border-border/40 text-foreground"
+                        }`}>
+                          {msg.content}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={groupBottomRef} />
+              </div>
+
+              {/* Input */}
+              {isLoaded && clerkUser ? (
+                <form
+                  onSubmit={handleSendGroup}
+                  className="flex gap-2 p-3 border-t border-border/40"
+                >
+                  <input
+                    value={groupInput}
+                    onChange={(e) => setGroupInput(e.target.value)}
+                    placeholder="Chat with everyone..."
+                    className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <button
+                    type="submit"
+                    disabled={sendingGroup || !groupInput.trim()}
+                    className="p-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-colors"
+                  >
+                    <Send size={16} />
+                  </button>
+                </form>
+              ) : (
+                <div className="p-3 border-t border-border/40 text-center text-xs text-muted-foreground font-mono">
+                  <Link href="/sign-in" className="text-primary hover:underline">Sign in</Link> to chat
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+function ChevronRight({ size, className }: { size: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="m9 18 6-6-6-6" />
+    </svg>
   );
 }

@@ -83,11 +83,17 @@ router.get("/profile/:userId", async (req, res) => {
   }
 });
 
+const ProfilePromptSchema = z.object({
+  question: z.string().max(200),
+  answer: z.string().max(300),
+});
+
 const UpdateProfileBody = z.object({
   name: z.string().min(1).max(80).optional(),
   bio: z.string().max(500).optional(),
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   photos: z.array(z.string()).max(12).optional(),
+  profilePrompts: z.array(ProfilePromptSchema).max(3).optional(),
 });
 
 // PUT /api/profile/me — update own profile
@@ -98,7 +104,7 @@ router.put("/profile/me", requireAuth, async (req: any, res) => {
       res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       return;
     }
-    const { name, bio, dateOfBirth, photos } = parsed.data;
+    const { name, bio, dateOfBirth, photos, profilePrompts } = parsed.data;
 
     // Enforce 18+ if dateOfBirth is being set
     if (dateOfBirth) {
@@ -114,6 +120,7 @@ router.put("/profile/me", requireAuth, async (req: any, res) => {
     if (bio !== undefined) updateData.bio = bio;
     if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth;
     if (photos !== undefined) updateData.photos = photos;
+    if (profilePrompts !== undefined) updateData.profilePrompts = profilePrompts;
 
     await db
       .update(usersTable)

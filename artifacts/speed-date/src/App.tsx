@@ -18,6 +18,7 @@ import SubscribeSuccess from "@/pages/subscribe-success";
 import ProfilePage from "@/pages/profile";
 import InboxPage from "@/pages/inbox";
 import ConversationPage from "@/pages/conversation";
+import WhoLikedMe from "@/pages/who-liked-me";
 
 const queryClient = new QueryClient();
 
@@ -49,16 +50,16 @@ const clerkAppearance = {
     logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
   },
   variables: {
-    colorPrimary: "#8b5cf6",
-    colorForeground: "#f0f1f5",
-    colorMutedForeground: "#7d8899",
-    colorDanger: "#ef4444",
-    colorBackground: "#111318",
-    colorInput: "#181b24",
-    colorInputForeground: "#f0f1f5",
-    colorNeutral: "#1e2230",
-    fontFamily: "Inter, system-ui, sans-serif",
-    borderRadius: "0.5rem",
+    colorPrimary: "#9333ea",
+    colorForeground: "#f3f4f8",
+    colorMutedForeground: "#6b7280",
+    colorDanger: "#ec4899",
+    colorBackground: "#080a10",
+    colorInput: "#12141e",
+    colorInputForeground: "#f3f4f8",
+    colorNeutral: "#1a1c2a",
+    fontFamily: "Barlow, Inter, system-ui, sans-serif",
+    borderRadius: "0.625rem",
   },
   elements: {
     rootBox: "w-full flex justify-center",
@@ -138,6 +139,7 @@ function AppRoutes() {
       <Route path="/profile" component={ProfilePage} />
       <Route path="/inbox" component={InboxPage} />
       <Route path="/conversation/:matchId" component={ConversationPage} />
+      <Route path="/who-liked-me" component={WhoLikedMe} />
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route component={NotFound} />

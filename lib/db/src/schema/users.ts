@@ -5,6 +5,8 @@ import { z } from "zod/v4";
 export const userStatusEnum = pgEnum("user_status", ["looking", "matched", "in_room"]);
 export const userRoleEnum = pgEnum("user_role", ["chooser", "suitor"]);
 
+export type ProfilePrompt = { question: string; answer: string };
+
 export const usersTable = pgTable("users", {
   id: text("id").primaryKey(),
   clerkId: text("clerk_id").unique(),
@@ -14,6 +16,7 @@ export const usersTable = pgTable("users", {
   dateOfBirth: date("date_of_birth"),
   photos: jsonb("photos").$type<string[]>().default([]),
   personalityVector: jsonb("personality_vector").$type<number[]>(),
+  profilePrompts: jsonb("profile_prompts").$type<ProfilePrompt[]>().default([]),
   role: userRoleEnum("role"),
   status: userStatusEnum("status").notNull().default("looking"),
   stripeCustomerId: text("stripe_customer_id"),

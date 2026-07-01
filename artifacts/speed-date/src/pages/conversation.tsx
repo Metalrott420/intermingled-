@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useUser } from "@clerk/react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, Send, User } from "lucide-react";
+import { ArrowLeft, Send, Heart } from "lucide-react";
 import { io as socketIO } from "socket.io-client";
 
 interface DM {
@@ -34,20 +34,19 @@ export default function ConversationPage() {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<ReturnType<typeof socketIO> | null>(null);
 
   useEffect(() => {
     if (!isLoaded) return;
     if (!clerkUser || !matchId) { setLoading(false); return; }
-    
 
-    // Load own profile to get userId
     fetch("/api/profile/me", { credentials: "include" })
       .then((r) => r.json())
       .then((me) => setMyUserId(me.id));
 
-    // Load match info
     fetch("/api/matches", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => {
@@ -55,13 +54,11 @@ export default function ConversationPage() {
         if (match) setMatchInfo(match);
       });
 
-    // Load messages
     fetch(`/api/matches/${matchId}/messages`, { credentials: "include" })
       .then((r) => r.json())
       .then((data) => setMessages(data.messages ?? []))
       .finally(() => setLoading(false));
 
-    // Socket for real-time DMs
     const socket = socketIO(window.location.origin, { path: "/ws/socket.io" });
     socketRef.current = socket;
     socket.emit("join_match", { matchId });
@@ -71,15 +68,20 @@ export default function ConversationPage() {
         return [...prev, msg];
       });
     });
+    socket.on("typing", ({ matchId: mid }: { matchId: string; userId: string }) => {
+      if (mid === matchId) {
+        setIsTyping(true);
+        if (typingTimeout.current) clearTimeout(typingTimeout.current);
+        typingTimeout.current = setTimeout(() => setIsTyping(false), 3000);
+      }
+    });
 
-    return () => {
-      socket.disconnect();
-    };
+    return () => { socket.disconnect(); };
   }, [isLoaded, clerkUser, matchId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isTyping]);
 
   const handleSend = async () => {
     if (!content.trim() || sending) return;
@@ -96,8 +98,13 @@ export default function ConversationPage() {
         setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
         setContent("");
       }
-    } finally {
-      setSending(false);
+    } finally { setSending(false); }
+  };
+
+  const handleTyping = (val: string) => {
+    setContent(val);
+    if (socketRef.current && matchId) {
+      socketRef.current.emit("typing", { matchId, userId: myUserId });
     }
   };
 
@@ -107,8 +114,13 @@ export default function ConversationPage() {
 
   if (!isLoaded || loading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background stage-bg">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="font-display text-sm font-black uppercase tracking-widest text-primary/60 animate-pulse">
+            Loading...
+          </div>
+        </div>
       </div>
     );
   }
@@ -118,65 +130,78 @@ export default function ConversationPage() {
   const otherPhoto = matchInfo?.otherPhotos?.[0];
 
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground flex flex-col">
+    <div className="min-h-[100dvh] bg-background text-foreground flex flex-col stage-bg">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-background/90 backdrop-blur border-b border-border flex items-center gap-3 px-4 h-14 flex-shrink-0">
         <button onClick={() => setLocation("/inbox")} className="p-2 rounded-lg hover:bg-accent transition-colors">
           <ArrowLeft size={20} />
         </button>
 
-        {/* Avatar */}
-        <div className="w-9 h-9 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center flex-shrink-0">
+        <div className="w-9 h-9 rounded-xl overflow-hidden bg-primary/20 border border-border flex items-center justify-center flex-shrink-0 shadow-[0_0_10px_hsl(var(--primary)/0.15)]">
           {otherPhoto ? (
             <img src={`/api/storage${otherPhoto}`} alt={matchInfo?.otherName} className="w-full h-full object-cover" />
           ) : (
-            <User size={18} className="text-primary" />
+            <span className="font-display font-black text-sm text-primary">
+              {matchInfo?.otherName?.charAt(0)?.toUpperCase() ?? "?"}
+            </span>
           )}
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-sm truncate">{matchInfo?.otherName ?? "Your Match"}</div>
-          <div className="text-xs text-[#2bbfa8]">Matched ✓</div>
+          <div className="font-display font-black uppercase tracking-wide text-base truncate">
+            {matchInfo?.otherName ?? "Your Match"}
+          </div>
+          <div className="text-[10px] font-mono text-secondary flex items-center gap-1">
+            <Heart size={9} className="fill-secondary" /> Matched
+          </div>
         </div>
-
-        <button
-          onClick={() => setLocation(`/profile/${matchInfo?.otherUserId}`)}
-          className="text-xs text-muted-foreground hover:text-foreground font-mono transition-colors"
-        >
-          View profile
-        </button>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full py-16 gap-3 text-center">
-            <div className="text-4xl">💜</div>
-            <p className="text-sm text-muted-foreground">
-              You matched with <strong>{matchInfo?.otherName}</strong>!<br />
-              Send the first message.
-            </p>
+        {messages.length === 0 && !isTyping ? (
+          <div className="flex flex-col items-center justify-center h-full py-16 gap-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <Heart size={28} className="text-primary/50" />
+            </div>
+            <div>
+              <p className="font-display font-black text-xl uppercase tracking-wide">You Matched!</p>
+              <p className="text-sm text-muted-foreground mt-1 font-mono">
+                Say hi to <strong className="text-foreground">{matchInfo?.otherName}</strong>
+              </p>
+            </div>
           </div>
         ) : (
           messages.map((msg) => {
             const isMe = msg.senderId === myUserId;
             return (
               <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
-                    isMe
-                      ? "bg-primary text-white rounded-br-sm"
-                      : "bg-[#181b24] text-foreground border border-border rounded-bl-sm"
-                  }`}
-                >
+                <div className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-sm ${
+                  isMe
+                    ? "bg-primary/90 text-primary-foreground rounded-br-sm shadow-[0_0_15px_hsl(var(--primary)/0.25)]"
+                    : "bg-card border border-border/80 text-foreground rounded-bl-sm"
+                }`}>
                   <p className="leading-relaxed">{msg.content}</p>
-                  <p className={`text-[10px] mt-1 ${isMe ? "text-white/60" : "text-muted-foreground"}`}>
+                  <p className={`text-[10px] mt-1 font-mono ${isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                     {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
               </div>
             );
           })
+        )}
+
+        {/* Typing indicator */}
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="bg-card border border-border/80 rounded-2xl rounded-bl-sm px-4 py-3">
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:0ms]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:150ms]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:300ms]" />
+              </div>
+            </div>
+          </div>
         )}
         <div ref={bottomRef} />
       </div>
@@ -186,16 +211,16 @@ export default function ConversationPage() {
         <div className="flex items-center gap-2 max-w-lg mx-auto">
           <input
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => handleTyping(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-            placeholder="Say something..."
+            placeholder={`Message ${matchInfo?.otherName ?? "your match"}...`}
             maxLength={1000}
-            className="flex-1 bg-[#181b24] border border-border rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+            className="flex-1 bg-input border border-border rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
           />
           <button
             onClick={handleSend}
             disabled={!content.trim() || sending}
-            className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 disabled:opacity-40 transition-all flex-shrink-0"
+            className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 disabled:opacity-40 transition-all flex-shrink-0 shadow-[0_0_15px_hsl(var(--primary)/0.3)]"
           >
             {sending
               ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

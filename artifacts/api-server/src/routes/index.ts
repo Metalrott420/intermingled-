@@ -6,6 +6,7 @@ import stripeRouter from "./stripe";
 import storageRouter from "./storage";
 import profileRouter from "./profile";
 import dmRouter from "./dm";
+import socialRouter from "./social";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(stripeRouter);
 router.use(storageRouter);
 router.use(profileRouter);
 router.use(dmRouter);
+router.use(socialRouter);
 
 export default router;

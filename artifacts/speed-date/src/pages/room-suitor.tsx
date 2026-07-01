@@ -7,6 +7,7 @@ import { useGetRoom, useGetRoomMessages, getGetRoomQueryKey, getGetRoomMessagesQ
 import { useSocket } from "@/hooks/useSocket";
 import { Message } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Zap, Send } from "lucide-react";
 
 const ROUND_LABELS: Record<number, string> = { 1: "I", 2: "II", 3: "III", 4: "FINAL" };
 const SESSION_KEY = "intermingled_last_user";
@@ -22,9 +23,9 @@ export default function RoomSuitor() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isEliminated, setIsEliminated] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // For the "Rejoin Pool" button after elimination
   const lastUser = useMemo(() => {
     try {
       const raw = sessionStorage.getItem(SESSION_KEY);
@@ -44,21 +45,14 @@ export default function RoomSuitor() {
   const currentRound = room?.currentRound ?? 1;
 
   const { isConnected, sendMessage, subscribe } = useSocket(
-    roomId,
-    participantId || undefined,
-    myParticipantName,
-    "suitor",
+    roomId, participantId || undefined, myParticipantName, "suitor",
   );
 
-  useEffect(() => {
-    if (!participantId) setLocation("/");
-  }, [participantId, setLocation]);
+  useEffect(() => { if (!participantId) setLocation("/"); }, [participantId, setLocation]);
 
   useEffect(() => {
     if (initialMessages && participantId) {
-      setMessages(
-        initialMessages.filter((m) => m.suitorSlot === (myParticipant?.suitorSlot ?? null)),
-      );
+      setMessages(initialMessages.filter((m) => m.suitorSlot === (myParticipant?.suitorSlot ?? null)));
     }
   }, [initialMessages, participantId, myParticipant?.suitorSlot]);
 
@@ -74,10 +68,9 @@ export default function RoomSuitor() {
     const unsubSessionEnded = subscribe("session_ended", () => {
       setLocation(`/result/${roomId}`);
     });
-    const unsubEliminated = subscribe("suitor_eliminated", ({ participantId: eliminatedId }) => {
+    const unsubEliminated = subscribe("suitor_eliminated", ({ participantId: eliminatedId }: { participantId: string }) => {
       if (eliminatedId === participantId) setIsEliminated(true);
     });
-
     return () => { unsubMsg(); unsubRoom(); unsubSessionEnded(); unsubEliminated(); };
   }, [subscribe, roomId, setLocation, queryClient, myParticipant, participantId]);
 
@@ -88,10 +81,7 @@ export default function RoomSuitor() {
   const isActive = room?.status === "active";
   const isEnded = room?.status === "ended";
 
-  if (isEnded) {
-    setLocation(`/result/${roomId}`);
-    return null;
-  }
+  if (isEnded) { setLocation(`/result/${roomId}`); return null; }
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,45 +92,52 @@ export default function RoomSuitor() {
 
   if (isLoadingRoom || !room) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background text-primary font-mono">
-        LOADING DATABANKS...
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background stage-bg">
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="font-display text-lg font-black uppercase tracking-widest text-primary animate-pulse">
+            LOADING DATABANKS...
+          </div>
+        </div>
       </div>
     );
   }
 
-  // ── Elimination screen ───────────────────────────────────────────────────────
+  // ── Elimination screen ────────────────────────────────────────────────────
   if (isEliminated) {
     const poolUrl = lastUser
       ? `/pool?userId=${lastUser.id}&name=${encodeURIComponent(lastUser.name)}`
       : null;
 
     return (
-      <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center p-6 text-center">
-        <div className="max-w-md w-full border border-destructive/20 rounded-2xl bg-card/60 backdrop-blur p-10 space-y-5">
-          <div className="text-6xl font-black text-destructive/30">✕</div>
-          <h1 className="text-4xl font-black uppercase tracking-tight text-destructive">ELIMINATED</h1>
+      <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center p-6 text-center spotlight-bg relative overflow-hidden">
+        <div className="stage-light-1 pointer-events-none" />
+
+        <div className="max-w-md w-full gameshow-card p-10 space-y-5 relative z-10 elim-flash border-elimination/30">
+          <div className="text-8xl font-display font-black text-elimination/40 drop-shadow-[0_0_30px_hsl(var(--elimination)/0.3)] leading-none">✕</div>
+          <h1 className="font-display text-5xl font-black uppercase tracking-tight text-elimination drop-shadow-[0_0_15px_hsl(var(--elimination)/0.5)]">
+            ELIMINATED
+          </h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
             <span className="font-bold text-foreground">{room.chooserName}</span> has made their decision.
-            You were cut after Round {ROUND_LABELS[currentRound] ?? currentRound}.
+            You were cut after Round{" "}
+            <span className="font-bold text-foreground">{ROUND_LABELS[currentRound] ?? currentRound}</span>.
           </p>
           <p className="text-xs font-mono text-muted-foreground/60 uppercase tracking-widest">
-            Shake it off — the pool awaits
+            Shake it off — the spotlight awaits
           </p>
 
           <div className="pt-2 space-y-3">
             {poolUrl && (
               <Button
                 onClick={() => setLocation(poolUrl)}
-                className="w-full h-12 font-bold uppercase tracking-widest bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-[0_0_20px_hsl(var(--secondary)/0.3)]"
+                className="w-full h-12 font-display font-black uppercase tracking-widest bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
               >
-                ↩ Rejoin Pool
+                ↩ REJOIN POOL
               </Button>
             )}
             <Link href="/">
-              <Button
-                variant="outline"
-                className="w-full h-11 font-bold uppercase tracking-widest border-border hover:border-primary/50 hover:text-primary"
-              >
+              <Button variant="outline" className="w-full h-11 font-display font-bold uppercase tracking-widest border-border hover:border-primary/50 hover:text-primary">
                 {poolUrl ? "Start Fresh" : "Play Again"}
               </Button>
             </Link>
@@ -151,19 +148,23 @@ export default function RoomSuitor() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground flex flex-col items-center justify-center p-3 sm:p-4">
-      <div className="w-full max-w-2xl h-[calc(100dvh-1.5rem)] sm:h-[82dvh] border border-secondary/30 rounded-xl flex flex-col bg-card shadow-[0_0_30px_hsl(var(--secondary)/0.12)] overflow-hidden">
+    <div className="min-h-[100dvh] bg-background text-foreground flex flex-col items-center justify-center p-3 sm:p-4 stage-bg">
+      {/* Stage lights */}
+      <div className="stage-light-1 pointer-events-none" />
+      <div className="stage-light-2 pointer-events-none" />
+
+      <div className="relative z-10 w-full max-w-2xl h-[calc(100dvh-1.5rem)] sm:h-[84dvh] border border-primary/30 rounded-2xl flex flex-col bg-card/80 backdrop-blur shadow-[0_0_40px_hsl(var(--primary)/0.15)] overflow-hidden">
         {/* Header */}
-        <header className="p-3 sm:p-4 border-b border-border bg-secondary/10 flex justify-between items-center shrink-0">
+        <header className="p-3 sm:p-4 border-b border-border bg-primary/8 flex justify-between items-center shrink-0">
           <div>
-            <h1 className="text-base sm:text-xl font-bold text-secondary uppercase tracking-widest">
-              {room.chooserName}'s Room
+            <h1 className="font-display text-base sm:text-xl font-black text-primary uppercase tracking-widest drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]">
+              {room.chooserName}'s Show
             </h1>
             {myParticipant && (
               <div className="text-xs font-mono text-muted-foreground">
-                YOU: <span className="text-secondary">{myParticipant.name.toUpperCase()}</span>
+                YOU: <span className="text-primary font-bold">{myParticipant.name.toUpperCase()}</span>
                 {myParticipant.suitorSlot != null && (
-                  <span className="ml-2 opacity-50">· SLOT {myParticipant.suitorSlot}</span>
+                  <span className="ml-2 opacity-50">· SEAT {myParticipant.suitorSlot}</span>
                 )}
               </div>
             )}
@@ -172,28 +173,39 @@ export default function RoomSuitor() {
             {isActive && (
               <div className="text-center border-r border-border pr-3">
                 <div className="text-[9px] uppercase text-muted-foreground font-mono">Round</div>
-                <div className={`font-black text-lg leading-none ${currentRound === 4 ? "text-primary" : "text-secondary"}`}>
+                <div className={`font-display font-black text-2xl leading-none ${
+                  currentRound === 4 ? "text-secondary drop-shadow-[0_0_8px_hsl(var(--secondary)/0.5)]" : "text-primary"
+                }`}>
                   {ROUND_LABELS[currentRound] ?? currentRound}
                 </div>
               </div>
             )}
             <div className="text-right">
-              <div className="text-xs uppercase text-muted-foreground font-mono">Status</div>
-              <div className={`font-bold uppercase text-sm ${isActive ? "text-primary animate-pulse" : "text-muted-foreground"}`}>
-                {isActive ? "LIVE" : "WAITING"}
+              <div className="text-[9px] uppercase text-muted-foreground font-mono">Status</div>
+              <div className={`font-display font-black uppercase text-sm ${
+                isActive
+                  ? "text-secondary animate-pulse drop-shadow-[0_0_6px_hsl(var(--secondary)/0.5)]"
+                  : "text-muted-foreground"
+              }`}>
+                {isActive ? "🔴 LIVE" : "WAITING"}
               </div>
             </div>
-            <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-secondary animate-pulse" : "bg-muted-foreground"}`} />
+            <div className={`w-2 h-2 rounded-full ${
+              isConnected
+                ? "bg-secondary shadow-[0_0_6px_hsl(var(--secondary))] animate-pulse"
+                : "bg-muted-foreground"
+            }`} />
           </div>
         </header>
 
-        {/* Round info strip */}
+        {/* Round strip */}
         {isActive && (
-          <div className="px-4 py-1.5 bg-secondary/5 border-b border-border/40 flex items-center justify-between">
-            <span className="text-muted-foreground text-[10px] font-mono uppercase tracking-wider">
+          <div className="px-4 py-2 bg-primary/5 border-b border-border/40 flex items-center justify-between">
+            <span className="text-muted-foreground text-[10px] font-mono uppercase tracking-wider flex items-center gap-1.5">
+              <Zap size={10} className="text-primary" />
               {currentRound <= 3
                 ? `${6 - currentRound} suitors active · 1 question this round`
-                : "Finals · 3 questions · Show them who you are"}
+                : "FINALS · 3 questions · Give it everything"}
             </span>
           </div>
         )}
@@ -202,10 +214,12 @@ export default function RoomSuitor() {
         <main className="flex-1 overflow-hidden relative">
           {!isActive ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-muted border-t-secondary animate-spin mb-6" />
-              <h2 className="text-xl sm:text-2xl font-bold uppercase mb-2">Waiting to start</h2>
-              <p className="text-muted-foreground font-mono text-sm">{room.suitorCount} / 5 suitors joined</p>
-              <p className="text-xs text-muted-foreground/60 font-mono mt-2">Session starts when all 5 slots fill</p>
+              <div className="w-16 h-16 rounded-full border-4 border-border border-t-primary animate-spin mb-6" />
+              <h2 className="font-display text-2xl font-black uppercase tracking-widest mb-2">
+                Backstage
+              </h2>
+              <p className="text-muted-foreground font-mono text-sm">{room.suitorCount} / 5 suitors ready</p>
+              <p className="text-xs text-muted-foreground/60 font-mono mt-2">Show starts when all seats fill</p>
             </div>
           ) : (
             <div className="h-full flex flex-col">
@@ -213,7 +227,7 @@ export default function RoomSuitor() {
                 <div className="flex flex-col gap-3">
                   {messages.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground font-mono text-xs">
-                      WAITING FOR {room.chooserName?.toUpperCase()}'S QUESTION...
+                      ⏳ WAITING FOR {room.chooserName?.toUpperCase()}'S QUESTION...
                     </div>
                   )}
                   {messages.map((msg) => {
@@ -221,13 +235,13 @@ export default function RoomSuitor() {
                     return (
                       <div
                         key={msg.id}
-                        className={`max-w-[78%] sm:max-w-[70%] rounded-lg p-2.5 sm:p-3 text-sm ${
+                        className={`max-w-[78%] sm:max-w-[70%] rounded-xl p-3 sm:p-3.5 text-sm ${
                           isMine
-                            ? "bg-secondary/20 text-secondary-foreground border border-secondary/50 self-end"
-                            : "bg-primary/20 text-primary-foreground border border-primary/50 self-start"
+                            ? "bg-primary/15 border border-primary/40 self-end"
+                            : "bg-card border border-border self-start"
                         }`}
                       >
-                        <div className="text-[10px] font-mono opacity-50 mb-1">
+                        <div className={`text-[10px] font-mono mb-1 ${isMine ? "text-primary/70" : "text-muted-foreground"}`}>
                           {isMine ? "YOU" : room.chooserName}
                         </div>
                         {msg.content}
@@ -238,21 +252,21 @@ export default function RoomSuitor() {
                 </div>
               </ScrollArea>
 
-              <div className="p-3 sm:p-4 border-t border-border shrink-0 bg-background/80">
+              <div className="p-3 sm:p-4 border-t border-border shrink-0 bg-background/60 backdrop-blur">
                 <form onSubmit={handleSend} className="flex gap-2">
                   <Input
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     placeholder="Your answer..."
-                    className="h-11 sm:h-12 bg-input border-border focus-visible:ring-secondary text-sm sm:text-base"
+                    className="h-11 sm:h-12 bg-input border-border focus-visible:ring-primary text-sm sm:text-base"
                     autoFocus
                   />
                   <Button
                     type="submit"
                     size="lg"
-                    className="h-11 sm:h-12 px-4 sm:px-8 font-bold bg-secondary text-secondary-foreground hover:bg-secondary/80 shrink-0"
+                    className="h-11 sm:h-12 px-4 sm:px-6 font-display font-black bg-primary text-primary-foreground hover:bg-primary/90 shrink-0 shadow-[0_0_15px_hsl(var(--primary)/0.3)] gap-1.5"
                   >
-                    SEND
+                    <Send size={16} /> SEND
                   </Button>
                 </form>
               </div>

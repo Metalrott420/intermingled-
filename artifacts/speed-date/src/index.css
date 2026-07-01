@@ -40,6 +40,11 @@
   --color-destructive-foreground: hsl(var(--destructive-foreground));
   --color-destructive-border: var(--destructive-border);
 
+  --color-gold: hsl(var(--gold));
+  --color-gold-foreground: hsl(var(--gold-foreground));
+  --color-elimination: hsl(var(--elimination));
+  --color-winner: hsl(var(--winner));
+
   --color-chart-1: hsl(var(--chart-1));
   --color-chart-2: hsl(var(--chart-2));
   --color-chart-3: hsl(var(--chart-3));
@@ -60,6 +65,7 @@
   --font-sans: var(--app-font-sans);
   --font-serif: var(--app-font-serif);
   --font-mono: var(--app-font-mono);
+  --font-display: var(--app-font-display);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -67,195 +73,110 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* LIGHT MODE */
+/* ── GAMESHOW THEME ───────────────────────────────────────────────────────── */
 :root {
   --button-outline: rgba(255,255,255, .08);
   --badge-outline: rgba(255,255,255, .04);
-
   --opaque-button-border-intensity: 9;
-
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .08);
 
-  /* Deep slate base — neutral, not purple-tinted */
-  --background: 220 16% 6%;
-  --foreground: 220 10% 95%;
+  /* Stage-black base — deep, cinematic */
+  --background: 240 25% 4%;
+  --foreground: 240 10% 96%;
 
-  --border: 220 16% 16%;
-  --card: 220 16% 9%;
-  --card-foreground: 220 10% 95%;
-  --card-border: 220 16% 16%;
+  --border: 240 18% 16%;
+  --card: 240 22% 7%;
+  --card-foreground: 240 10% 96%;
+  --card-border: 240 18% 14%;
 
-  --sidebar: 220 16% 9%;
-  --sidebar-foreground: 220 10% 95%;
-  --sidebar-border: 220 16% 16%;
-  --sidebar-primary: 258 90% 66%;
+  --sidebar: 240 22% 6%;
+  --sidebar-foreground: 240 10% 96%;
+  --sidebar-border: 240 18% 14%;
+  --sidebar-primary: 270 85% 60%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 220 16% 14%;
-  --sidebar-accent-foreground: 220 10% 95%;
-  --sidebar-ring: 258 90% 66%;
+  --sidebar-accent: 240 22% 10%;
+  --sidebar-accent-foreground: 240 10% 96%;
+  --sidebar-ring: 270 85% 60%;
 
-  --popover: 220 16% 9%;
-  --popover-foreground: 220 10% 95%;
-  --popover-border: 220 16% 16%;
+  --popover: 240 22% 7%;
+  --popover-foreground: 240 10% 96%;
+  --popover-border: 240 18% 16%;
 
-  /* Violet — sophisticated, modern */
-  --primary: 258 90% 66%;
+  /* Electric Purple — main brand color */
+  --primary: 270 85% 60%;
   --primary-foreground: 0 0% 100%;
 
-  /* Teal — fresh, clean */
-  --secondary: 172 60% 46%;
-  --secondary-foreground: 220 16% 6%;
+  /* Gold/Amber — winner, champion color */
+  --secondary: 38 95% 54%;
+  --secondary-foreground: 240 25% 6%;
 
-  --muted: 220 16% 13%;
-  --muted-foreground: 220 10% 52%;
+  /* Extra semantic colors for the gameshow */
+  --gold: 38 95% 54%;
+  --gold-foreground: 240 25% 6%;
+  --elimination: 330 85% 58%;   /* hot pink — elimination drama */
+  --winner: 190 90% 44%;         /* cyan — winner announcement */
 
-  --accent: 220 16% 13%;
-  --accent-foreground: 220 10% 95%;
+  --muted: 240 18% 12%;
+  --muted-foreground: 240 10% 48%;
 
-  --destructive: 0 78% 60%;
+  --accent: 240 18% 12%;
+  --accent-foreground: 240 10% 96%;
+
+  --destructive: 0 80% 58%;
   --destructive-foreground: 0 0% 100%;
 
-  --input: 220 16% 13%;
-  --ring: 258 90% 66%;
-  
-  --chart-1: 258 90% 66%;
-  --chart-2: 172 60% 46%;
-  --chart-3: 45 93% 58%;
-  --chart-4: 280 70% 62%;
-  --chart-5: 198 80% 55%;
+  --input: 240 18% 12%;
+  --ring: 270 85% 60%;
 
-  --app-font-sans: 'Inter', system-ui, sans-serif;
+  --chart-1: 270 85% 60%;
+  --chart-2: 38 95% 54%;
+  --chart-3: 330 85% 58%;
+  --chart-4: 190 90% 44%;
+  --chart-5: 280 70% 62%;
+
+  /* Barlow Condensed for gameshow drama */
+  --app-font-sans: 'Barlow', 'Inter', system-ui, sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  
-  --radius: 0.5rem;
-  
-  --shadow-2xs: 0 0 4px 0 hsl(258 90% 66% / 0.15);
-  --shadow-xs: 0 0 8px 0 hsl(258 90% 66% / 0.15);
-  --shadow-sm: 0 0 12px 0 hsl(258 90% 66% / 0.15);
-  --shadow: 0 0 16px 0 hsl(258 90% 66% / 0.15);
-  --shadow-md: 0 0 20px 0 hsl(258 90% 66% / 0.2);
-  --shadow-lg: 0 0 24px 0 hsl(258 90% 66% / 0.25);
-  --shadow-xl: 0 0 32px 0 hsl(258 90% 66% / 0.3);
-  --shadow-2xl: 0 0 40px 0 hsl(258 90% 66% / 0.4);
+  --app-font-display: 'Barlow Condensed', 'Impact', system-ui, sans-serif;
+
+  --radius: 0.625rem;
+
+  /* Neon glow shadows */
+  --shadow-2xs: 0 0 6px 0 hsl(270 85% 60% / 0.2);
+  --shadow-xs: 0 0 10px 0 hsl(270 85% 60% / 0.25);
+  --shadow-sm: 0 0 16px 0 hsl(270 85% 60% / 0.25);
+  --shadow: 0 0 20px 0 hsl(270 85% 60% / 0.3);
+  --shadow-md: 0 0 28px 0 hsl(270 85% 60% / 0.35);
+  --shadow-lg: 0 0 36px 0 hsl(270 85% 60% / 0.4);
+  --shadow-xl: 0 0 48px 0 hsl(270 85% 60% / 0.5);
+  --shadow-2xl: 0 0 64px 0 hsl(270 85% 60% / 0.6);
+
+  /* Gold glow */
+  --shadow-gold: 0 0 24px 0 hsl(38 95% 54% / 0.5);
+  --shadow-gold-lg: 0 0 48px 0 hsl(38 95% 54% / 0.6);
+
+  /* Elimination glow */
+  --shadow-elim: 0 0 24px 0 hsl(330 85% 58% / 0.5);
 
   --tracking-normal: 0.05em;
   --spacing: 0.25rem;
 
-  /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
-
-  /* Fallback for older browsers */
-  --sidebar-primary-border: hsl(var(--sidebar-primary));
-  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
-  --sidebar-accent-border: hsl(var(--sidebar-accent));
-  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --primary-border: hsl(var(--primary));
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --secondary-border: hsl(var(--secondary));
   --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --muted-border: hsl(var(--muted));
   --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --accent-border: hsl(var(--accent));
   --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --destructive-border: hsl(var(--destructive));
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-}
-
-.dark {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
-
-  --opaque-button-border-intensity: 9;  /* In terms of percentages */
-
-  /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
-
-  --background: red; /*replace with H S L */
-
-  --foreground: red; /*replace with H S L */
-
-  --border: red; /*replace with H S L */
-
-  --card: red; /*replace with H S L */
-
-  --card-foreground: red; /*replace with H S L */
-
-  --card-border: red; /*replace with H S L */
-
-  --sidebar: red; /*replace with H S L */
-
-  --sidebar-foreground: red; /*replace with H S L */
-
-  --sidebar-border: red; /*replace with H S L */
-
-  --sidebar-primary: red; /*replace with H S L */
-
-  --sidebar-primary-foreground: red; /*replace with H S L */
-
-  --sidebar-accent: red; /*replace with H S L */
-
-  --sidebar-accent-foreground: red; /*replace with H S L */
-
-  --sidebar-ring: red; /*replace with H S L */
-
-  --popover: red; /*replace with H S L */
-
-  --popover-foreground: red; /*replace with H S L */
-
-  --popover-border: red; /*replace with H S L */
-
-  --primary: red; /*replace with H S L */
-
-  --primary-foreground: red; /*replace with H S L */
-
-  --secondary: red; /*replace with H S L */
-
-  --secondary-foreground: red; /*replace with H S L */
-
-  --muted: red; /*replace with H S L */
-
-  --muted-foreground: red; /*replace with H S L */
-
-  --accent: red; /*replace with H S L */
-
-  --accent-foreground: red; /*replace with H S L */
-
-  --destructive: red; /*replace with H S L */
-
-  --destructive-foreground: red; /*replace with H S L */
-
-  /* Used as the border around inputs. Dark mode: Should be a border that is light enough to have high contrast when rendered on a --card background. More contrast than standard --border */
-  --input: red; /*replace with H S L */
-  --ring: red; /*replace with H S L */
-  --chart-1: red; /*replace with H S L */
-  --chart-2: red; /*replace with H S L */
-  --chart-3: red; /*replace with H S L */
-  --chart-4: red; /*replace with H S L */
-  --chart-5: red; /*replace with H S L */
-
-  --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 2px 4px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-
+  --sidebar-primary-border: hsl(var(--sidebar-primary));
+  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-accent-border: hsl(var(--sidebar-accent));
+  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
 @layer base {
@@ -266,78 +187,94 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+
+  h1, h2, h3 {
+    font-family: var(--app-font-display);
+    letter-spacing: 0.02em;
+  }
 }
 
-/**
- * Using the elevate system.
- * Automatic contrast adjustment.
- *
- * <element className="hover-elevate" />
- * <element className="active-elevate-2" />
- *
- * // Using the tailwind utility when a data attribute is "on"
- * <element className="toggle-elevate data-[state=on]:toggle-elevated" />
- * // Or manually controlling the toggle state
- * <element className="toggle-elevate toggle-elevated" />
- *
- * Elevation systems have to handle many states.
- * - not-hovered, vs. hovered vs. active  (three mutually exclusive states)
- * - toggled or not
- * - focused or not (this is not handled with these utilities)
- *
- * Even without handling focused or not, this is six possible combinations that
- * need to be distinguished from eachother visually.
- */
-@layer utilities {
+/* ── GAMESHOW ANIMATIONS ──────────────────────────────────────────────────── */
+@keyframes spotlight-sweep {
+  0%, 100% { opacity: 0.6; transform: translateX(-30%) rotate(-8deg); }
+  50%       { opacity: 1;   transform: translateX(30%) rotate(8deg); }
+}
 
-  /* Hide ugly search cancel button in Chrome until we can style it properly */
+@keyframes neon-pulse {
+  0%, 100% { box-shadow: 0 0 20px hsl(270 85% 60% / 0.4), 0 0 40px hsl(270 85% 60% / 0.2); }
+  50%       { box-shadow: 0 0 30px hsl(270 85% 60% / 0.7), 0 0 60px hsl(270 85% 60% / 0.4); }
+}
+
+@keyframes gold-pulse {
+  0%, 100% { box-shadow: 0 0 20px hsl(38 95% 54% / 0.4), 0 0 40px hsl(38 95% 54% / 0.2); }
+  50%       { box-shadow: 0 0 30px hsl(38 95% 54% / 0.7), 0 0 60px hsl(38 95% 54% / 0.4); }
+}
+
+@keyframes elim-flash {
+  0%   { background-color: hsl(330 85% 58% / 0); }
+  20%  { background-color: hsl(330 85% 58% / 0.3); }
+  100% { background-color: hsl(330 85% 58% / 0); }
+}
+
+@keyframes winner-burst {
+  0%   { transform: scale(0.8); opacity: 0; }
+  60%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+@keyframes ticker-scroll {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(-100%); }
+}
+
+@keyframes float-up {
+  0%   { transform: translateY(0px); opacity: 1; }
+  100% { transform: translateY(-60px); opacity: 0; }
+}
+
+@keyframes dramatic-entrance {
+  0%   { transform: scale(1.4) translateY(-20px); opacity: 0; filter: blur(8px); }
+  100% { transform: scale(1) translateY(0); opacity: 1; filter: blur(0); }
+}
+
+@keyframes stage-light {
+  0%, 100% { opacity: 0.15; }
+  50%       { opacity: 0.35; }
+}
+
+/* ── GAMESHOW UTILITY CLASSES ─────────────────────────────────────────────── */
+@layer utilities {
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }
 
-  /* Placeholder styling for contentEditable div */
   [contenteditable][data-placeholder]:empty::before {
     content: attr(data-placeholder);
     color: hsl(var(--muted-foreground));
     pointer-events: none;
   }
 
-  /* .no-default-hover-elevate/no-default-active-elevate is an escape hatch so consumers of
-   * buttons/badges can remove the automatic brightness adjustment on interactions
-   * and program their own. */
   .no-default-hover-elevate {}
-
   .no-default-active-elevate {}
 
-
-  /**
-   * Toggleable backgrounds go behind the content. Hoverable/active goes on top.
-   * This way they can stack/compound. Both will overlap the parent's borders!
-   * So borders will be automatically adjusted both on toggle, and hover/active,
-   * and they will be compounded.
-   */
   .toggle-elevate::before,
   .toggle-elevate-2::before {
     content: "";
     pointer-events: none;
     position: absolute;
     inset: 0px;
-    /*border-radius: inherit;   match rounded corners */
     border-radius: inherit;
     z-index: -1;
-    /* sits behind content but above backdrop */
   }
 
   .toggle-elevate.toggle-elevated::before {
     background-color: var(--elevate-2);
   }
 
-  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
   .border.toggle-elevate::before {
     inset: -1px;
   }
 
-  /* Does not work on elements with overflow:hidden! */
   .hover-elevate:not(.no-default-hover-elevate),
   .active-elevate:not(.no-default-active-elevate),
   .hover-elevate-2:not(.no-default-hover-elevate),
@@ -354,10 +291,8 @@
     pointer-events: none;
     position: absolute;
     inset: 0px;
-    /*border-radius: inherit;   match rounded corners */
     border-radius: inherit;
     z-index: 999;
-    /* sits in front of content */
   }
 
   .hover-elevate:hover:not(.no-default-hover-elevate)::after,
@@ -370,12 +305,118 @@
     background-color: var(--elevate-2);
   }
 
-  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
   .border.active-elevate:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
+  }
+
+  /* ── Gameshow-specific utilities ── */
+  .neon-glow {
+    animation: neon-pulse 2.5s ease-in-out infinite;
+  }
+
+  .gold-glow {
+    animation: gold-pulse 2.5s ease-in-out infinite;
+  }
+
+  .spotlight-bg {
+    background:
+      radial-gradient(ellipse 60% 40% at 20% -10%, hsl(270 85% 60% / 0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 80% -10%, hsl(38 95% 54% / 0.08) 0%, transparent 70%),
+      hsl(var(--background));
+  }
+
+  .stage-bg {
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, hsl(270 85% 60% / 0.18) 0%, transparent 65%),
+      hsl(var(--background));
+  }
+
+  .winner-entrance {
+    animation: winner-burst 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .dramatic-entrance {
+    animation: dramatic-entrance 0.5s ease-out forwards;
+  }
+
+  .elim-flash {
+    animation: elim-flash 0.8s ease-out forwards;
+  }
+
+  .text-gold {
+    color: hsl(var(--gold));
+  }
+
+  .text-elimination {
+    color: hsl(var(--elimination));
+  }
+
+  .text-winner {
+    color: hsl(var(--winner));
+  }
+
+  .border-gold {
+    border-color: hsl(var(--gold));
+  }
+
+  .border-elimination {
+    border-color: hsl(var(--elimination));
+  }
+
+  .bg-gold {
+    background-color: hsl(var(--gold));
+  }
+
+  .bg-elimination {
+    background-color: hsl(var(--elimination));
+  }
+
+  .font-display {
+    font-family: var(--app-font-display);
+  }
+
+  .gameshow-card {
+    @apply bg-card border border-border rounded-xl;
+    box-shadow: 0 0 0 1px hsl(270 85% 60% / 0.1), 0 8px 32px hsl(240 25% 4% / 0.6);
+  }
+
+  .gameshow-card-gold {
+    @apply bg-card border rounded-xl;
+    border-color: hsl(38 95% 54% / 0.4);
+    box-shadow: 0 0 0 1px hsl(38 95% 54% / 0.15), var(--shadow-gold);
+  }
+
+  .ticker-scroll {
+    animation: ticker-scroll 20s linear infinite;
+  }
+
+  .stage-light-1 {
+    position: absolute;
+    top: -20%;
+    left: 15%;
+    width: 200px;
+    height: 400px;
+    background: linear-gradient(180deg, hsl(270 85% 60% / 0.15) 0%, transparent 100%);
+    transform: rotate(-15deg);
+    transform-origin: top center;
+    pointer-events: none;
+    animation: stage-light 4s ease-in-out infinite;
+  }
+
+  .stage-light-2 {
+    position: absolute;
+    top: -20%;
+    right: 15%;
+    width: 200px;
+    height: 400px;
+    background: linear-gradient(180deg, hsl(38 95% 54% / 0.12) 0%, transparent 100%);
+    transform: rotate(15deg);
+    transform-origin: top center;
+    pointer-events: none;
+    animation: stage-light 4s ease-in-out 2s infinite;
   }
 }

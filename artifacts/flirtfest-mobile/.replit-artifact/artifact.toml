@@ -1,6 +1,6 @@
 kind = "mobile"
 previewPath = "/mobile/"
-title = "FlirtFest Mobile"
+title = "Intermingled Mobile"
 version = "1.0.0"
 id = "artifacts/flirtfest-mobile"
 router = "expo-domain"

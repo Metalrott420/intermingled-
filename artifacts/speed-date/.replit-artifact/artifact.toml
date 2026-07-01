@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Speed Date"
+title = "Intermingled"
 version = "1.0.0"
 id = "artifacts/speed-date"
 router = "path"

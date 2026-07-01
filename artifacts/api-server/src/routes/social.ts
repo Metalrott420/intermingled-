@@ -120,6 +120,23 @@ router.get("/users/who-liked-me", requireAuth, async (req: any, res) => {
 });
 
 // ── Post-game group chat ─────────────────────────────────────────────────────
+
+// Deterministic color token from senderId — real name never leaves the server
+const CHAT_COLORS = [
+  "Crimson", "Cobalt", "Jade", "Violet", "Amber",
+  "Coral", "Teal", "Gold", "Rose", "Sky",
+];
+
+function colorFromId(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (Math.imul(31, h) + id.charCodeAt(i)) | 0;
+  return CHAT_COLORS[Math.abs(h) % CHAT_COLORS.length];
+}
+
+function anonymize(msg: { senderId: string; senderName: string; [k: string]: unknown }) {
+  return { ...msg, senderName: colorFromId(msg.senderId) };
+}
+
 router.get("/rooms/:roomId/group-messages", async (req, res) => {
   try {
     const msgs = await db
@@ -128,7 +145,7 @@ router.get("/rooms/:roomId/group-messages", async (req, res) => {
       .where(eq(groupMessagesTable.roomId, req.params.roomId))
       .orderBy(groupMessagesTable.createdAt)
       .limit(200);
-    res.json({ messages: msgs });
+    res.json({ messages: msgs.map(anonymize) });
   } catch (err) {
     logger.error({ err }, "GET /rooms/:roomId/group-messages error");
     res.status(500).json({ error: "Internal server error" });
@@ -174,11 +191,12 @@ router.post("/rooms/:roomId/group-messages", requireAuth, async (req: any, res) 
       id,
       roomId: req.params.roomId,
       senderId,
-      senderName: senderName ?? "Anonymous",
+      senderName: senderName ?? "Anonymous", // stored for moderation only
       content: content.trim(),
     }).returning();
-    try { getIo().to(req.params.roomId).emit("group_message", msg); } catch { /* socket not ready */ }
-    res.json({ message: msg });
+    const anonMsg = anonymize(msg);
+    try { getIo().to(req.params.roomId).emit("group_message", anonMsg); } catch { /* socket not ready */ }
+    res.json({ message: anonMsg });
   } catch (err) {
     logger.error({ err }, "POST /rooms/:roomId/group-messages error");
     res.status(500).json({ error: "Internal server error" });

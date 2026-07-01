@@ -18,10 +18,24 @@ interface GroupMsg {
   id: string;
   roomId: string;
   senderId: string;
-  senderName: string;
+  senderName: string; // color token from server, e.g. "Cobalt"
   content: string;
   createdAt: string;
 }
+
+// Must match server CHAT_COLORS list and order
+const COLOR_HEX: Record<string, string> = {
+  Crimson: "#dc2626",
+  Cobalt:  "#2563eb",
+  Jade:    "#16a34a",
+  Violet:  "#7c3aed",
+  Amber:   "#d97706",
+  Coral:   "#f43f5e",
+  Teal:    "#0d9488",
+  Gold:    "#ca8a04",
+  Rose:    "#db2777",
+  Sky:     "#0284c7",
+};
 
 export default function Result() {
   const params = useParams();
@@ -92,7 +106,7 @@ export default function Result() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: groupInput.trim(), senderName: myProfile.name }),
+        body: JSON.stringify({ content: groupInput.trim() }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -322,13 +336,18 @@ export default function Result() {
                 ) : (
                   groupMessages.map((msg) => {
                     const isMine = myProfile && msg.senderId === myProfile.id;
+                    const dotColor = COLOR_HEX[msg.senderName] ?? "#6b7280";
                     return (
                       <div key={msg.id} className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
-                        {!isMine && (
-                          <span className="text-[10px] font-mono text-muted-foreground/60 mb-0.5 px-1">
-                            {msg.senderName}
+                        <div className="flex items-center gap-1.5 mb-0.5 px-1">
+                          <span
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: dotColor }}
+                          />
+                          <span className="text-[10px] font-mono" style={{ color: dotColor }}>
+                            {isMine ? `${msg.senderName} (you)` : msg.senderName}
                           </span>
-                        )}
+                        </div>
                         <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
                           isMine
                             ? "bg-primary/20 border border-primary/40 text-foreground"

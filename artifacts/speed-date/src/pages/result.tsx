@@ -301,8 +301,8 @@ export default function Result() {
           </div>
         </div>
 
-        {/* ── Post-game Group Chat ── */}
-        <div className="w-full max-w-xl">
+        {/* ── Post-game Group Chat (eliminated suitors only) ── */}
+        {isLoser && <div className="w-full max-w-xl">
           <button
             onClick={() => setShowChat((v) => !v)}
             className="w-full flex items-center justify-between p-4 rounded-xl border border-border/50 bg-card/50 backdrop-blur hover:border-primary/40 transition-all group"
@@ -313,8 +313,8 @@ export default function Result() {
                 <div className="font-display font-bold uppercase tracking-wide text-sm">Post-Game Group Chat</div>
                 <div className="text-xs text-muted-foreground font-mono">
                   {groupMessages.length > 0
-                    ? `${groupMessages.length} message${groupMessages.length !== 1 ? "s" : ""} from everyone`
-                    : "All players can chat here"}
+                    ? `${groupMessages.length} message${groupMessages.length !== 1 ? "s" : ""} · anonymous`
+                    : "Eliminated players only · anonymous"}
                 </div>
               </div>
             </div>
@@ -402,7 +402,7 @@ export default function Result() {
               )}
             </div>
           )}
-        </div>
+        </div>}
       </div>
     </div>
   );

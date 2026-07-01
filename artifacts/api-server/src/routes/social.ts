@@ -174,6 +174,7 @@ router.post("/rooms/:roomId/group-messages", requireAuth, async (req: any, res) 
   try {
     const senderId = await getDbUserId(req.clerkUserId);
     if (!senderId) { res.status(404).json({ error: "User not found" }); return; }
+
     const { content, senderName } = req.body;
     if (!content?.trim()) { res.status(400).json({ error: "Content required" }); return; }
 

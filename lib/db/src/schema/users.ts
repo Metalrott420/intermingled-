@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, pgEnum, jsonb, date, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, pgEnum, jsonb, date, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -31,6 +31,8 @@ export const usersTable = pgTable("users", {
   chooserSessionsToday: integer("chooser_sessions_today").notNull().default(0),
   chooserLastSessionDate: text("chooser_last_session_date"),
   expoPushToken: text("expo_push_token"),
+  isAdmin: boolean("is_admin").notNull().default(false),
+  isBanned: boolean("is_banned").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

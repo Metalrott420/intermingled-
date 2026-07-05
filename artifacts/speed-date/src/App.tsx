@@ -19,6 +19,8 @@ import ProfilePage from "@/pages/profile";
 import InboxPage from "@/pages/inbox";
 import ConversationPage from "@/pages/conversation";
 import WhoLikedMe from "@/pages/who-liked-me";
+import PrivacyPolicy from "@/pages/privacy";
+import TermsOfService from "@/pages/terms";
 
 const queryClient = new QueryClient();
 
@@ -140,6 +142,8 @@ function AppRoutes() {
       <Route path="/inbox" component={InboxPage} />
       <Route path="/conversation/:matchId" component={ConversationPage} />
       <Route path="/who-liked-me" component={WhoLikedMe} />
+      <Route path="/privacy" component={PrivacyPolicy} />
+      <Route path="/terms" component={TermsOfService} />
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route component={NotFound} />

@@ -6,7 +6,7 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
-import { ClerkProvider, ClerkLoaded } from "@clerk/expo";
+import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
@@ -18,6 +18,13 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/contexts/AppContext";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+
+function PushNotificationRegistrar() {
+  const { getToken, isSignedIn } = useAuth();
+  usePushNotifications(isSignedIn ? getToken : null);
+  return null;
+}
 
 if (process.env.EXPO_PUBLIC_DOMAIN) {
   setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
@@ -40,6 +47,8 @@ function RootLayoutNav() {
       <Stack.Screen name="room/[id]/suitor" />
       <Stack.Screen name="result/[id]" />
       <Stack.Screen name="conversation/[matchId]" />
+      <Stack.Screen name="legal/privacy" />
+      <Stack.Screen name="legal/terms" />
     </Stack>
   );
 }
@@ -69,6 +78,7 @@ export default function RootLayout() {
               <AppProvider>
                 <GestureHandlerRootView style={{ flex: 1 }}>
                   <KeyboardProvider>
+                    <PushNotificationRegistrar />
                     <RootLayoutNav />
                   </KeyboardProvider>
                 </GestureHandlerRootView>

@@ -6,6 +6,9 @@ import { cn } from "@/lib/utils";
 
 interface ProfilePrompt { question: string; answer: string; }
 
+type Gender = "man" | "woman" | "nonbinary" | "other";
+type ShowMe = "men" | "women" | "everyone";
+
 interface UserProfile {
   id: string;
   name: string;
@@ -15,6 +18,8 @@ interface UserProfile {
   profilePrompts: ProfilePrompt[];
   role: string | null;
   email: string | null;
+  gender: Gender | null;
+  showMeGender: ShowMe | null;
 }
 
 const PROMPT_OPTIONS = [
@@ -170,6 +175,8 @@ export default function ProfilePage() {
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [editDob, setEditDob] = useState("");
+  const [editGender, setEditGender] = useState<Gender | "">("");
+  const [editShowMe, setEditShowMe] = useState<ShowMe>("everyone");
   const [editPrompts, setEditPrompts] = useState<ProfilePrompt[]>([]);
 
   useEffect(() => {
@@ -182,6 +189,8 @@ export default function ProfilePage() {
         setEditName(data.name ?? "");
         setEditBio(data.bio ?? "");
         setEditDob(data.dateOfBirth ?? "");
+        setEditGender((data.gender as Gender) ?? "");
+        setEditShowMe((data.showMeGender as ShowMe) ?? "everyone");
         setEditPrompts(data.profilePrompts ?? []);
       })
       .finally(() => setLoading(false));
@@ -199,7 +208,14 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile/me", {
         method: "PUT", credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editName.trim(), bio: editBio.trim(), dateOfBirth: editDob || undefined, profilePrompts: editPrompts }),
+        body: JSON.stringify({
+          name: editName.trim(),
+          bio: editBio.trim(),
+          dateOfBirth: editDob || undefined,
+          profilePrompts: editPrompts,
+          gender: editGender || undefined,
+          showMeGender: editShowMe,
+        }),
       });
       if (!res.ok) { const err = await res.json(); setAgeError(err.error ?? "Failed to save"); return; }
       const updated = await res.json();
@@ -253,6 +269,9 @@ export default function ProfilePage() {
   };
 
   const removePrompt = (i: number) => setEditPrompts((prev) => prev.filter((_, idx) => idx !== i));
+
+  const GENDER_LABELS: Record<Gender, string> = { man: "Man", woman: "Woman", nonbinary: "Non-binary", other: "Other" };
+  const SHOW_ME_LABELS: Record<ShowMe, string> = { men: "Men", women: "Women", everyone: "Everyone" };
 
   useEffect(() => {
     if (isLoaded && !clerkUser && !loading) setLocation("/sign-in");
@@ -349,6 +368,41 @@ export default function ProfilePage() {
                 {profile?.bio || <span className="italic text-muted-foreground/40">No bio yet. Tap Edit to add one.</span>}
               </p>
             )}
+          </div>
+
+          {/* Gender & Show Me */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-widest">I am a</label>
+              {editing ? (
+                <select value={editGender} onChange={(e) => setEditGender(e.target.value as Gender | "")}
+                  className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="">Prefer not to say</option>
+                  {(["man", "woman", "nonbinary", "other"] as Gender[]).map((g) => (
+                    <option key={g} value={g}>{GENDER_LABELS[g]}</option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-sm text-foreground py-2.5">
+                  {profile?.gender ? GENDER_LABELS[profile.gender] : <span className="text-muted-foreground/40 italic">Not set</span>}
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-widest">Show me</label>
+              {editing ? (
+                <select value={editShowMe} onChange={(e) => setEditShowMe(e.target.value as ShowMe)}
+                  className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                  {(["men", "women", "everyone"] as ShowMe[]).map((s) => (
+                    <option key={s} value={s}>{SHOW_ME_LABELS[s]}</option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-sm text-foreground py-2.5">
+                  {SHOW_ME_LABELS[profile?.showMeGender ?? "everyone"]}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Profile Prompts */}

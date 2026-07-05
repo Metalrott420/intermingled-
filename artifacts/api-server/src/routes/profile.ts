@@ -88,12 +88,17 @@ const ProfilePromptSchema = z.object({
   answer: z.string().max(300),
 });
 
+const GENDER_VALUES = ["man", "woman", "nonbinary", "other"] as const;
+const SHOW_ME_VALUES = ["men", "women", "everyone"] as const;
+
 const UpdateProfileBody = z.object({
   name: z.string().min(1).max(80).optional(),
   bio: z.string().max(500).optional(),
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   photos: z.array(z.string()).max(12).optional(),
   profilePrompts: z.array(ProfilePromptSchema).max(3).optional(),
+  gender: z.enum(GENDER_VALUES).optional(),
+  showMeGender: z.enum(SHOW_ME_VALUES).optional(),
 });
 
 // PUT /api/profile/me — update own profile
@@ -104,7 +109,7 @@ router.put("/profile/me", requireAuth, async (req: any, res) => {
       res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       return;
     }
-    const { name, bio, dateOfBirth, photos, profilePrompts } = parsed.data;
+    const { name, bio, dateOfBirth, photos, profilePrompts, gender, showMeGender } = parsed.data;
 
     // Enforce 18+ if dateOfBirth is being set
     if (dateOfBirth) {
@@ -121,6 +126,8 @@ router.put("/profile/me", requireAuth, async (req: any, res) => {
     if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth;
     if (photos !== undefined) updateData.photos = photos;
     if (profilePrompts !== undefined) updateData.profilePrompts = profilePrompts;
+    if (gender !== undefined) updateData.gender = gender;
+    if (showMeGender !== undefined) updateData.showMeGender = showMeGender;
 
     await db
       .update(usersTable)
@@ -236,6 +243,25 @@ router.delete("/profile/me/photos", requireAuth, async (req: any, res) => {
     res.json({ photos: newPhotos });
   } catch (err) {
     logger.error({ err }, "DELETE /profile/me/photos error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/users/push-token — register Expo push token
+router.post("/users/push-token", requireAuth, async (req: any, res) => {
+  try {
+    const { token } = req.body;
+    if (!token || typeof token !== "string") {
+      res.status(400).json({ error: "token required" });
+      return;
+    }
+    await db
+      .update(usersTable)
+      .set({ expoPushToken: token })
+      .where(eq(usersTable.clerkId, req.clerkUserId));
+    res.json({ ok: true });
+  } catch (err) {
+    logger.error({ err }, "POST /users/push-token error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

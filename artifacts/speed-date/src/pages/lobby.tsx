@@ -13,6 +13,7 @@ export default function Lobby() {
   
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState("");
   
   const createRoom = useCreateRoom();
   const joinRoom = useJoinRoom();
@@ -33,12 +34,23 @@ export default function Lobby() {
     });
   };
 
+  const handleJoinByCode = () => {
+    if (!name.trim() || !code.trim()) return;
+    const trimmed = code.trim().toUpperCase();
+    const match = activeRooms?.find((r: any) => r.code?.toUpperCase() === trimmed);
+    if (!match) { setCodeError("No active room found with that code."); return; }
+    if (match.suitorCount >= match.maxSuitors) { setCodeError("That room is full."); return; }
+    setCodeError("");
+    joinRoom.mutate({ id: match.id, data: { name, role: JoinInputRole.suitor } }, {
+      onSuccess: (res) => {
+        sessionStorage.setItem(`participantId_${match.id}`, res.participantId);
+        setLocation(`/room/${match.id}/suitor`);
+      }
+    });
+  };
+
   const handleJoin = (roomId?: string) => {
-    if (!name.trim()) return;
-    // We would need to look up room by code if roomId is not provided
-    // For simplicity with given APIs, user must select a room from list active rooms
-    if (!roomId) return;
-    
+    if (!name.trim() || !roomId) return;
     joinRoom.mutate({ id: roomId, data: { name, role: JoinInputRole.suitor } }, {
       onSuccess: (res) => {
         sessionStorage.setItem(`participantId_${roomId}`, res.participantId);
@@ -65,6 +77,35 @@ export default function Lobby() {
               className="bg-input border-border h-12 text-lg focus-visible:ring-primary"
             />
           </div>
+
+          {action === "join" && (
+            <div className="space-y-2">
+              <label className="text-xs uppercase font-mono text-muted-foreground">Room Code</label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="e.g. ABC123"
+                  value={code}
+                  onChange={e => { setCode(e.target.value); setCodeError(""); }}
+                  onKeyDown={e => e.key === "Enter" && handleJoinByCode()}
+                  className="bg-input border-border h-12 text-lg focus-visible:ring-primary font-mono uppercase tracking-widest flex-1"
+                  maxLength={8}
+                />
+                <Button
+                  className="h-12 px-5 font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                  onClick={handleJoinByCode}
+                  disabled={joinRoom.isPending || !name.trim() || !code.trim()}
+                >
+                  GO
+                </Button>
+              </div>
+              {codeError && <p className="text-destructive text-xs font-mono">{codeError}</p>}
+              <div className="relative flex items-center gap-2 py-1">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs font-mono text-muted-foreground">or browse open rooms</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+            </div>
+          )}
 
           {action === "host" ? (
             <Button 

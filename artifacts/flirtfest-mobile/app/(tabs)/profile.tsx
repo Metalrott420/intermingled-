@@ -15,6 +15,21 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+type Gender = "man" | "woman" | "nonbinary" | "other";
+type ShowMe = "men" | "women" | "everyone";
+
+const GENDER_OPTIONS: { value: Gender; label: string }[] = [
+  { value: "man", label: "Man" },
+  { value: "woman", label: "Woman" },
+  { value: "nonbinary", label: "Non-binary" },
+  { value: "other", label: "Other" },
+];
+const SHOW_ME_OPTIONS: { value: ShowMe; label: string }[] = [
+  { value: "men", label: "Men" },
+  { value: "women", label: "Women" },
+  { value: "everyone", label: "Everyone" },
+];
+
 interface UserProfile {
   id: string;
   name: string;
@@ -22,6 +37,8 @@ interface UserProfile {
   dateOfBirth: string | null;
   photos: string[];
   role: string | null;
+  gender: Gender | null;
+  showMeGender: ShowMe | null;
 }
 
 const API = process.env.EXPO_PUBLIC_DOMAIN
@@ -51,6 +68,8 @@ export default function ProfileScreen() {
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [editDob, setEditDob] = useState("");
+  const [editGender, setEditGender] = useState<Gender | "">("");
+  const [editShowMe, setEditShowMe] = useState<ShowMe>("everyone");
   const [ageError, setAgeError] = useState<string | null>(null);
 
   const authFetch = async (url: string, options: RequestInit = {}) => {
@@ -70,6 +89,8 @@ export default function ProfileScreen() {
         setEditName(data.name ?? "");
         setEditBio(data.bio ?? "");
         setEditDob(data.dateOfBirth ?? "");
+        setEditGender((data.gender as Gender) ?? "");
+        setEditShowMe((data.showMeGender as ShowMe) ?? "everyone");
       })
       .finally(() => setLoading(false));
   }, [isLoaded, clerkUser]);
@@ -85,7 +106,13 @@ export default function ProfileScreen() {
     try {
       const res = await authFetch(`${API}/profile/me`, {
         method: "PUT",
-        body: JSON.stringify({ name: editName.trim(), bio: editBio.trim(), dateOfBirth: editDob || undefined }),
+        body: JSON.stringify({
+          name: editName.trim(),
+          bio: editBio.trim(),
+          dateOfBirth: editDob || undefined,
+          gender: editGender || undefined,
+          showMeGender: editShowMe,
+        }),
       });
       if (!res.ok) { const e = await res.json(); setAgeError(e.error); return; }
       const updated = await res.json();
@@ -237,6 +264,40 @@ export default function ProfileScreen() {
           <Text style={styles.value}>{profile?.bio || <Text style={styles.placeholder}>No bio yet</Text>}</Text>
         )}
 
+        {/* Gender */}
+        <Text style={[styles.label, { marginTop: 20 }]}>I am a</Text>
+        {editing ? (
+          <View style={styles.chipRow}>
+            {GENDER_OPTIONS.map((opt) => (
+              <Pressable key={opt.value} onPress={() => setEditGender(opt.value)}
+                style={[styles.chip, editGender === opt.value && styles.chipActive]}>
+                <Text style={[styles.chipText, editGender === opt.value && styles.chipTextActive]}>{opt.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.value}>
+            {profile?.gender ? GENDER_OPTIONS.find(o => o.value === profile.gender)?.label : <Text style={styles.placeholder}>Not set</Text>}
+          </Text>
+        )}
+
+        {/* Show me */}
+        <Text style={[styles.label, { marginTop: 16 }]}>Show me</Text>
+        {editing ? (
+          <View style={styles.chipRow}>
+            {SHOW_ME_OPTIONS.map((opt) => (
+              <Pressable key={opt.value} onPress={() => setEditShowMe(opt.value)}
+                style={[styles.chip, editShowMe === opt.value && styles.chipActive]}>
+                <Text style={[styles.chipText, editShowMe === opt.value && styles.chipTextActive]}>{opt.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.value}>
+            {SHOW_ME_OPTIONS.find(o => o.value === (profile?.showMeGender ?? "everyone"))?.label}
+          </Text>
+        )}
+
         {/* Photos */}
         <Text style={[styles.label, { marginTop: 20 }]}>Photos ({photos.length}/12)</Text>
         <View style={styles.photoGrid}>
@@ -272,6 +333,16 @@ export default function ProfileScreen() {
         <Pressable style={styles.inboxBtn} onPress={() => router.push("/(tabs)/inbox")}>
           <Text style={styles.inboxBtnText}>Messages & Matches →</Text>
         </Pressable>
+
+        {/* Legal links */}
+        <View style={{ flexDirection: "row", justifyContent: "center", gap: 24, marginTop: 20 }}>
+          <Pressable onPress={() => router.push("/legal/privacy" as any)}>
+            <Text style={styles.legalLink}>Privacy Policy</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push("/legal/terms" as any)}>
+            <Text style={styles.legalLink}>Terms of Service</Text>
+          </Pressable>
+        </View>
       </View>
     </ScrollView>
   );
@@ -307,4 +378,10 @@ const styles = StyleSheet.create({
   photoPlus: { fontSize: 24, color: "#4a5060" },
   inboxBtn: { marginTop: 24, backgroundColor: "#181b24", borderWidth: 1, borderColor: "#1e2230", borderRadius: 12, padding: 16, alignItems: "center" },
   inboxBtnText: { color: "#8b5cf6", fontWeight: "700", fontSize: 14 },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: "#2a2d3a", backgroundColor: "#181b24" },
+  chipActive: { borderColor: "#8b5cf6", backgroundColor: "#8b5cf620" },
+  chipText: { color: "#7d8899", fontSize: 13, fontWeight: "600" },
+  chipTextActive: { color: "#8b5cf6" },
+  legalLink: { color: "#4a5060", fontSize: 12, textDecorationLine: "underline" },
 });

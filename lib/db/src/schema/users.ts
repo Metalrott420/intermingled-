@@ -7,6 +7,11 @@ export const userRoleEnum = pgEnum("user_role", ["chooser", "suitor"]);
 
 export type ProfilePrompt = { question: string; answer: string };
 
+export const GENDER_OPTIONS = ["man", "woman", "nonbinary", "other"] as const;
+export const SHOW_ME_OPTIONS = ["men", "women", "everyone"] as const;
+export type Gender = (typeof GENDER_OPTIONS)[number];
+export type ShowMe = (typeof SHOW_ME_OPTIONS)[number];
+
 export const usersTable = pgTable("users", {
   id: text("id").primaryKey(),
   clerkId: text("clerk_id").unique(),
@@ -14,6 +19,8 @@ export const usersTable = pgTable("users", {
   name: text("name").notNull(),
   bio: text("bio"),
   dateOfBirth: date("date_of_birth"),
+  gender: text("gender").$type<Gender>(),
+  showMeGender: text("show_me_gender").$type<ShowMe>().default("everyone"),
   photos: jsonb("photos").$type<string[]>().default([]),
   personalityVector: jsonb("personality_vector").$type<number[]>(),
   profilePrompts: jsonb("profile_prompts").$type<ProfilePrompt[]>().default([]),
@@ -23,6 +30,7 @@ export const usersTable = pgTable("users", {
   stripeSubscriptionId: text("stripe_subscription_id"),
   chooserSessionsToday: integer("chooser_sessions_today").notNull().default(0),
   chooserLastSessionDate: text("chooser_last_session_date"),
+  expoPushToken: text("expo_push_token"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

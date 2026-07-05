@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { getAuth } from "@clerk/express";
+import { getAuth, clerkClient } from "@clerk/express";
 import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { logger } from "../lib/logger";
@@ -8,6 +8,11 @@ import { z } from "zod/v4";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
+
+// Emails that get admin rights automatically on first sign-in (case-insensitive)
+const ADMIN_EMAILS = new Set(
+  (process.env.ADMIN_EMAILS ?? "metalrott.7@gmail.com").toLowerCase().split(",").map((e) => e.trim())
+);
 
 const requireAuth = (req: any, res: any, next: any) => {
   const auth = getAuth(req);
@@ -20,6 +25,19 @@ const requireAuth = (req: any, res: any, next: any) => {
   next();
 };
 
+const requireNotBanned = async (req: any, res: any, next: any) => {
+  const auth = getAuth(req);
+  if (!auth?.userId) { next(); return; }
+  try {
+    const [user] = await db.select({ isBanned: usersTable.isBanned }).from(usersTable).where(eq(usersTable.clerkId, auth.userId));
+    if (user?.isBanned) {
+      res.status(403).json({ error: "Your account has been suspended." });
+      return;
+    }
+  } catch { /* non-blocking — if DB fails, allow through */ }
+  next();
+};
+
 function calculateAge(dateOfBirth: string): number {
   const dob = new Date(dateOfBirth);
   const today = new Date();
@@ -29,15 +47,45 @@ function calculateAge(dateOfBirth: string): number {
   return age;
 }
 
-async function getOrCreateUser(clerkUserId: string, email?: string, name?: string) {
-  const [existing] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.clerkId, clerkUserId));
-  if (existing) return existing;
+async function getOrCreateUser(clerkUserId: string, sessionEmail?: string, sessionName?: string) {
+  // Fetch email from Clerk backend if session claims didn't have it
+  let email = sessionEmail ?? null;
+  try {
+    if (!email) {
+      const clerkUser = await clerkClient.users.getUser(clerkUserId);
+      email = clerkUser.emailAddresses?.[0]?.emailAddress ?? null;
+    }
+  } catch (err) {
+    logger.warn({ err }, "getOrCreateUser: could not fetch Clerk user email");
+  }
+
+  const isAdminEmail = email ? ADMIN_EMAILS.has(email.toLowerCase()) : false;
+
+  const [existing] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
+
+  if (existing) {
+    // Sync email and auto-promote admin if needed
+    const needsUpdate = (!existing.email && email) || (isAdminEmail && !existing.isAdmin);
+    if (needsUpdate) {
+      const updates: Partial<typeof usersTable.$inferInsert> = {};
+      if (!existing.email && email) updates.email = email;
+      if (isAdminEmail && !existing.isAdmin) updates.isAdmin = true;
+      await db.update(usersTable).set(updates).where(eq(usersTable.clerkId, clerkUserId));
+      return { ...existing, ...updates };
+    }
+    return existing;
+  }
+
+  // First-time user — create record
   const [created] = await db
     .insert(usersTable)
-    .values({ id: clerkUserId, clerkId: clerkUserId, email: email ?? null, name: name ?? "Anonymous" })
+    .values({
+      id: clerkUserId,
+      clerkId: clerkUserId,
+      email: email ?? null,
+      name: sessionName ?? "Anonymous",
+      isAdmin: isAdminEmail,
+    })
     .returning();
   return created;
 }
@@ -68,7 +116,6 @@ router.get("/profile/:userId", async (req, res) => {
       res.status(404).json({ error: "User not found" });
       return;
     }
-    // Return public fields only
     res.json({
       id: user.id,
       name: user.name,
@@ -102,7 +149,7 @@ const UpdateProfileBody = z.object({
 });
 
 // PUT /api/profile/me — update own profile
-router.put("/profile/me", requireAuth, async (req: any, res) => {
+router.put("/profile/me", requireAuth, requireNotBanned, async (req: any, res) => {
   try {
     const parsed = UpdateProfileBody.safeParse(req.body);
     if (!parsed.success) {
@@ -111,7 +158,6 @@ router.put("/profile/me", requireAuth, async (req: any, res) => {
     }
     const { name, bio, dateOfBirth, photos, profilePrompts, gender, showMeGender } = parsed.data;
 
-    // Enforce 18+ if dateOfBirth is being set
     if (dateOfBirth) {
       const age = calculateAge(dateOfBirth);
       if (age < 18) {
@@ -129,10 +175,7 @@ router.put("/profile/me", requireAuth, async (req: any, res) => {
     if (gender !== undefined) updateData.gender = gender;
     if (showMeGender !== undefined) updateData.showMeGender = showMeGender;
 
-    await db
-      .update(usersTable)
-      .set(updateData)
-      .where(eq(usersTable.clerkId, req.clerkUserId));
+    await db.update(usersTable).set(updateData).where(eq(usersTable.clerkId, req.clerkUserId));
 
     const user = await db.query.usersTable.findFirst({
       where: eq(usersTable.clerkId, req.clerkUserId),
@@ -145,7 +188,7 @@ router.put("/profile/me", requireAuth, async (req: any, res) => {
 });
 
 // POST /api/profile/me/photos/upload-url — get presigned URL for photo upload
-router.post("/profile/me/photos/upload-url", requireAuth, async (req: any, res) => {
+router.post("/profile/me/photos/upload-url", requireAuth, requireNotBanned, async (req: any, res) => {
   try {
     const { name, size, contentType } = req.body;
     if (!name || !size || !contentType) {
@@ -161,10 +204,7 @@ router.post("/profile/me/photos/upload-url", requireAuth, async (req: any, res) 
       return;
     }
 
-    // Check current photo count
-    const user = await db.query.usersTable.findFirst({
-      where: eq(usersTable.clerkId, req.clerkUserId),
-    });
+    const user = await db.query.usersTable.findFirst({ where: eq(usersTable.clerkId, req.clerkUserId) });
     const currentPhotos = user?.photos ?? [];
     if (currentPhotos.length >= 12) {
       res.status(400).json({ error: "Maximum 12 photos allowed" });
@@ -182,7 +222,7 @@ router.post("/profile/me/photos/upload-url", requireAuth, async (req: any, res) 
 });
 
 // POST /api/profile/me/photos — add a photo path after upload
-router.post("/profile/me/photos", requireAuth, async (req: any, res) => {
+router.post("/profile/me/photos", requireAuth, requireNotBanned, async (req: any, res) => {
   try {
     const { objectPath } = req.body;
     if (!objectPath || typeof objectPath !== "string") {
@@ -190,9 +230,7 @@ router.post("/profile/me/photos", requireAuth, async (req: any, res) => {
       return;
     }
 
-    const user = await db.query.usersTable.findFirst({
-      where: eq(usersTable.clerkId, req.clerkUserId),
-    });
+    const user = await db.query.usersTable.findFirst({ where: eq(usersTable.clerkId, req.clerkUserId) });
     if (!user) {
       res.status(404).json({ error: "User not found" });
       return;
@@ -205,11 +243,7 @@ router.post("/profile/me/photos", requireAuth, async (req: any, res) => {
     }
 
     const newPhotos = [...currentPhotos, objectPath];
-    await db
-      .update(usersTable)
-      .set({ photos: newPhotos })
-      .where(eq(usersTable.clerkId, req.clerkUserId));
-
+    await db.update(usersTable).set({ photos: newPhotos }).where(eq(usersTable.clerkId, req.clerkUserId));
     res.json({ photos: newPhotos });
   } catch (err) {
     logger.error({ err }, "POST /profile/me/photos error");
@@ -226,20 +260,14 @@ router.delete("/profile/me/photos", requireAuth, async (req: any, res) => {
       return;
     }
 
-    const user = await db.query.usersTable.findFirst({
-      where: eq(usersTable.clerkId, req.clerkUserId),
-    });
+    const user = await db.query.usersTable.findFirst({ where: eq(usersTable.clerkId, req.clerkUserId) });
     if (!user) {
       res.status(404).json({ error: "User not found" });
       return;
     }
 
     const newPhotos = (user.photos ?? []).filter((p) => p !== objectPath);
-    await db
-      .update(usersTable)
-      .set({ photos: newPhotos })
-      .where(eq(usersTable.clerkId, req.clerkUserId));
-
+    await db.update(usersTable).set({ photos: newPhotos }).where(eq(usersTable.clerkId, req.clerkUserId));
     res.json({ photos: newPhotos });
   } catch (err) {
     logger.error({ err }, "DELETE /profile/me/photos error");
@@ -255,10 +283,7 @@ router.post("/users/push-token", requireAuth, async (req: any, res) => {
       res.status(400).json({ error: "token required" });
       return;
     }
-    await db
-      .update(usersTable)
-      .set({ expoPushToken: token })
-      .where(eq(usersTable.clerkId, req.clerkUserId));
+    await db.update(usersTable).set({ expoPushToken: token }).where(eq(usersTable.clerkId, req.clerkUserId));
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "POST /users/push-token error");

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq, desc, count } from "drizzle-orm";
+import { eq, desc, count, inArray } from "drizzle-orm";
 import { db, usersTable, reportsTable, roomsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 
@@ -31,7 +31,7 @@ router.get("/admin/stats", requireAdmin, async (_req, res) => {
 });
 
 // GET /api/admin/users — all users, most recent first
-router.get("/admin/users", requireAdmin, async (req, res) => {
+router.get("/admin/users", requireAdmin, async (_req, res) => {
   try {
     const users = await db
       .select({
@@ -44,7 +44,6 @@ router.get("/admin/users", requireAdmin, async (req, res) => {
         isBanned: usersTable.isBanned,
         gender: usersTable.gender,
         createdAt: usersTable.createdAt,
-        photoCount: usersTable.photos,
       })
       .from(usersTable)
       .orderBy(desc(usersTable.createdAt))
@@ -56,7 +55,7 @@ router.get("/admin/users", requireAdmin, async (req, res) => {
   }
 });
 
-// GET /api/admin/reports — all reports, most recent first
+// GET /api/admin/reports — all reports, most recent first, enriched with user names
 router.get("/admin/reports", requireAdmin, async (_req, res) => {
   try {
     const reports = await db
@@ -65,22 +64,15 @@ router.get("/admin/reports", requireAdmin, async (_req, res) => {
       .orderBy(desc(reportsTable.createdAt))
       .limit(200);
 
-    // Enrich with names
-    const userIds = [...new Set([...reports.map((r) => r.reporterId), ...reports.map((r) => r.reportedId)])];
-    const users = userIds.length
-      ? await db.select({ id: usersTable.id, name: usersTable.name, isBanned: usersTable.isBanned })
-          .from(usersTable)
-          .where(eq(usersTable.id, userIds[0])) // fallback; full query below
-          .limit(0)
-      : [];
+    if (reports.length === 0) { res.json([]); return; }
 
-    // Proper multi-id lookup
-    const userMap: Record<string, { name: string; isBanned: boolean }> = {};
-    for (const uid of userIds) {
-      const [u] = await db.select({ id: usersTable.id, name: usersTable.name, isBanned: usersTable.isBanned })
-        .from(usersTable).where(eq(usersTable.id, uid));
-      if (u) userMap[u.id] = { name: u.name, isBanned: u.isBanned };
-    }
+    const userIds = [...new Set([...reports.map((r) => r.reporterId), ...reports.map((r) => r.reportedId)])];
+    const userRows = await db
+      .select({ id: usersTable.id, name: usersTable.name, isBanned: usersTable.isBanned })
+      .from(usersTable)
+      .where(inArray(usersTable.id, userIds));
+
+    const userMap = Object.fromEntries(userRows.map((u) => [u.id, u]));
 
     const enriched = reports.map((r) => ({
       ...r,
@@ -99,11 +91,7 @@ router.get("/admin/reports", requireAdmin, async (_req, res) => {
 // GET /api/admin/rooms — all rooms
 router.get("/admin/rooms", requireAdmin, async (_req, res) => {
   try {
-    const rooms = await db
-      .select()
-      .from(roomsTable)
-      .orderBy(desc(roomsTable.createdAt))
-      .limit(200);
+    const rooms = await db.select().from(roomsTable).orderBy(desc(roomsTable.createdAt)).limit(200);
     res.json(rooms);
   } catch (err) {
     logger.error({ err }, "GET /admin/rooms error");
@@ -111,12 +99,11 @@ router.get("/admin/rooms", requireAdmin, async (_req, res) => {
   }
 });
 
-// POST /api/admin/users/:id/ban — ban a user
+// POST /api/admin/users/:id/ban
 router.post("/admin/users/:id/ban", requireAdmin, async (req: any, res) => {
   try {
-    const target = req.params.id;
-    if (target === req.adminUser.id) { res.status(400).json({ error: "Cannot ban yourself" }); return; }
-    await db.update(usersTable).set({ isBanned: true, status: "looking" }).where(eq(usersTable.id, target));
+    if (req.params.id === req.adminUser.id) { res.status(400).json({ error: "Cannot ban yourself" }); return; }
+    await db.update(usersTable).set({ isBanned: true }).where(eq(usersTable.id, req.params.id));
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "POST /admin/users/:id/ban error");
@@ -124,7 +111,7 @@ router.post("/admin/users/:id/ban", requireAdmin, async (req: any, res) => {
   }
 });
 
-// POST /api/admin/users/:id/unban — unban a user
+// POST /api/admin/users/:id/unban
 router.post("/admin/users/:id/unban", requireAdmin, async (req: any, res) => {
   try {
     await db.update(usersTable).set({ isBanned: false }).where(eq(usersTable.id, req.params.id));
@@ -135,7 +122,7 @@ router.post("/admin/users/:id/unban", requireAdmin, async (req: any, res) => {
   }
 });
 
-// POST /api/admin/users/:id/grant-admin — promote a user to admin
+// POST /api/admin/users/:id/grant-admin
 router.post("/admin/users/:id/grant-admin", requireAdmin, async (req: any, res) => {
   try {
     await db.update(usersTable).set({ isAdmin: true }).where(eq(usersTable.id, req.params.id));
@@ -146,12 +133,11 @@ router.post("/admin/users/:id/grant-admin", requireAdmin, async (req: any, res) 
   }
 });
 
-// POST /api/admin/users/:id/revoke-admin — demote admin
+// POST /api/admin/users/:id/revoke-admin
 router.post("/admin/users/:id/revoke-admin", requireAdmin, async (req: any, res) => {
   try {
-    const target = req.params.id;
-    if (target === req.adminUser.id) { res.status(400).json({ error: "Cannot revoke your own admin" }); return; }
-    await db.update(usersTable).set({ isAdmin: false }).where(eq(usersTable.id, target));
+    if (req.params.id === req.adminUser.id) { res.status(400).json({ error: "Cannot revoke your own admin" }); return; }
+    await db.update(usersTable).set({ isAdmin: false }).where(eq(usersTable.id, req.params.id));
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "POST /admin/users/:id/revoke-admin error");

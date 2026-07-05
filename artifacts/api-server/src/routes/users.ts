@@ -14,7 +14,7 @@ function makeId(): string {
 }
 
 function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD UTC
+  return new Date().toISOString().slice(0, 10);
 }
 
 function midnightUtc(): string {
@@ -24,8 +24,6 @@ function midnightUtc(): string {
 }
 
 // POST /api/users — create or update session user
-// For Clerk users choosing the "chooser" role: enforces a daily limit of CHOOSER_DAILY_LIMIT sessions.
-// When the limit is reached the response includes `cooldown: true` and `cooldownEndsAt`.
 router.post("/users", async (req, res) => {
   const { name, role, personalityVector } = req.body;
   if (
@@ -51,8 +49,15 @@ router.post("/users", async (req, res) => {
         where: eq(usersTable.clerkId, clerkUserId),
       });
 
+      // ── Banned user check ──────────────────────────────────────────────────
+      if (existing?.isBanned) {
+        logger.warn({ userId: existing.id }, "Banned user attempted to start session");
+        res.status(403).json({ error: "Your account has been suspended." });
+        return;
+      }
+
       if (existing) {
-        // ── Cooldown check (chooser only, Clerk users only) ──────────────────
+        // ── Cooldown check (chooser only) ──────────────────────────────────
         if (role === "chooser") {
           const sessionsToday =
             existing.chooserLastSessionDate === today
@@ -60,10 +65,7 @@ router.post("/users", async (req, res) => {
               : 0;
 
           if (sessionsToday >= CHOOSER_DAILY_LIMIT) {
-            logger.info(
-              { userId: existing.id, sessionsToday, limit: CHOOSER_DAILY_LIMIT },
-              "Chooser daily limit reached — returning cooldown",
-            );
+            logger.info({ userId: existing.id, sessionsToday, limit: CHOOSER_DAILY_LIMIT }, "Chooser daily limit reached");
             res.status(200).json({
               id: existing.id,
               name: existing.name,
@@ -78,7 +80,6 @@ router.post("/users", async (req, res) => {
             return;
           }
 
-          // Not on cooldown — record this session
           await db.update(usersTable).set({
             name: trimmedName,
             role: "chooser",
@@ -88,7 +89,6 @@ router.post("/users", async (req, res) => {
             chooserLastSessionDate: today,
           }).where(eq(usersTable.clerkId, clerkUserId));
         } else {
-          // Suitor — no session limit
           await db.update(usersTable).set({
             name: trimmedName,
             role: "suitor",
@@ -107,7 +107,7 @@ router.post("/users", async (req, res) => {
         return;
       }
 
-      // ── First-time Clerk user ────────────────────────────────────────────────
+      // ── First-time Clerk user ────────────────────────────────────────────
       const id = clerkUserId;
       await db.insert(usersTable).values({
         id,
@@ -133,7 +133,7 @@ router.post("/users", async (req, res) => {
     }
   }
 
-  // ── Anonymous session user (no cooldown enforcement) ──────────────────────
+  // ── Anonymous session user ────────────────────────────────────────────────
   const id = makeId();
   await db.insert(usersTable).values({
     id,

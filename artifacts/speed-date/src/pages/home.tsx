@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useCreateUser } from "@workspace/api-client-react";
 import { useUser, useClerk, Show } from "@clerk/react";
-import { User, MessageCircle, Lock, Clock, ArrowRight, ShieldCheck } from "lucide-react";
+import { User, MessageCircle, Lock, Clock, ArrowRight, ShieldCheck, Shield } from "lucide-react";
 
 const QUIZ_QUESTIONS = [
   {
@@ -104,10 +104,15 @@ function formatCountdown(endsAt: string): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-function NavBar({ base, signOut }: { base: string; signOut: () => void }) {
+function NavBar({ base, signOut, isAdmin }: { base: string; signOut: () => void; isAdmin?: boolean }) {
   return (
     <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
       <Show when="signed-in">
+        {isAdmin && (
+          <a href={`${base}/admin`} className="p-1.5 text-secondary hover:text-secondary/80 transition-colors" title="Admin Panel">
+            <Shield size={18} />
+          </a>
+        )}
         <a href={`${base}/inbox`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="Messages">
           <MessageCircle size={18} />
         </a>
@@ -127,6 +132,7 @@ export default function Home() {
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
   const [phase, setPhase] = useState<Phase>("loading");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Profile setup
   const [setupName, setSetupName] = useState("");
@@ -169,6 +175,7 @@ export default function Home() {
     fetch(`${base}/api/profile/me`, { credentials: "include" })
       .then((r) => r.json())
       .then((profile) => {
+        if (profile.isAdmin) setIsAdmin(true);
         const dob: string | null = profile.dateOfBirth ?? null;
 
         if (!dob) {
@@ -381,7 +388,7 @@ export default function Home() {
     return (
       <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 bg-background text-foreground bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background relative overflow-hidden">
         <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-        <NavBar base={base} signOut={signOut} />
+        <NavBar base={base} signOut={signOut} isAdmin={isAdmin} />
         <div className="z-10 w-full max-w-sm">
           <h1 className="text-4xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary text-center mb-2">
             Intermingled
@@ -465,7 +472,7 @@ export default function Home() {
     return (
       <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 bg-background text-foreground bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background relative overflow-hidden">
         <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-        <NavBar base={base} signOut={signOut} />
+        <NavBar base={base} signOut={signOut} isAdmin={isAdmin} />
         <div className="z-10 w-full max-w-lg">
           <h1 className="text-4xl md:text-5xl font-black mb-2 uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary text-center">
             Intermingled
@@ -513,7 +520,7 @@ export default function Home() {
   return (
     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 bg-background text-foreground bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-secondary/20 via-background to-background relative overflow-hidden">
       <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-      <NavBar base={base} signOut={signOut} />
+      <NavBar base={base} signOut={signOut} isAdmin={isAdmin} />
 
       <div className="z-10 w-full max-w-md">
         <h1 className="text-4xl md:text-5xl font-black mb-2 uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary text-center">

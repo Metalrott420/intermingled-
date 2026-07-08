@@ -104,16 +104,24 @@ router.get("/identity/status", requireAuth, async (req: any, res) => {
 
     if (session.status === "verified") {
       const dob = session.verified_outputs?.dob;
-      let isOldEnough = false;
 
-      if (dob?.year && dob?.month && dob?.day) {
-        const age = calculateAge(dob.year, dob.month, dob.day);
-        isOldEnough = age >= 18;
-      } else {
-        isOldEnough = true;
+      if (!dob?.year || !dob?.month || !dob?.day) {
+        // DOB must be present in verified_outputs to confirm the user's age.
+        // A missing DOB cannot be treated as proof of eligibility — deny access.
+        logger.warn(
+          { sessionId: user.identitySessionId },
+          "Stripe Identity session verified but DOB absent from verified_outputs; denying age verification"
+        );
+        res.json({
+          verified: false,
+          status: "failed",
+          message: "Age could not be confirmed from your identity document. Please try again.",
+        });
+        return;
       }
 
-      if (isOldEnough) {
+      const age = calculateAge(dob.year, dob.month, dob.day);
+      if (age >= 18) {
         await db
           .update(usersTable)
           .set({ ageVerified: true })

@@ -107,6 +107,7 @@ router.get("/profile/me", requireAuth, async (req: any, res) => {
 });
 
 // GET /api/profile/:userId — view another user's public profile
+// dateOfBirth is PII and must not appear in the public response.
 router.get("/profile/:userId", async (req, res) => {
   try {
     const user = await db.query.usersTable.findFirst({
@@ -120,7 +121,6 @@ router.get("/profile/:userId", async (req, res) => {
       id: user.id,
       name: user.name,
       bio: user.bio,
-      dateOfBirth: user.dateOfBirth,
       photos: user.photos ?? [],
       role: user.role,
     });
@@ -227,6 +227,13 @@ router.post("/profile/me/photos", requireAuth, requireNotBanned, async (req: any
     const { objectPath } = req.body;
     if (!objectPath || typeof objectPath !== "string") {
       res.status(400).json({ error: "objectPath required" });
+      return;
+    }
+
+    // Reject paths that don't belong to our private object store to prevent
+    // a user from injecting arbitrary external URLs into their photos array.
+    if (!objectPath.startsWith("/objects/uploads/")) {
+      res.status(400).json({ error: "Invalid objectPath" });
       return;
     }
 

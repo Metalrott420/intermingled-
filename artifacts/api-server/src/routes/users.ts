@@ -187,9 +187,21 @@ router.put("/users/:id/status", async (req, res) => {
     return;
   }
 
+  // Require the caller to be authenticated and own this user record.
+  const auth = getAuth(req);
+  if (!auth?.userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
   const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, id) });
   if (!user) {
     res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  if (user.clerkId !== auth.userId) {
+    res.status(403).json({ error: "Forbidden" });
     return;
   }
 

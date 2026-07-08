@@ -6,6 +6,7 @@ import {
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
+import { ObjectPermission } from "../lib/objectAcl";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -16,26 +17,62 @@ const requireAuth = (req: any, res: any, next: any) => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+  req.clerkUserId = auth.userId;
   next();
 };
 
+// Content types that are safe to serve inline in a browser.
+// Anything not in this list is served as application/octet-stream with
+// Content-Disposition: attachment so it cannot execute in the app's origin.
+// NOTE: image/svg+xml is intentionally excluded — SVG can contain inline script
+// and would execute same-origin when served with that content type.
+const SAFE_INLINE_CONTENT_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/avif",
+  "video/mp4",
+  "video/webm",
+  "audio/mpeg",
+  "audio/ogg",
+  "audio/wav",
+]);
+
+// Content types allowed for upload through the generic upload endpoint.
+const ALLOWED_UPLOAD_CONTENT_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/avif",
+]);
 /**
  * POST /storage/uploads/request-url
  *
  * Request a presigned URL for file upload.
- * Requires authentication — anonymous callers must not be able to write to storage.
+ * Requires authentication. Only image content types are permitted.
+ * The client sends JSON metadata (name, size, contentType) — NOT the file.
+ * Then uploads the file directly to the returned presigned URL.
  */
-router.post("/storage/uploads/request-url", requireAuth, async (req: Request, res: Response) => {
+router.post("/storage/uploads/request-url", requireAuth, async (req: any, res: Response) => {
   const parsed = RequestUploadUrlBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Missing or invalid required fields" });
     return;
   }
 
-  try {
-    const { name, size, contentType } = parsed.data;
+  const { name, size, contentType } = parsed.data;
 
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+  if (!ALLOWED_UPLOAD_CONTENT_TYPES.has(contentType)) {
+    res.status(400).json({ error: "Content type not allowed. Only image files may be uploaded." });
+    return;
+  }
+
+  try {
+    // Scope the upload path under the authenticated user's ID so ownership
+    // can be enforced when the path is later referenced.
+    const uploadURL = await objectStorageService.getObjectEntityUploadURL(req.clerkUserId);
     const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
 
     res.json(
@@ -88,20 +125,58 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
 /**
  * GET /storage/objects/*
  *
- * Serve private object entities. Requires an authenticated Clerk session.
- * Any signed-in user may read objects (profile photos are visible to all app members).
+ * Serve object entities from PRIVATE_OBJECT_DIR.
+ * Requires authentication. Content-Type is sanitized: only known-safe types
+ * are served inline; everything else is forced to application/octet-stream
+ * with Content-Disposition: attachment to prevent same-origin script execution.
  */
-router.get("/storage/objects/*path", requireAuth, async (req: Request, res: Response) => {
+router.get("/storage/objects/*path", requireAuth, async (req: any, res: Response) => {
   try {
     const raw = req.params.path;
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
     const objectPath = `/objects/${wildcardPath}`;
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
 
+    const canAccess = await objectStorageService.canAccessObjectEntity({
+      userId: req.clerkUserId,
+      objectFile,
+      requestedPermission: ObjectPermission.READ,
+    });
+    if (!canAccess) {
+      // No ACL set OR ACL denies access. Fall through to owner check via path prefix.
+      // Objects uploaded through profile or storage endpoints are scoped under
+      // /objects/uploads/<userId>/... — any authenticated user may read profile
+      // photos (dating-app use case) but we still block unauthenticated access.
+      // Only deny if the object has an explicit ACL that excludes this user AND
+      // the path is not a public profile photo path.
+      const isProfilePhotoPath = objectPath.startsWith("/objects/uploads/");
+      if (!isProfilePhotoPath) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
+    }
+
     const response = await objectStorageService.downloadObject(objectFile);
 
+    // Sanitize Content-Type: only allow known-safe types to be served inline.
+    // Unsafe types (text/html, application/javascript, etc.) are replaced with
+    // application/octet-stream and forced to download to prevent stored XSS.
+    const rawContentType = response.headers.get("content-type") ?? "application/octet-stream";
+    const normalizedType = rawContentType.split(";")[0].trim().toLowerCase();
+    const safeContentType = SAFE_INLINE_CONTENT_TYPES.has(normalizedType)
+      ? rawContentType
+      : "application/octet-stream";
+
     res.status(response.status);
-    response.headers.forEach((value, key) => res.setHeader(key, value));
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() !== "content-type") {
+        res.setHeader(key, value);
+      }
+    });
+    res.setHeader("Content-Type", safeContentType);
+    if (!SAFE_INLINE_CONTENT_TYPES.has(normalizedType)) {
+      res.setHeader("Content-Disposition", "attachment");
+    }
 
     if (response.body) {
       const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);

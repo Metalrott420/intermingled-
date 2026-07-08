@@ -106,7 +106,7 @@ export class ObjectStorageService {
     return new Response(webStream, { headers });
   }
 
-  async getObjectEntityUploadURL(): Promise<string> {
+  async getObjectEntityUploadURL(userId?: string): Promise<string> {
     const privateObjectDir = this.getPrivateObjectDir();
     if (!privateObjectDir) {
       throw new Error(
@@ -116,7 +116,9 @@ export class ObjectStorageService {
     }
 
     const objectId = randomUUID();
-    const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+    // Scope path under the user ID when provided so ownership can be verified later.
+    const subPath = userId ? `uploads/${userId}/${objectId}` : `uploads/${objectId}`;
+    const fullPath = `${privateObjectDir}/${subPath}`;
 
     const { bucketName, objectName } = parseObjectPath(fullPath);
 

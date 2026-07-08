@@ -106,9 +106,9 @@ router.get("/profile/me", requireAuth, async (req: any, res) => {
   }
 });
 
-// GET /api/profile/:userId — view another user's public profile
+// GET /api/profile/:userId — view another user's public profile (requires auth)
 // dateOfBirth is PII and must not appear in the public response.
-router.get("/profile/:userId", async (req, res) => {
+router.get("/profile/:userId", requireAuth, async (req, res) => {
   try {
     const user = await db.query.usersTable.findFirst({
       where: eq(usersTable.id, req.params.userId),
@@ -117,10 +117,14 @@ router.get("/profile/:userId", async (req, res) => {
       res.status(404).json({ error: "User not found" });
       return;
     }
+    // Expose computed age only — never the raw date of birth — to limit
+    // personal-data exposure and reduce identity-theft risk.
+    const age = user.dateOfBirth ? calculateAge(user.dateOfBirth) : null;
     res.json({
       id: user.id,
       name: user.name,
       bio: user.bio,
+      age,
       photos: user.photos ?? [],
       role: user.role,
     });
@@ -166,6 +170,16 @@ router.put("/profile/me", requireAuth, requireNotBanned, async (req: any, res) =
       }
     }
 
+    // Reject any photo path that was not uploaded by this user.
+    if (photos !== undefined) {
+      const ownedPrefix = `/objects/uploads/${req.clerkUserId}/`;
+      const hasUnowned = photos.some((p) => !p.startsWith(ownedPrefix));
+      if (hasUnowned) {
+        res.status(403).json({ error: "You can only attach photos you uploaded yourself." });
+        return;
+      }
+    }
+
     const updateData: Partial<typeof usersTable.$inferInsert> = {};
     if (name !== undefined) updateData.name = name;
     if (bio !== undefined) updateData.bio = bio;
@@ -195,8 +209,13 @@ router.post("/profile/me/photos/upload-url", requireAuth, requireNotBanned, asyn
       res.status(400).json({ error: "name, size, contentType required" });
       return;
     }
-    if (!contentType.startsWith("image/")) {
-      res.status(400).json({ error: "Only image files are allowed" });
+    // Strict allowlist — image/svg+xml is excluded because SVG can carry inline
+    // script that executes same-origin when served back from the app's domain.
+    const ALLOWED_PHOTO_TYPES = new Set([
+      "image/jpeg", "image/png", "image/gif", "image/webp", "image/avif",
+    ]);
+    if (!ALLOWED_PHOTO_TYPES.has(contentType)) {
+      res.status(400).json({ error: "Only JPEG, PNG, GIF, WebP, or AVIF images are allowed." });
       return;
     }
     if (size > 10 * 1024 * 1024) {
@@ -211,7 +230,9 @@ router.post("/profile/me/photos/upload-url", requireAuth, requireNotBanned, asyn
       return;
     }
 
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+    // Scope the upload path under the authenticated user's ID so that
+    // ownership can be verified when the path is later attached to a profile.
+    const uploadURL = await objectStorageService.getObjectEntityUploadURL(req.clerkUserId);
     const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
 
     res.json({ uploadURL, objectPath });
@@ -230,10 +251,9 @@ router.post("/profile/me/photos", requireAuth, requireNotBanned, async (req: any
       return;
     }
 
-    // Reject paths that don't belong to our private object store to prevent
-    // a user from injecting arbitrary external URLs into their photos array.
-    if (!objectPath.startsWith("/objects/uploads/")) {
-      res.status(400).json({ error: "Invalid objectPath" });
+    // Verify the object path was issued to this user (scoped under their ID).
+    if (!objectPath.startsWith(`/objects/uploads/${req.clerkUserId}/`)) {
+      res.status(403).json({ error: "You can only attach photos you uploaded yourself." });
       return;
     }
 

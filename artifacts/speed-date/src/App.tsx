@@ -22,6 +22,7 @@ import WhoLikedMe from "@/pages/who-liked-me";
 import PrivacyPolicy from "@/pages/privacy";
 import TermsOfService from "@/pages/terms";
 import AdminPage from "@/pages/admin";
+import VerifyAgeResult from "@/pages/verify-age-result";
 
 const queryClient = new QueryClient();
 
@@ -146,6 +147,7 @@ function AppRoutes() {
       <Route path="/admin" component={AdminPage} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/terms" component={TermsOfService} />
+      <Route path="/verify-age/result" component={VerifyAgeResult} />
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route component={NotFound} />

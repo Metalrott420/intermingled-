@@ -8,6 +8,7 @@ import profileRouter from "./profile";
 import dmRouter from "./dm";
 import socialRouter from "./social";
 import adminRouter from "./admin";
+import identityRouter from "./identity";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(profileRouter);
 router.use(dmRouter);
 router.use(socialRouter);
 router.use(adminRouter);
+router.use(identityRouter);
 
 export default router;

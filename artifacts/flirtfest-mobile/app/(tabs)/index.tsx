@@ -2,6 +2,7 @@ import { useAuth, useUser } from "@clerk/expo";
 import { useCreateUser } from "@workspace/api-client-react";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -102,7 +103,7 @@ interface CooldownInfo {
   limit: number;
 }
 
-type Phase = "loading" | "auth" | "profile_setup" | "age_blocked" | "quiz" | "role";
+type Phase = "loading" | "auth" | "profile_setup" | "age_blocked" | "age_verification" | "quiz" | "role";
 
 const API = process.env.EXPO_PUBLIC_DOMAIN
   ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`
@@ -128,6 +129,122 @@ function formatCountdown(endsAt: string): string {
 
 // Steps: 0-6 = quiz questions (7 total), 7 = role selection
 const TOTAL_STEPS = 8;
+
+function AgeVerificationScreen({
+  authFetch,
+  apiBase,
+  colors,
+  insets,
+  onVerified,
+  onSignOut,
+}: {
+  authFetch: (url: string, options?: RequestInit) => Promise<Response>;
+  apiBase: string;
+  colors: ReturnType<typeof useColors>;
+  insets: ReturnType<typeof useSafeAreaInsets>;
+  onVerified: () => void;
+  onSignOut: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleVerify = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await authFetch(`${apiBase}/identity/start`, { method: "POST" });
+      const data = await res.json() as { url?: string; alreadyVerified?: boolean; error?: string };
+      if (data.alreadyVerified) { onVerified(); return; }
+      if (!res.ok || !data.url) {
+        setError(data.error ?? "Could not start verification. Please try again.");
+        return;
+      }
+      await WebBrowser.openBrowserAsync(data.url);
+      setChecking(true);
+      const statusRes = await authFetch(`${apiBase}/identity/status`);
+      const status = await statusRes.json() as { verified: boolean; status: string; message?: string };
+      if (status.verified) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        onVerified();
+      } else if (status.status === "underage") {
+        setError(status.message ?? "You must be 18 or older.");
+      } else {
+        setError(status.message ?? "Verification not completed. Please try again.");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+      setChecking(false);
+    }
+  };
+
+  return (
+    <ScrollView
+      contentContainerStyle={{
+        flexGrow: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        paddingTop: insets.top + 32,
+        paddingBottom: insets.bottom + 32,
+      }}
+      style={{ backgroundColor: colors.background }}
+    >
+      <View style={{ alignItems: "center", gap: 24, maxWidth: 360, width: "100%" }}>
+        <View style={{
+          width: 80, height: 80, borderRadius: 20,
+          backgroundColor: `${colors.primary}20`,
+          borderWidth: 1, borderColor: `${colors.primary}30`,
+          alignItems: "center", justifyContent: "center",
+        }}>
+          <Text style={{ fontSize: 36 }}>🪪</Text>
+        </View>
+
+        <View style={{ alignItems: "center", gap: 8 }}>
+          <Text style={{ color: colors.foreground, fontSize: 26, fontWeight: "900", textAlign: "center", textTransform: "uppercase", letterSpacing: 1 }}>
+            Verify Your Age
+          </Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 13, textAlign: "center", lineHeight: 20 }}>
+            Intermingled is 18+ only. We verify your government-issued ID via Stripe — your data stays private.
+          </Text>
+        </View>
+
+        <View style={{ width: "100%", backgroundColor: colors.card, borderRadius: 12, padding: 16, gap: 12, borderWidth: 1, borderColor: colors.border }}>
+          {["ID processed securely by Stripe — we only see your age.", "One-time only — never repeated.", "Accepted: passport, driver's license, national ID."].map((txt, i) => (
+            <View key={i} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
+              <Text style={{ color: "#4ade80", fontSize: 14, marginTop: 1 }}>✓</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, flex: 1 }}>{txt}</Text>
+            </View>
+          ))}
+        </View>
+
+        {error && (
+          <Text style={{ color: colors.destructive ?? "#ef4444", fontSize: 13, textAlign: "center" }}>{error}</Text>
+        )}
+
+        <Pressable
+          onPress={handleVerify}
+          disabled={loading || checking}
+          style={({ pressed }) => ({
+            width: "100%", backgroundColor: colors.primary,
+            borderRadius: 12, padding: 16, alignItems: "center",
+            opacity: (loading || checking || pressed) ? 0.7 : 1,
+          })}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 14, letterSpacing: 1, textTransform: "uppercase" }}>
+            {checking ? "Checking…" : loading ? "Opening…" : "Verify My Age →"}
+          </Text>
+        </Pressable>
+
+        <Pressable onPress={onSignOut} style={{ paddingVertical: 8 }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Sign out and come back later</Text>
+        </Pressable>
+      </View>
+    </ScrollView>
+  );
+}
 
 export default function HomeScreen() {
   const colors = useColors();
@@ -197,6 +314,12 @@ export default function HomeScreen() {
         const age = calculateAge(dob);
         if (age < 18) {
           setPhase("age_blocked");
+          return;
+        }
+
+        // ID verification required
+        if (!profile.ageVerified) {
+          setPhase("age_verification");
           return;
         }
 
@@ -400,6 +523,22 @@ export default function HomeScreen() {
           </Pressable>
         </View>
       </ScrollView>
+    );
+  }
+
+  // ── AGE VERIFICATION (Stripe Identity) ───────────────────────────────────────
+  if (phase === "age_verification") {
+    return (
+      <AgeVerificationScreen
+        authFetch={authFetch}
+        apiBase={API}
+        colors={colors}
+        insets={insets}
+        onVerified={() => {
+          setPhase("quiz");
+        }}
+        onSignOut={() => router.replace("/(auth)/sign-in")}
+      />
     );
   }
 

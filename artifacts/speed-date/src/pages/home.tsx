@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useCreateUser } from "@workspace/api-client-react";
 import { useUser, useClerk, Show } from "@clerk/react";
-import { User, MessageCircle, Lock, Clock, ArrowRight, ShieldCheck, Shield } from "lucide-react";
+import { User, MessageCircle, Lock, Clock, ArrowRight, ShieldCheck, Shield, Fingerprint, Loader2 } from "lucide-react";
 
 const QUIZ_QUESTIONS = [
   {
@@ -84,7 +84,7 @@ interface CooldownInfo {
   limit: number;
 }
 
-type Phase = "loading" | "auth" | "profile_setup" | "age_blocked" | "quiz" | "role";
+type Phase = "loading" | "auth" | "profile_setup" | "age_blocked" | "age_verification" | "quiz" | "role";
 
 function calculateAge(dob: string): number {
   const d = new Date(dob);
@@ -102,6 +102,101 @@ function formatCountdown(endsAt: string): string {
   const h = Math.floor(totalMins / 60);
   const m = totalMins % 60;
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+// ── AGE VERIFICATION GATE ─────────────────────────────────────────────────────
+function AgeVerificationGate({
+  base,
+  signOut,
+  onVerified,
+}: {
+  base: string;
+  signOut: () => void;
+  onVerified: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleStart = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${base}/api/identity/start`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json() as { url?: string; alreadyVerified?: boolean; error?: string };
+      if (data.alreadyVerified) {
+        onVerified();
+        return;
+      }
+      if (!res.ok || !data.url) {
+        setError(data.error ?? "Could not start verification. Please try again.");
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center p-6 bg-background text-foreground text-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background">
+      <div className="max-w-sm space-y-6">
+        <div className="flex justify-center">
+          <div className="w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <Fingerprint className="w-10 h-10 text-primary" />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <h1 className="text-3xl font-black uppercase tracking-tight">Verify Your Age</h1>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Intermingled is 18+ only. We use Stripe Identity to verify your government-issued ID and a quick selfie — no data is stored on our servers.
+          </p>
+        </div>
+
+        <div className="bg-card/80 border border-border rounded-xl p-4 space-y-2 text-left">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
+            <p className="text-xs text-muted-foreground">Your ID is processed securely by Stripe — we only receive your verified age.</p>
+          </div>
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
+            <p className="text-xs text-muted-foreground">One-time verification — you'll never need to repeat this.</p>
+          </div>
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
+            <p className="text-xs text-muted-foreground">Accepted IDs: passport, driver's license, or national ID card.</p>
+          </div>
+        </div>
+
+        {error && (
+          <p className="text-destructive text-sm font-medium">{error}</p>
+        )}
+
+        <button
+          onClick={handleStart}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm uppercase tracking-wider transition-all disabled:opacity-60 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
+        >
+          {loading
+            ? <Loader2 className="w-4 h-4 animate-spin" />
+            : <><Fingerprint className="w-4 h-4" /><span>Verify My Age</span><ArrowRight className="w-4 h-4" /></>
+          }
+        </button>
+
+        <button
+          onClick={() => signOut()}
+          className="w-full text-xs font-mono text-muted-foreground hover:text-foreground transition-colors py-2"
+        >
+          Sign out and come back later
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function NavBar({ base, signOut, isAdmin }: { base: string; signOut: () => void; isAdmin?: boolean }) {
@@ -189,6 +284,12 @@ export default function Home() {
         const age = calculateAge(dob);
         if (age < 18) {
           setPhase("age_blocked");
+          return;
+        }
+
+        // ID verification required — check ageVerified flag
+        if (!profile.ageVerified) {
+          setPhase("age_verification");
           return;
         }
 
@@ -444,6 +545,11 @@ export default function Home() {
         </div>
       </div>
     );
+  }
+
+  // ── AGE VERIFICATION (Stripe Identity) ───────────────────────────────────────
+  if (phase === "age_verification") {
+    return <AgeVerificationGate base={base} signOut={signOut} onVerified={() => setPhase("quiz")} />;
   }
 
   // ── AGE BLOCKED ───────────────────────────────────────────────────────────────

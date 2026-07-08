@@ -21,6 +21,7 @@ import {
   View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useAuth } from "@clerk/expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/contexts/AppContext";
 import { useRoomSocket } from "@/hooks/useSocket";
@@ -55,7 +56,13 @@ export default function SuitorRoomScreen() {
   const insets = useSafeAreaInsets();
   const { id: roomId } = useLocalSearchParams<{ id: string }>();
   const { user, getParticipantId } = useApp();
+  const { getToken } = useAuth();
   const queryClient = useQueryClient();
+  const [socketToken, setSocketToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    getToken().then((t) => setSocketToken(t)).catch(() => {});
+  }, [getToken]);
 
   const [participantId, setParticipantId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -110,6 +117,7 @@ export default function SuitorRoomScreen() {
     participantId: participantId ?? undefined,
     senderName: myParticipant?.name ?? user?.name,
     senderRole: "suitor",
+    token: socketToken ?? undefined,
     onMessage,
     onRoomUpdated,
     onSessionEnded,

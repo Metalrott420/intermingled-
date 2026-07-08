@@ -155,14 +155,21 @@ router.post("/users", async (req, res) => {
   });
 });
 
-router.get("/users/looking", async (_req, res) => {
+router.get("/users/looking", async (req, res) => {
+  const auth = getAuth(req);
+  if (!auth?.userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
   const users = await db.query.usersTable.findMany({
     where: and(eq(usersTable.status, "looking"), eq(usersTable.role, "suitor")),
   });
 
+  // Do not expose stable internal user IDs to callers — the pool count is
+  // sufficient for UI purposes; full identity is only needed server-side.
   res.json(
     users.map((u) => ({
-      id: u.id,
       name: u.name,
       role: u.role,
       status: u.status,

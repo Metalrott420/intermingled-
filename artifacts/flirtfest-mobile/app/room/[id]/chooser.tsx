@@ -9,6 +9,7 @@ import {
 } from "@workspace/api-client-react";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
+import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -56,8 +57,14 @@ export default function ChooserRoomScreen() {
   const insets = useSafeAreaInsets();
   const { id: roomId } = useLocalSearchParams<{ id: string }>();
   const { user, getParticipantId } = useApp();
+  const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const chooseWinner = useChooseWinner();
+  const [socketToken, setSocketToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    getToken().then((t) => setSocketToken(t)).catch(() => {});
+  }, [getToken]);
 
   const [participantId, setParticipantId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -142,6 +149,7 @@ export default function ChooserRoomScreen() {
     participantId: participantId ?? undefined,
     senderName: chooserName,
     senderRole: "chooser",
+    token: socketToken ?? undefined,
     onMessage,
     onRoomUpdated,
     onSessionEnded,
@@ -168,9 +176,12 @@ export default function ChooserRoomScreen() {
     setIsProcessing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     try {
+      const t = await getToken();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (t) headers["Authorization"] = `Bearer ${t}`;
       await fetch(`${BASE_URL}/api/rooms/${roomId}/eliminate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ participantId: pId }),
       });
       setPhase("advancing");
@@ -183,7 +194,10 @@ export default function ChooserRoomScreen() {
     setIsProcessing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      await fetch(`${BASE_URL}/api/rooms/${roomId}/advance-round`, { method: "POST" });
+      const t = await getToken();
+      const headers: Record<string, string> = {};
+      if (t) headers["Authorization"] = `Bearer ${t}`;
+      await fetch(`${BASE_URL}/api/rooms/${roomId}/advance-round`, { method: "POST", headers });
     } finally {
       setIsProcessing(false);
     }

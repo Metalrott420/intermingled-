@@ -10,6 +10,7 @@ export const roomsTable = pgTable("rooms", {
   code: text("code").notNull().unique(),
   status: roomStatusEnum("status").notNull().default("waiting"),
   chooserName: text("chooser_name"),
+  chooserUserId: text("chooser_user_id"),
   winnerId: text("winner_id"),
   winnerName: text("winner_name"),
   maxSuitors: integer("max_suitors").notNull().default(5),
@@ -21,6 +22,7 @@ export const roomsTable = pgTable("rooms", {
 export const participantsTable = pgTable("participants", {
   id: text("id").primaryKey(),
   roomId: text("room_id").notNull().references(() => roomsTable.id),
+  userId: text("user_id"),
   name: text("name").notNull(),
   role: participantRoleEnum("role").notNull(),
   suitorSlot: integer("suitor_slot"),

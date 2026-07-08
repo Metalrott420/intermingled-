@@ -10,6 +10,7 @@ const SOCKET_PATH = "/ws/socket.io";
 export function usePoolSocket(
   userId: string | undefined,
   onMatchFound: (roomId: string, participantId: string) => void,
+  token?: string,
 ) {
   const socketRef = useRef<Socket | null>(null);
   const [poolCount, setPoolCount] = useState<number | null>(null);
@@ -29,7 +30,7 @@ export function usePoolSocket(
 
     socket.on("connect", () => {
       setIsConnected(true);
-      socket.emit("enter_pool", { userId });
+      socket.emit("enter_pool", { userId, ...(token ? { token } : {}) });
     });
     socket.on("disconnect", () => setIsConnected(false));
     socket.on("pool_count", ({ count }: { count: number }) => setPoolCount(count));
@@ -45,7 +46,7 @@ export function usePoolSocket(
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [userId]);
+  }, [userId, token]);
 
   const leavePool = useCallback(() => {
     if (socketRef.current?.connected && userId) {
@@ -61,6 +62,7 @@ export function usePoolSocket(
 export function useChooserSocket(
   userId: string | undefined,
   onSlotFilled: (slot: number, suitorName: string) => void,
+  token?: string,
 ) {
   const socketRef = useRef<Socket | null>(null);
   const [poolCount, setPoolCount] = useState<number | null>(null);
@@ -80,7 +82,7 @@ export function useChooserSocket(
 
     socket.on("connect", () => {
       setIsConnected(true);
-      socket.emit("chooser_waiting", { userId });
+      socket.emit("chooser_waiting", { userId, ...(token ? { token } : {}) });
     });
     socket.on("disconnect", () => setIsConnected(false));
     socket.on("pool_count", ({ count }: { count: number }) => setPoolCount(count));
@@ -95,7 +97,7 @@ export function useChooserSocket(
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [userId]);
+  }, [userId, token]);
 
   return { isConnected, poolCount };
 }
@@ -107,6 +109,7 @@ interface RoomSocketOptions {
   participantId: string | undefined;
   senderName: string | undefined;
   senderRole: "chooser" | "suitor" | undefined;
+  token?: string;
   onMessage: (msg: Message) => void;
   onRoomUpdated: (room: Room) => void;
   onSessionEnded: (data: { winnerId: string; winnerName: string }) => void;
@@ -119,6 +122,7 @@ export function useRoomSocket({
   participantId,
   senderName,
   senderRole,
+  token,
   onMessage,
   onRoomUpdated,
   onSessionEnded,
@@ -150,7 +154,7 @@ export function useRoomSocket({
 
     socket.on("connect", () => {
       setIsConnected(true);
-      socket.emit("join_room", { roomId, participantId });
+      socket.emit("join_room", { roomId, participantId, ...(token ? { token } : {}) });
     });
     socket.on("disconnect", () => setIsConnected(false));
     socket.on("message_received", (msg: Message) => onMessageRef.current(msg));
@@ -172,7 +176,7 @@ export function useRoomSocket({
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [roomId, participantId]);
+  }, [roomId, participantId, token]);
 
   const sendMessage = useCallback(
     (content: string, suitorSlot: number | null, round?: number) => {

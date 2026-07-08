@@ -15,9 +15,9 @@ interface ServerToClientEvents {
 }
 
 interface ClientToServerEvents {
-  join_room: (data: { roomId: string; participantId: string }) => void;
-  enter_pool: (data: { userId: string }) => void;
-  chooser_waiting: (data: { userId: string }) => void;
+  join_room: (data: { roomId: string; participantId: string; token?: string }) => void;
+  enter_pool: (data: { userId: string; token?: string }) => void;
+  chooser_waiting: (data: { userId: string; token?: string }) => void;
   leave_pool: (data: { userId: string }) => void;
   send_message: (data: {
     roomId: string;
@@ -35,6 +35,7 @@ export function useSocket(
   participantId?: string,
   senderName?: string,
   senderRole?: 'chooser' | 'suitor',
+  token?: string,
 ) {
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
@@ -47,7 +48,7 @@ export function useSocket(
 
     const onConnect = () => {
       setIsConnected(true);
-      socket.emit('join_room', { roomId, participantId });
+      socket.emit('join_room', { roomId, participantId, ...(token ? { token } : {}) });
     };
 
     if (socket.connected) onConnect();
@@ -60,7 +61,7 @@ export function useSocket(
       socketRef.current = null;
       setIsConnected(false);
     };
-  }, [roomId, participantId]);
+  }, [roomId, participantId, token]);
 
   const sendMessage = useCallback(
     (content: string, suitorSlot: number | null, round?: number) => {
@@ -83,7 +84,7 @@ export function useSocket(
   return { isConnected, sendMessage, subscribe, socket: socketRef.current };
 }
 
-export function usePoolSocket(userId?: string) {
+export function usePoolSocket(userId?: string, token?: string) {
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [poolCount, setPoolCount] = useState<number | null>(null);
@@ -96,7 +97,7 @@ export function usePoolSocket(userId?: string) {
 
     const onConnect = () => {
       setIsConnected(true);
-      socket.emit('enter_pool', { userId });
+      socket.emit('enter_pool', { userId, ...(token ? { token } : {}) });
     };
 
     if (socket.connected) onConnect();
@@ -113,7 +114,7 @@ export function usePoolSocket(userId?: string) {
       socketRef.current = null;
       setIsConnected(false);
     };
-  }, [userId]);
+  }, [userId, token]);
 
   const leavePool = useCallback(() => {
     if (socketRef.current?.connected && userId) {
@@ -133,7 +134,7 @@ export function usePoolSocket(userId?: string) {
   return { isConnected, poolCount, leavePool, subscribe };
 }
 
-export function useChooserSocket(userId?: string) {
+export function useChooserSocket(userId?: string, token?: string) {
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [poolCount, setPoolCount] = useState<number | null>(null);
@@ -146,7 +147,7 @@ export function useChooserSocket(userId?: string) {
 
     const onConnect = () => {
       setIsConnected(true);
-      socket.emit('chooser_waiting', { userId });
+      socket.emit('chooser_waiting', { userId, ...(token ? { token } : {}) });
     };
 
     if (socket.connected) onConnect();
@@ -160,7 +161,7 @@ export function useChooserSocket(userId?: string) {
       socketRef.current = null;
       setIsConnected(false);
     };
-  }, [userId]);
+  }, [userId, token]);
 
   const subscribe = useCallback(
     <K extends keyof ServerToClientEvents>(event: K, callback: ServerToClientEvents[K]) => {

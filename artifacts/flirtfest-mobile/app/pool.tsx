@@ -1,7 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useCallback, useState } from "react";
+import { useAuth } from "@clerk/expo";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -62,7 +63,13 @@ export default function PoolScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, setParticipantId } = useApp();
+  const { getToken } = useAuth();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    getToken().then((t) => setToken(t)).catch(() => {});
+  }, [getToken]);
 
   const onMatchFound = useCallback(
     async (roomId: string, participantId: string) => {
@@ -73,7 +80,7 @@ export default function PoolScreen() {
     [setParticipantId],
   );
 
-  const { isConnected, poolCount, leavePool } = usePoolSocket(user?.userId, onMatchFound);
+  const { isConnected, poolCount, leavePool } = usePoolSocket(user?.userId, onMatchFound, token ?? undefined);
 
   const handleLeave = () => {
     leavePool();

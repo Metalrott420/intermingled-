@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
+import { getAuth } from "@clerk/express";
 import { db, roomsTable, participantsTable, messagesTable, usersTable, matchesTable } from "@workspace/db";
 import {
   CreateRoomBody,
@@ -23,6 +24,16 @@ function makeCode(): string {
 function makeId(): string {
   return randomBytes(8).toString("hex");
 }
+
+const requireAuth = (req: any, res: any, next: any) => {
+  const auth = getAuth(req);
+  if (!auth?.userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  req.clerkUserId = auth.userId;
+  next();
+};
 
 async function buildRoomResponse(roomId: string) {
   const room = await db.query.roomsTable.findFirst({
@@ -57,6 +68,30 @@ async function buildRoomResponse(roomId: string) {
   };
 }
 
+/**
+ * Verifies that the caller is the chooser of the room by comparing their
+ * stable DB user ID against rooms.chooser_user_id (set at match-creation time).
+ * Returns { room, user } on success, null on failure.
+ */
+async function verifyChooser(roomId: string, clerkUserId: string) {
+  const user = await db.query.usersTable.findFirst({
+    where: eq(usersTable.clerkId, clerkUserId),
+  });
+  if (!user) return null;
+
+  const room = await db.query.roomsTable.findFirst({
+    where: eq(roomsTable.id, roomId),
+  });
+  if (!room) return null;
+
+  // Primary: authorize by stable user ID stored at room creation
+  if (room.chooserUserId && room.chooserUserId !== user.id) return null;
+  // If chooserUserId not set (legacy manual rooms), fall through to deny
+  if (!room.chooserUserId) return null;
+
+  return { room, user };
+}
+
 router.post("/rooms", async (req, res) => {
   const body = CreateRoomBody.safeParse(req.body);
   if (!body.success) {
@@ -88,10 +123,19 @@ router.post("/rooms", async (req, res) => {
   res.status(201).json(roomData);
 });
 
-router.post("/rooms/match", async (req, res) => {
+router.post("/rooms/match", requireAuth, async (req: any, res) => {
   const { chooserUserId } = req.body;
   if (typeof chooserUserId !== "string" || !chooserUserId) {
     res.status(400).json({ error: "chooserUserId is required" });
+    return;
+  }
+
+  // Verify the authenticated caller IS the chooser they claim to be
+  const callerUser = await db.query.usersTable.findFirst({
+    where: eq(usersTable.clerkId, req.clerkUserId),
+  });
+  if (!callerUser || callerUser.id !== chooserUserId) {
+    res.status(403).json({ error: "Forbidden" });
     return;
   }
 
@@ -130,22 +174,24 @@ router.post("/rooms/match", async (req, res) => {
   );
   const top5 = rankSuitors(chooser.personalityVector, suitorsWithVector, 5);
 
-  // Create room, start it active immediately
+  // Create room, start it active immediately — store chooserUserId for authorization
   const roomId = makeId();
   const code = makeCode();
   await db.insert(roomsTable).values({
     id: roomId,
     code,
     chooserName: chooser.name,
+    chooserUserId: chooser.id,
     status: "active",
     maxSuitors: 5,
   });
 
-  // Add chooser as participant
+  // Add chooser as participant with their DB user ID
   const chooserParticipantId = makeId();
   await db.insert(participantsTable).values({
     id: chooserParticipantId,
     roomId,
+    userId: chooser.id,
     name: chooser.name,
     role: "chooser",
     suitorSlot: null,
@@ -164,6 +210,7 @@ router.post("/rooms/match", async (req, res) => {
     await db.insert(participantsTable).values({
       id: participantId,
       roomId,
+      userId: suitor.id,
       name: suitor.name,
       role: "suitor",
       suitorSlot: i + 1,
@@ -297,10 +344,33 @@ router.post("/rooms/:id/join", async (req, res) => {
   res.json({ participantId, room: roomData });
 });
 
-router.get("/rooms/:id/messages", async (req, res) => {
+// GET /api/rooms/:id/messages — fetch room transcript
+// Requires Clerk auth. The caller must have a participant record (with userId)
+// in this room, so only real room members can read the transcript.
+router.get("/rooms/:id/messages", requireAuth, async (req: any, res) => {
   const params = GetRoomMessagesParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid room id" });
+    return;
+  }
+
+  const user = await db.query.usersTable.findFirst({
+    where: eq(usersTable.clerkId, req.clerkUserId),
+  });
+  if (!user) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+
+  // Verify caller has a participant record linked to their user ID in this room
+  const participant = await db.query.participantsTable.findFirst({
+    where: and(
+      eq(participantsTable.roomId, params.data.id),
+      eq(participantsTable.userId, user.id),
+    ),
+  });
+  if (!participant) {
+    res.status(403).json({ error: "Forbidden" });
     return;
   }
 
@@ -325,24 +395,36 @@ router.get("/rooms/:id/messages", async (req, res) => {
 });
 
 // POST /api/rooms/:id/eliminate — chooser eliminates one suitor (rounds 1-3)
-router.post("/rooms/:id/eliminate", async (req, res) => {
+// Requires Clerk auth; caller must be the chooser of this room.
+router.post("/rooms/:id/eliminate", requireAuth, async (req: any, res) => {
   const { participantId } = req.body;
   if (typeof participantId !== "string" || !participantId) {
     res.status(400).json({ error: "participantId is required" });
     return;
   }
 
-  const room = await db.query.roomsTable.findFirst({
-    where: eq(roomsTable.id, req.params.id),
-  });
-  if (!room) {
-    res.status(404).json({ error: "Room not found" });
+  const verified = await verifyChooser(req.params.id, req.clerkUserId);
+  if (!verified) {
+    res.status(403).json({ error: "Forbidden" });
     return;
   }
+  const { room } = verified;
 
   const alreadyEliminated = (room.eliminatedParticipants ?? []) as string[];
   if (alreadyEliminated.includes(participantId)) {
     res.status(400).json({ error: "Already eliminated" });
+    return;
+  }
+
+  // Verify the target participant actually belongs to this room
+  const target = await db.query.participantsTable.findFirst({
+    where: and(
+      eq(participantsTable.id, participantId),
+      eq(participantsTable.roomId, room.id),
+    ),
+  });
+  if (!target) {
+    res.status(404).json({ error: "Participant not found in this room" });
     return;
   }
 
@@ -358,14 +440,14 @@ router.post("/rooms/:id/eliminate", async (req, res) => {
 });
 
 // POST /api/rooms/:id/advance-round — move to the next round
-router.post("/rooms/:id/advance-round", async (req, res) => {
-  const room = await db.query.roomsTable.findFirst({
-    where: eq(roomsTable.id, req.params.id),
-  });
-  if (!room) {
-    res.status(404).json({ error: "Room not found" });
+// Requires Clerk auth; caller must be the chooser of this room.
+router.post("/rooms/:id/advance-round", requireAuth, async (req: any, res) => {
+  const verified = await verifyChooser(req.params.id, req.clerkUserId);
+  if (!verified) {
+    res.status(403).json({ error: "Forbidden" });
     return;
   }
+  const { room } = verified;
 
   const newRound = room.currentRound + 1;
   await db.update(roomsTable).set({ currentRound: newRound }).where(eq(roomsTable.id, room.id));
@@ -378,7 +460,9 @@ router.post("/rooms/:id/advance-round", async (req, res) => {
   res.json(roomData);
 });
 
-router.post("/rooms/:id/choose", async (req, res) => {
+// POST /api/rooms/:id/choose — chooser picks the winner and ends the room
+// Requires Clerk auth; caller must be the chooser of this room.
+router.post("/rooms/:id/choose", requireAuth, async (req: any, res) => {
   const params = ChooseWinnerParams.safeParse(req.params);
   const body = ChooseWinnerBody.safeParse(req.body);
 
@@ -387,57 +471,62 @@ router.post("/rooms/:id/choose", async (req, res) => {
     return;
   }
 
-  const room = await db.query.roomsTable.findFirst({
-    where: eq(roomsTable.id, params.data.id),
-  });
-  if (!room) {
-    res.status(404).json({ error: "Room not found" });
+  const verified = await verifyChooser(params.data.id, req.clerkUserId);
+  if (!verified) {
+    res.status(403).json({ error: "Forbidden" });
     return;
   }
+  const { room } = verified;
 
+  // Verify the claimed winner actually belongs to this room
   const winner = await db.query.participantsTable.findFirst({
     where: and(
       eq(participantsTable.roomId, room.id),
       eq(participantsTable.id, body.data.winnerId),
     ),
   });
+  if (!winner) {
+    res.status(400).json({ error: "Winner is not a participant in this room" });
+    return;
+  }
 
   await db
     .update(roomsTable)
     .set({
       status: "ended",
       winnerId: body.data.winnerId,
-      winnerName: winner?.name ?? null,
+      winnerName: winner.name,
     })
     .where(eq(roomsTable.id, room.id));
 
-  // Create a 1-on-1 match record so both users get a private DM channel.
-  // Look up both users by name so we can record their actual user IDs.
+  // Create a 1-on-1 match record using the stable user IDs stored on participants.
   try {
-    const chooserUser = await db.query.usersTable.findFirst({
-      where: eq(usersTable.name, room.chooserName ?? ""),
+    const chooserParticipant = await db.query.participantsTable.findFirst({
+      where: and(
+        eq(participantsTable.roomId, room.id),
+        eq(participantsTable.role, "chooser"),
+      ),
     });
-    const suitorUser = winner
-      ? await db.query.usersTable.findFirst({
-          where: eq(usersTable.name, winner.name),
-        })
-      : null;
+    const winnerParticipant = winner ?? null;
 
-    if (chooserUser && suitorUser) {
+    const chooserUserId = chooserParticipant?.userId ?? null;
+    const suitorUserId = winnerParticipant?.userId ?? null;
+
+    if (chooserUserId && suitorUserId) {
       const existingMatch = await db.query.matchesTable.findFirst({
         where: and(
-          eq(matchesTable.chooserUserId, chooserUser.id),
-          eq(matchesTable.suitorUserId, suitorUser.id),
+          eq(matchesTable.chooserUserId, chooserUserId),
+          eq(matchesTable.suitorUserId, suitorUserId),
         ),
       });
       if (!existingMatch) {
         await db.insert(matchesTable).values({
           id: makeId(),
           roomId: room.id,
-          chooserUserId: chooserUser.id,
-          suitorUserId: suitorUser.id,
-          chooserName: chooserUser.name,
-          suitorName: suitorUser.name,
+          chooserUserId,
+          suitorUserId,
+          chooserName: chooserParticipant!.name,
+          suitorName: winnerParticipant!.name,
         });
       }
     }

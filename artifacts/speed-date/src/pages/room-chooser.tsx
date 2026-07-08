@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useLocation, useParams } from "wouter";
+import { useAuth } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -84,6 +85,8 @@ export default function RoomChooser() {
   const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
   const messageEndRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
+  const { getToken } = useAuth();
+
   const { data: room, isLoading: isLoadingRoom } = useGetRoom(roomId, {
     query: { enabled: !!roomId, queryKey: getGetRoomQueryKey(roomId) },
   });
@@ -91,9 +94,14 @@ export default function RoomChooser() {
     query: { enabled: !!roomId, queryKey: getGetRoomMessagesQueryKey(roomId) },
   });
 
+  const [socketToken, setSocketToken] = useState<string | null>(null);
+  useEffect(() => {
+    getToken().then((t) => setSocketToken(t)).catch(() => {});
+  }, [getToken]);
+
   const chooseWinner = useChooseWinner();
   const chooserName = room?.chooserName ?? undefined;
-  const { sendMessage, subscribe } = useSocket(roomId, participantId || undefined, chooserName, "chooser");
+  const { sendMessage, subscribe } = useSocket(roomId, participantId || undefined, chooserName, "chooser", socketToken ?? undefined);
 
   const currentRound = room?.currentRound ?? 1;
   const eliminatedParticipants = (room?.eliminatedParticipants ?? []) as string[];
@@ -172,8 +180,11 @@ export default function RoomChooser() {
   const handleEliminate = async (pId: string) => {
     setIsProcessing(true);
     try {
+      const t = await getToken();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (t) headers["Authorization"] = `Bearer ${t}`;
       await fetch(`/api/rooms/${roomId}/eliminate`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers,
         body: JSON.stringify({ participantId: pId }),
       });
       setPhase("advancing");
@@ -183,7 +194,10 @@ export default function RoomChooser() {
   const handleAdvanceRound = async () => {
     setIsProcessing(true);
     try {
-      await fetch(`/api/rooms/${roomId}/advance-round`, { method: "POST" });
+      const t = await getToken();
+      const headers: Record<string, string> = {};
+      if (t) headers["Authorization"] = `Bearer ${t}`;
+      await fetch(`/api/rooms/${roomId}/advance-round`, { method: "POST", headers });
     } finally { setIsProcessing(false); }
   };
 

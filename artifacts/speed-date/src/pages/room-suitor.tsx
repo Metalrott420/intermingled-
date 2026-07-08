@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useLocation, useParams, Link } from "wouter";
+import { useAuth } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -44,8 +45,14 @@ export default function RoomSuitor() {
   const myParticipantName = myParticipant?.name;
   const currentRound = room?.currentRound ?? 1;
 
+  const { getToken } = useAuth();
+  const [socketToken, setSocketToken] = useState<string | null>(null);
+  useEffect(() => {
+    getToken().then((t) => setSocketToken(t)).catch(() => {});
+  }, [getToken]);
+
   const { isConnected, sendMessage, subscribe } = useSocket(
-    roomId, participantId || undefined, myParticipantName, "suitor",
+    roomId, participantId || undefined, myParticipantName, "suitor", socketToken ?? undefined,
   );
 
   useEffect(() => { if (!participantId) setLocation("/"); }, [participantId, setLocation]);

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useSearch } from "wouter";
+import { useAuth } from "@clerk/react";
 import { useMatchRoom, MatchResult } from "@workspace/api-client-react";
 import { useChooserSocket } from "@/hooks/useSocket";
 
@@ -24,8 +25,14 @@ export default function Match() {
   const chooserParticipantIdRef = useRef<string | null>(null);
   const redirectedRef = useRef(false);
 
+  const { getToken } = useAuth();
+  const [token, setToken] = useState<string | null>(null);
+  useEffect(() => {
+    getToken().then((t) => setToken(t)).catch(() => {});
+  }, [getToken]);
+
   const matchRoom = useMatchRoom();
-  const { isConnected, poolCount, subscribe } = useChooserSocket(userId || undefined);
+  const { isConnected, poolCount, subscribe } = useChooserSocket(userId || undefined, token ?? undefined);
 
   // Real-time slot filling from server events
   useEffect(() => {

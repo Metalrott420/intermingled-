@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useLocation, useSearch } from "wouter";
+import { useAuth } from "@clerk/react";
 import { usePoolSocket } from "@/hooks/useSocket";
 import { Zap, Star, Heart, ChevronRight, X } from "lucide-react";
 
@@ -17,11 +18,17 @@ export default function Pool() {
   const userId = params.get("userId") || "";
   const name = params.get("name") || "";
 
+  const { getToken } = useAuth();
+  const [token, setToken] = useState<string | null>(null);
+  useEffect(() => {
+    getToken().then((t) => setToken(t)).catch(() => {});
+  }, [getToken]);
+
   const [showConfirm, setShowConfirm] = useState(false);
   const [browseProfiles, setBrowseProfiles] = useState<BrowseProfile[]>([]);
   const [browseIndex, setBrowseIndex] = useState(0);
   const [liked, setLiked] = useState<Set<string>>(new Set());
-  const { isConnected, poolCount, leavePool, subscribe } = usePoolSocket(userId || undefined);
+  const { isConnected, poolCount, leavePool, subscribe } = usePoolSocket(userId || undefined, token ?? undefined);
 
   useEffect(() => {
     if (!userId) setLocation("/");

@@ -21,9 +21,18 @@ const requireAuth = (req: any, res: any, next: any) => {
   next();
 };
 
-// GET /api/rooms/:roomId/match — look up the match for a room (public, by roomId)
-router.get("/rooms/:roomId/match", async (req, res) => {
+// GET /api/rooms/:roomId/match — look up the match for a room
+// Restricted to the two matched users only.
+router.get("/rooms/:roomId/match", requireAuth, async (req: any, res) => {
   try {
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.clerkId, req.clerkUserId),
+    });
+    if (!user) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+
     const match = await db.query.matchesTable.findFirst({
       where: eq(matchesTable.roomId, req.params.roomId),
     });
@@ -31,6 +40,13 @@ router.get("/rooms/:roomId/match", async (req, res) => {
       res.json({ match: null });
       return;
     }
+
+    // Only the two matched users may read this record
+    if (match.chooserUserId !== user.id && match.suitorUserId !== user.id) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+
     res.json({
       match: {
         id: match.id,

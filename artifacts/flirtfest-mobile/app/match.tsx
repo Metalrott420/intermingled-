@@ -1,7 +1,8 @@
 import { useMatchRoom, MatchResult } from "@workspace/api-client-react";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import { useAuth } from "@clerk/expo";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -54,6 +55,11 @@ export default function MatchScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, setParticipantId } = useApp();
+  const { getToken } = useAuth();
+  const [token, setToken] = useState<string | null>(null);
+  useEffect(() => {
+    getToken().then((t) => setToken(t)).catch(() => {});
+  }, [getToken]);
   const matchRoom = useMatchRoom();
 
   const [filledSlots, setFilledSlots] = useState<FilledSlot[]>([]);
@@ -85,7 +91,7 @@ export default function MatchScreen() {
     });
   }, [setParticipantId]);
 
-  const { isConnected, poolCount } = useChooserSocket(user?.userId, onSlotFilled);
+  const { isConnected, poolCount } = useChooserSocket(user?.userId, onSlotFilled, token ?? undefined);
 
   // Auto-clear "not enough" error when pool fills up
   React.useEffect(() => {

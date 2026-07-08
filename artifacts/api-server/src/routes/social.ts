@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
 import { eq, and, sql } from "drizzle-orm";
-import { db, usersTable, blocksTable, reportsTable, likesTable, groupMessagesTable } from "@workspace/db";
+import { db, usersTable, blocksTable, reportsTable, likesTable, groupMessagesTable, participantsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { getIo } from "../socket";
 import { randomBytes } from "crypto";
@@ -20,6 +20,22 @@ const requireAuth = (req: any, res: any, next: any) => {
 async function getDbUserId(clerkUserId: string): Promise<string | null> {
   const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
   return user?.id ?? null;
+}
+
+/**
+ * Verifies that the given DB userId is a participant in the room by checking
+ * the participants.user_id column set at match-creation time.
+ * Name-based fallback is intentionally omitted: names are user-editable and
+ * non-unique, so they cannot serve as a reliable authorization anchor.
+ */
+async function isRoomParticipant(roomId: string, userId: string): Promise<boolean> {
+  const participant = await db.query.participantsTable.findFirst({
+    where: and(
+      eq(participantsTable.roomId, roomId),
+      eq(participantsTable.userId, userId),
+    ),
+  });
+  return participant !== undefined;
 }
 
 // ── Block ────────────────────────────────────────────────────────────────────
@@ -137,21 +153,6 @@ function anonymize(msg: { senderId: string; senderName: string; [k: string]: unk
   return { ...msg, senderName: colorFromId(msg.senderId) };
 }
 
-router.get("/rooms/:roomId/group-messages", async (req, res) => {
-  try {
-    const msgs = await db
-      .select()
-      .from(groupMessagesTable)
-      .where(eq(groupMessagesTable.roomId, req.params.roomId))
-      .orderBy(groupMessagesTable.createdAt)
-      .limit(200);
-    res.json({ messages: msgs.map(anonymize) });
-  } catch (err) {
-    logger.error({ err }, "GET /rooms/:roomId/group-messages error");
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
 // Patterns that suggest contact info being shared
 const CONTACT_INFO_PATTERNS = [
   // Phone numbers — 7+ digit sequences with optional separators
@@ -170,12 +171,40 @@ function containsContactInfo(text: string): boolean {
   return CONTACT_INFO_PATTERNS.some((re) => re.test(text));
 }
 
+router.get("/rooms/:roomId/group-messages", requireAuth, async (req: any, res) => {
+  try {
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.clerkId, req.clerkUserId),
+    });
+    if (!user) { res.status(403).json({ error: "Forbidden" }); return; }
+
+    const authorized = await isRoomParticipant(req.params.roomId, user.id);
+    if (!authorized) { res.status(403).json({ error: "Forbidden" }); return; }
+
+    const msgs = await db
+      .select()
+      .from(groupMessagesTable)
+      .where(eq(groupMessagesTable.roomId, req.params.roomId))
+      .orderBy(groupMessagesTable.createdAt)
+      .limit(200);
+    res.json({ messages: msgs.map(anonymize) });
+  } catch (err) {
+    logger.error({ err }, "GET /rooms/:roomId/group-messages error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.post("/rooms/:roomId/group-messages", requireAuth, async (req: any, res) => {
   try {
-    const senderId = await getDbUserId(req.clerkUserId);
-    if (!senderId) { res.status(404).json({ error: "User not found" }); return; }
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.clerkId, req.clerkUserId),
+    });
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
-    const { content, senderName } = req.body;
+    const authorized = await isRoomParticipant(req.params.roomId, user.id);
+    if (!authorized) { res.status(403).json({ error: "Forbidden" }); return; }
+
+    const { content } = req.body;
     if (!content?.trim()) { res.status(400).json({ error: "Content required" }); return; }
 
     if (containsContactInfo(content.trim())) {
@@ -191,8 +220,8 @@ router.post("/rooms/:roomId/group-messages", requireAuth, async (req: any, res) 
     const [msg] = await db.insert(groupMessagesTable).values({
       id,
       roomId: req.params.roomId,
-      senderId,
-      senderName: senderName ?? "Anonymous", // stored for moderation only
+      senderId: user.id,
+      senderName: user.name, // stored for moderation only
       content: content.trim(),
     }).returning();
     const anonMsg = anonymize(msg);

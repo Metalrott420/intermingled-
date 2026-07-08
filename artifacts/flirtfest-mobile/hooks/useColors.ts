@@ -1,6 +1,6 @@
 import { useColorScheme } from "react-native";
 
-import colors from "@/constants/colors";
+import colors from "@/constants/Colors";
 
 /**
  * Returns the design tokens for the current color scheme.

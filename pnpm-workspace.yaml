@@ -30,6 +30,13 @@ catalog:
   wouter: ^3.3.5
   zod: ^3.25.76
 
+packageExtensions:
+  react-native-worklets@*:
+    dependencies:
+      '@babel/generator': '*'
+      '@babel/types': '*'
+      '@babel/traverse': '*'
+
 minimumReleaseAge: 1440
 
 minimumReleaseAgeExclude:

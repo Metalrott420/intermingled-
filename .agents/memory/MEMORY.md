@@ -2,3 +2,4 @@
 - [Intermingled build gotchas](intermingled-build-gotchas.md) — nanoid not in api-server (use randomBytes); Google Fonts must load via HTML link tag not CSS @import; always run typecheck:libs before leaf typechecks after schema changes.
 - [Stripe credential source precedence](stripe-secret-key-precedence.md) — check managed connectors API before STRIPE_SECRET_KEY env var; deleteEnvVars on stale Stripe secrets may silently not take effect.
 - [Bot suitor architecture](bot-suitor-architecture.md) — bots fill empty slots; Anthropic AI integration provisioned; send_message uses client suitorSlot for choosers (fixes per-tab routing bug).
+- [Expo Router _ctx.ios.js Metro fix](expo-router-ctx-metro-fix.md) — Metro can't statically evaluate process.env.EXPO_ROUTER_APP_ROOT in require.context; fix by creating custom _ctx.*.js files with literal path and resolver redirect.

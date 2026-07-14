@@ -140,6 +140,7 @@ async function startMetro(expoPublicDomain, expoPublicReplId) {
     ...process.env,
     EXPO_PUBLIC_DOMAIN: expoPublicDomain,
     EXPO_PUBLIC_REPL_ID: expoPublicReplId,
+    EXPO_ROUTER_APP_ROOT: path.join(projectRoot, "app"),
   };
 
   if (expoPublicReplId) {
@@ -236,6 +237,7 @@ async function downloadBundle(platform, timestamp) {
   url.searchParams.set("hot", "false");
   url.searchParams.set("lazy", "false");
   url.searchParams.set("minify", "true");
+  url.searchParams.set("transform.routerRoot", "app");
 
   const output = path.join(
     "static-build",

@@ -1,3 +1,4 @@
 - [Session/Clerk user linkage](session-clerk-linkage.md) — POST /api/users is Clerk-aware; signed-in users reuse Clerk user record so inbox/DMs work after speed-dating sessions.
 - [Intermingled build gotchas](intermingled-build-gotchas.md) — nanoid not in api-server (use randomBytes); Google Fonts must load via HTML link tag not CSS @import; always run typecheck:libs before leaf typechecks after schema changes.
 - [Stripe credential source precedence](stripe-secret-key-precedence.md) — check managed connectors API before STRIPE_SECRET_KEY env var; deleteEnvVars on stale Stripe secrets may silently not take effect.
+- [Bot suitor architecture](bot-suitor-architecture.md) — bots fill empty slots; Anthropic AI integration provisioned; send_message uses client suitorSlot for choosers (fixes per-tab routing bug).

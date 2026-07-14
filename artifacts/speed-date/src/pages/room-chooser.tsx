@@ -279,6 +279,11 @@ export default function RoomChooser() {
             }`}>
               {suitor.name}
             </span>
+            {suitor.isBot && !eliminated && (
+              <span className="text-[8px] font-mono px-1 py-0.5 rounded border border-violet-500/40 bg-violet-500/10 text-violet-400 shrink-0 uppercase tracking-wider">
+                AI
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {!eliminated && (

@@ -141,7 +141,8 @@ export const ListActiveRoomsResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "role": zod.enum(['chooser', 'suitor']),
-  "suitorSlot": zod.number().nullable()
+  "suitorSlot": zod.number().nullable(),
+  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant')
 })),
   "createdAt": zod.string()
 })
@@ -170,7 +171,8 @@ export const GetRoomResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "role": zod.enum(['chooser', 'suitor']),
-  "suitorSlot": zod.number().nullable()
+  "suitorSlot": zod.number().nullable(),
+  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant')
 })),
   "createdAt": zod.string()
 })
@@ -208,7 +210,8 @@ export const JoinRoomResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "role": zod.enum(['chooser', 'suitor']),
-  "suitorSlot": zod.number().nullable()
+  "suitorSlot": zod.number().nullable(),
+  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant')
 })),
   "createdAt": zod.string()
 })
@@ -262,7 +265,8 @@ export const ChooseWinnerResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "role": zod.enum(['chooser', 'suitor']),
-  "suitorSlot": zod.number().nullable()
+  "suitorSlot": zod.number().nullable(),
+  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant')
 })),
   "createdAt": zod.string()
 })

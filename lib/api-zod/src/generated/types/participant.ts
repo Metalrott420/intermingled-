@@ -13,4 +13,6 @@ export interface Participant {
   role: ParticipantRole;
   /** @nullable */
   suitorSlot: number | null;
+  /** True when this participant slot is an AI bot contestant */
+  isBot: boolean;
 }

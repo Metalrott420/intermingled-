@@ -330,13 +330,18 @@ export default function ChooserRoomScreen() {
                       elim && { opacity: 0.35 },
                     ]}
                   >
-                    <Text style={[
-                      styles.tabText,
-                      { color: elim ? colors.mutedForeground : isActive_ ? colors.secondary : colors.mutedForeground },
-                      elim && { textDecorationLine: "line-through" },
-                    ]}>
-                      {s.name.slice(0, 5)}
-                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                      <Text style={[
+                        styles.tabText,
+                        { color: elim ? colors.mutedForeground : isActive_ ? colors.secondary : colors.mutedForeground },
+                        elim && { textDecorationLine: "line-through" },
+                      ]}>
+                        {s.name.slice(0, 5)}
+                      </Text>
+                      {s.isBot && !elim && (
+                        <Text style={{ fontSize: 7, color: "#a78bfa", fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>AI</Text>
+                      )}
+                    </View>
                     {!elim && done && (
                       <View style={[styles.doneDot, { backgroundColor: colors.secondary }]} />
                     )}

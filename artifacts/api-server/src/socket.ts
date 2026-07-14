@@ -5,8 +5,81 @@ import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { verifyToken } from "@clerk/express";
 import { logger } from "./lib/logger";
+import Anthropic from "@anthropic-ai/sdk";
 
 let io: SocketIOServer;
+
+const anthropicClient = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL
+  ? new Anthropic({
+      baseURL: process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL,
+      apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY ?? "dummy",
+    })
+  : null;
+
+async function generateBotResponse(
+  roomId: string,
+  botParticipant: { id: string; name: string; suitorSlot: number | null; isBot: boolean },
+  chooserQuestion: string,
+  round: number | undefined,
+) {
+  // Realistic typing delay: 1–3 seconds
+  await new Promise<void>((resolve) => setTimeout(resolve, 1000 + Math.random() * 2000));
+
+  const fallbacks = [
+    "That's an interesting question — I'd say I live for the unexpected.",
+    "Hmm, honestly? I think you'd have to find out in person.",
+    "I like to think I'm an open book, but with a few locked chapters.",
+    "That really depends on who's asking... and I like how you ask.",
+    "I could answer that, but then I'd have to take you on a second date.",
+  ];
+  let responseText = fallbacks[Math.floor(Math.random() * fallbacks.length)]!;
+
+  if (anthropicClient) {
+    try {
+      const message = await anthropicClient.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 80,
+        messages: [
+          {
+            role: "user",
+            content: `You are ${botParticipant.name}, a charming, witty contestant on a speed-dating show. Keep answers short (1-2 sentences), playful, a little mysterious, and never too specific about yourself. Answer this question: "${chooserQuestion}"`,
+          },
+        ],
+      });
+      const block = message.content[0];
+      if (block?.type === "text") responseText = block.text.trim();
+    } catch (err) {
+      logger.error({ err }, "Anthropic bot response failed, using fallback");
+    }
+  }
+
+  const msgId = randomBytes(8).toString("hex");
+  const now = new Date();
+
+  await db.insert(messagesTable).values({
+    id: msgId,
+    roomId,
+    senderId: botParticipant.id,
+    senderName: botParticipant.name,
+    senderRole: "suitor",
+    suitorSlot: botParticipant.suitorSlot,
+    round: round ?? null,
+    content: responseText,
+    createdAt: now,
+  });
+
+  io.to(roomId).emit("message_received", {
+    id: msgId,
+    roomId,
+    senderId: botParticipant.id,
+    senderName: botParticipant.name,
+    senderRole: "suitor",
+    suitorSlot: botParticipant.suitorSlot,
+    round: round ?? null,
+    content: responseText,
+    createdAt: now.toISOString(),
+  });
+}
 
 const activeSuitorPool = new Set<string>();
 
@@ -155,6 +228,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
         roomId,
         participantId,
         content,
+        suitorSlot: clientSuitorSlot,
         round,
       }: {
         roomId: string;
@@ -199,14 +273,20 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
           const id = randomBytes(8).toString("hex");
           const now = new Date();
 
-          // Use authoritative values from DB — never trust client-supplied name/role/slot
+          // For choosers, use the client-supplied suitorSlot so their messages
+          // are routed to the correct suitor tab; for suitors use their DB slot.
+          const resolvedSlot =
+            participant.role === "chooser"
+              ? (clientSuitorSlot ?? null)
+              : (participant.suitorSlot ?? null);
+
           await db.insert(messagesTable).values({
             id,
             roomId,
             senderId: participant.id,
             senderName: participant.name,
             senderRole: participant.role,
-            suitorSlot: participant.suitorSlot ?? null,
+            suitorSlot: resolvedSlot,
             round: round ?? null,
             content: content.trim(),
             createdAt: now,
@@ -218,13 +298,29 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
             senderId: participant.id,
             senderName: participant.name,
             senderRole: participant.role,
-            suitorSlot: participant.suitorSlot ?? null,
+            suitorSlot: resolvedSlot,
             round: round ?? null,
             content: content.trim(),
             createdAt: now.toISOString(),
           };
 
           io.to(roomId).emit("message_received", msg);
+
+          // If a chooser addressed a bot suitor, trigger an AI response
+          if (participant.role === "chooser" && resolvedSlot !== null) {
+            const botParticipant = await db.query.participantsTable.findFirst({
+              where: and(
+                eq(participantsTable.roomId, roomId),
+                eq(participantsTable.suitorSlot, resolvedSlot),
+                eq(participantsTable.isBot, true),
+              ),
+            });
+            if (botParticipant) {
+              generateBotResponse(roomId, botParticipant, content.trim(), round).catch(
+                (err) => logger.error({ err }, "Bot response pipeline failed"),
+              );
+            }
+          }
         } catch (err) {
           logger.error({ err }, "Failed to save message");
         }

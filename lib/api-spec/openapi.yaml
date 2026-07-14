@@ -415,11 +415,15 @@ components:
           enum: [chooser, suitor]
         suitorSlot:
           type: ["integer", "null"]
+        isBot:
+          type: boolean
+          description: "True when this participant slot is an AI bot contestant"
       required:
         - id
         - name
         - role
         - suitorSlot
+        - isBot
 
     Room:
       type: object

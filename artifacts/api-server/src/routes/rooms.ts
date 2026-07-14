@@ -63,6 +63,7 @@ async function buildRoomResponse(roomId: string) {
       name: p.name,
       role: p.role,
       suitorSlot: p.suitorSlot ?? null,
+      isBot: p.isBot,
     })),
     createdAt: room.createdAt.toISOString(),
   };
@@ -73,6 +74,46 @@ async function buildRoomResponse(roomId: string) {
  * stable DB user ID against rooms.chooser_user_id (set at match-creation time).
  * Returns { room, user } on success, null on failure.
  */
+const BOT_NAMES = ["Alex", "Jordan", "Quinn", "Casey", "Morgan", "Riley", "Taylor", "Avery"];
+
+async function fillBotsIfNeeded(roomId: string) {
+  const room = await db.query.roomsTable.findFirst({ where: eq(roomsTable.id, roomId) });
+  if (!room) return;
+
+  const participants = await db.query.participantsTable.findMany({
+    where: eq(participantsTable.roomId, roomId),
+  });
+  const suitors = participants.filter((p) => p.role === "suitor");
+  const filledSlots = suitors.map((p) => p.suitorSlot).filter((s): s is number => s !== null);
+  const usedNames = suitors.map((p) => p.name);
+
+  for (let slot = 1; slot <= room.maxSuitors; slot++) {
+    if (!filledSlots.includes(slot)) {
+      const available = BOT_NAMES.filter((n) => !usedNames.includes(n));
+      const name = available[Math.floor(Math.random() * available.length)] ?? `Bot ${slot}`;
+      usedNames.push(name);
+      await db.insert(participantsTable).values({
+        id: makeId(),
+        roomId,
+        userId: null,
+        name,
+        role: "suitor",
+        suitorSlot: slot,
+        isBot: true,
+      });
+    }
+  }
+
+  // If the room was waiting, start it now that all slots are filled
+  if (room.status === "waiting") {
+    await db.update(roomsTable).set({ status: "active" }).where(eq(roomsTable.id, roomId));
+    const io = getIo();
+    const updatedRoom = await buildRoomResponse(roomId);
+    io.to(roomId).emit("room_updated", updatedRoom);
+    io.to(roomId).emit("session_started", updatedRoom);
+  }
+}
+
 async function verifyChooser(roomId: string, clerkUserId: string) {
   const user = await db.query.usersTable.findFirst({
     where: eq(usersTable.clerkId, clerkUserId),
@@ -119,6 +160,7 @@ router.post("/rooms", async (req, res) => {
     suitorSlot: null,
   });
 
+  await fillBotsIfNeeded(id);
   const roomData = await buildRoomResponse(id);
   res.status(201).json(roomData);
 });
@@ -156,14 +198,6 @@ router.post("/rooms/match", requireAuth, async (req: any, res) => {
   });
   const liveSuitorPool = dbCandidates.filter((u) => isUserInPool(u.id));
 
-  if (liveSuitorPool.length < 3) {
-    res.status(409).json({
-      error: "Not enough suitors in pool",
-      count: liveSuitorPool.length,
-    });
-    return;
-  }
-
   if (!chooser.personalityVector) {
     res.status(400).json({ error: "Chooser has no personality vector" });
     return;
@@ -172,7 +206,9 @@ router.post("/rooms/match", requireAuth, async (req: any, res) => {
   const suitorsWithVector = liveSuitorPool.filter(
     (u): u is typeof u & { personalityVector: number[] } => u.personalityVector !== null,
   );
-  const topSuitors = rankSuitors(chooser.personalityVector, suitorsWithVector, 3);
+  // Fill as many real suitors as available; bots fill remaining slots after room creation
+  const realSuitorCount = Math.min(suitorsWithVector.length, 3);
+  const topSuitors = rankSuitors(chooser.personalityVector, suitorsWithVector, realSuitorCount);
 
   // Create room, start it active immediately — store chooserUserId for authorization
   const roomId = makeId();
@@ -228,6 +264,9 @@ router.post("/rooms/match", requireAuth, async (req: any, res) => {
       roomId,
     });
   }
+
+  // Fill remaining suitor slots with AI bots
+  await fillBotsIfNeeded(roomId);
 
   const roomData = await buildRoomResponse(roomId);
   res.status(201).json({ ...roomData, chooserParticipantId });
@@ -311,7 +350,37 @@ router.post("/rooms/:id/join", async (req, res) => {
 
   // role === suitor
   const suitors = existing.filter((p) => p.role === "suitor");
-  if (suitors.length >= room.maxSuitors) {
+  const realSuitors = suitors.filter((p) => !p.isBot);
+  const botSuitors = suitors.filter((p) => p.isBot);
+
+  // If room is already active with bots, allow displacement of a bot slot
+  if (room.status === "active") {
+    if (botSuitors.length === 0) {
+      res.status(400).json({ error: "Room is full" });
+      return;
+    }
+    // Replace the first available bot with the real suitor
+    const bot = botSuitors[0]!;
+    const slot = bot.suitorSlot!;
+    await db.delete(participantsTable).where(eq(participantsTable.id, bot.id));
+    const participantId = makeId();
+    await db.insert(participantsTable).values({
+      id: participantId,
+      roomId: room.id,
+      name: body.data.name,
+      role: "suitor",
+      suitorSlot: slot,
+      isBot: false,
+    });
+    const io = getIo();
+    const roomData = await buildRoomResponse(room.id);
+    io.to(room.id).emit("room_updated", roomData);
+    res.json({ participantId, room: roomData });
+    return;
+  }
+
+  // Waiting room: normal flow (fallback if bots weren't filled yet)
+  if (realSuitors.length >= room.maxSuitors) {
     res.status(400).json({ error: "Room is full" });
     return;
   }
@@ -327,13 +396,14 @@ router.post("/rooms/:id/join", async (req, res) => {
     name: body.data.name,
     role: "suitor",
     suitorSlot: slot,
+    isBot: false,
   });
 
-  const roomData = await buildRoomResponse(room.id);
   const io = getIo();
+  const roomData = await buildRoomResponse(room.id);
   io.to(room.id).emit("room_updated", roomData);
 
-  // Auto-start if all slots filled
+  // Auto-start if all real suitor slots filled (bots handle remaining)
   if (slot === room.maxSuitors) {
     await db.update(roomsTable).set({ status: "active" }).where(eq(roomsTable.id, room.id));
     const updatedRoom = await buildRoomResponse(room.id);
@@ -431,8 +501,30 @@ router.post("/rooms/:id/eliminate", requireAuth, async (req: any, res) => {
   const newEliminated = [...alreadyEliminated, participantId];
   await db.update(roomsTable).set({ eliminatedParticipants: newEliminated }).where(eq(roomsTable.id, room.id));
 
-  const roomData = await buildRoomResponse(room.id);
   const io = getIo();
+
+  // Check if only AI bots remain after this elimination
+  const allParticipants = await db.query.participantsTable.findMany({
+    where: eq(participantsTable.roomId, room.id),
+  });
+  const activeSuitors = allParticipants.filter(
+    (p) => p.role === "suitor" && !newEliminated.includes(p.id),
+  );
+  const onlyBotsRemain = activeSuitors.length > 0 && activeSuitors.every((p) => p.isBot);
+
+  if (onlyBotsRemain) {
+    await db.update(roomsTable)
+      .set({ status: "ended", winnerId: null, winnerName: null })
+      .where(eq(roomsTable.id, room.id));
+    const finalRoom = await buildRoomResponse(room.id);
+    io.to(room.id).emit("room_updated", finalRoom);
+    io.to(room.id).emit("suitor_eliminated", { participantId });
+    io.to(room.id).emit("session_ended", { winnerName: null, winnerId: null });
+    res.json(finalRoom);
+    return;
+  }
+
+  const roomData = await buildRoomResponse(room.id);
   io.to(room.id).emit("room_updated", roomData);
   io.to(room.id).emit("suitor_eliminated", { participantId });
 

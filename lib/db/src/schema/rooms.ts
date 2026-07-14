@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, pgEnum, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -26,6 +26,7 @@ export const participantsTable = pgTable("participants", {
   name: text("name").notNull(),
   role: participantRoleEnum("role").notNull(),
   suitorSlot: integer("suitor_slot"),
+  isBot: boolean("is_bot").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -1,8 +1,10 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { getAuth } from "@clerk/express";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, participantsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { getIo } from "../socket";
+import { buildRoomResponse } from "../lib/roomUtils";
 
 const router: IRouter = Router();
 
@@ -125,6 +127,62 @@ router.get("/entitlement/premium", requireAuth, async (req: any, res) => {
     res.json({ isPremium });
   } catch (err) {
     logger.error({ err }, "GET /entitlement/premium error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/entitlement/premium/sync — re-check premium status and propagate
+// to any active participant rows, then emit room_updated for each affected room.
+// Called by the mobile client immediately after a successful purchase or restore.
+router.post("/entitlement/premium/sync", requireAuth, async (req: any, res) => {
+  try {
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.clerkId, req.clerkUserId),
+      columns: { id: true },
+    });
+
+    const isPremium = await checkAndCachePremiumEntitlement(
+      req.clerkUserId,
+      user?.id,
+    );
+
+    let roomsUpdated = 0;
+
+    if (user?.id) {
+      const affected = await db.query.participantsTable.findMany({
+        where: eq(participantsTable.userId, user.id),
+        columns: { id: true, roomId: true, isPremium: true },
+      });
+
+      const staleParticipants = affected.filter((p) => p.isPremium !== isPremium);
+
+      if (staleParticipants.length > 0) {
+        await db
+          .update(participantsTable)
+          .set({ isPremium })
+          .where(eq(participantsTable.userId, user.id));
+
+        const roomIds = [...new Set(staleParticipants.map((p) => p.roomId))];
+
+        const io = getIo();
+        for (const roomId of roomIds) {
+          const roomData = await buildRoomResponse(roomId);
+          if (roomData) {
+            io.to(roomId).emit("room_updated", roomData);
+            roomsUpdated++;
+          }
+        }
+
+        logger.info(
+          { clerkUserId: req.clerkUserId, isPremium, roomsUpdated },
+          "Premium entitlement synced to participants",
+        );
+      }
+    }
+
+    res.json({ isPremium, roomsUpdated });
+  } catch (err) {
+    logger.error({ err }, "POST /entitlement/premium/sync error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

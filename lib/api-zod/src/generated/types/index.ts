@@ -22,6 +22,7 @@ export * from './messageSenderRole';
 export * from './notEnoughSuitors';
 export * from './participant';
 export * from './participantRole';
+export * from './premiumSyncResult';
 export * from './room';
 export * from './roomInput';
 export * from './roomStatus';

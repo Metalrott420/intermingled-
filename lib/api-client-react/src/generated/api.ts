@@ -31,6 +31,7 @@ import type {
   MatchResult,
   Message,
   NotEnoughSuitors,
+  PremiumSyncResult,
   Room,
   RoomInput,
   UpdateUserStatusInput,
@@ -418,6 +419,81 @@ export const useUpdateUserStatus = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getUpdateUserStatusMutationOptions(options));
+    }
+
+export const getSyncPremiumEntitlementUrl = () => {
+
+
+
+
+  return `/api/entitlement/premium/sync`
+}
+
+/**
+ * Re-validates premium status against RevenueCat, updates the user record,
+and updates any active participant rows for the caller. The server emits
+a room_updated socket event for every affected room so the chooser's UI
+refreshes the badge without a rejoin.
+
+ * @summary Re-check premium entitlement and propagate to any active room participants
+ */
+export const syncPremiumEntitlement = async ( options?: RequestInit): Promise<PremiumSyncResult> => {
+
+  return customFetch<PremiumSyncResult>(getSyncPremiumEntitlementUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSyncPremiumEntitlementMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncPremiumEntitlement>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncPremiumEntitlement>>, TError,void, TContext> => {
+
+const mutationKey = ['syncPremiumEntitlement'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncPremiumEntitlement>>, void> = () => {
+
+
+          return  syncPremiumEntitlement(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncPremiumEntitlementMutationResult = NonNullable<Awaited<ReturnType<typeof syncPremiumEntitlement>>>
+
+    export type SyncPremiumEntitlementMutationError = ErrorType<ErrorEnvelope>
+
+    /**
+ * @summary Re-check premium entitlement and propagate to any active room participants
+ */
+export const useSyncPremiumEntitlement = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncPremiumEntitlement>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof syncPremiumEntitlement>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getSyncPremiumEntitlementMutationOptions(options));
     }
 
 export const getCreateRoomUrl = () => {

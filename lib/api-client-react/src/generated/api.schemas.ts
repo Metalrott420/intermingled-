@@ -211,6 +211,13 @@ export interface UploadUrlResponse {
   metadata?: UploadUrlRequest;
 }
 
+export interface PremiumSyncResult {
+  /** The caller's current premium status after the re-check */
+  isPremium: boolean;
+  /** Number of active room participants that were updated */
+  roomsUpdated: number;
+}
+
 export interface ErrorEnvelope {
   error: string;
 }

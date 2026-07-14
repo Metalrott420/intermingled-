@@ -105,6 +105,20 @@ export const UpdateUserStatusResponse = zod.object({
 
 
 /**
+ * Re-validates premium status against RevenueCat, updates the user record,
+and updates any active participant rows for the caller. The server emits
+a room_updated socket event for every affected room so the chooser's UI
+refreshes the badge without a rejoin.
+
+ * @summary Re-check premium entitlement and propagate to any active room participants
+ */
+export const SyncPremiumEntitlementResponse = zod.object({
+  "isPremium": zod.boolean().describe('The caller\'s current premium status after the re-check'),
+  "roomsUpdated": zod.number().describe('Number of active room participants that were updated')
+})
+
+
+/**
  * @summary Create a new speed dating room
  */
 

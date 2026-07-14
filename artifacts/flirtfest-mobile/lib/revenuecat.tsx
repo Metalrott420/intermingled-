@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Constants from "expo-constants";
+import { useAuth } from "@clerk/expo";
 
 const REVENUECAT_TEST_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
 const REVENUECAT_IOS_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
@@ -54,7 +55,29 @@ export function initializeRevenueCat(clerkUserId?: string) {
   }
 }
 
+const API_BASE = process.env.EXPO_PUBLIC_DOMAIN
+  ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`
+  : "/api";
+
+async function syncPremiumWithServer(getToken: () => Promise<string | null>) {
+  try {
+    const token = await getToken();
+    if (!token) return;
+    const resp = await fetch(`${API_BASE}/entitlement/premium/sync`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!resp.ok) {
+      console.warn("[RevenueCat] Premium sync failed with status", resp.status);
+    }
+  } catch (err) {
+    console.warn("[RevenueCat] Premium sync request error", err);
+  }
+}
+
 function useSubscriptionContext() {
+  const { getToken } = useAuth();
+
   const customerInfoQuery = useQuery({
     queryKey: ["revenuecat", "customer-info"],
     queryFn: async () => {
@@ -80,14 +103,20 @@ function useSubscriptionContext() {
       const { customerInfo } = await Purchases.purchasePackage(packageToPurchase);
       return customerInfo;
     },
-    onSuccess: () => customerInfoQuery.refetch(),
+    onSuccess: () => {
+      customerInfoQuery.refetch();
+      syncPremiumWithServer(getToken);
+    },
   });
 
   const restoreMutation = useMutation({
     mutationFn: async () => {
       return Purchases.restorePurchases();
     },
-    onSuccess: () => customerInfoQuery.refetch(),
+    onSuccess: () => {
+      customerInfoQuery.refetch();
+      syncPremiumWithServer(getToken);
+    },
   });
 
   const isSubscribed =

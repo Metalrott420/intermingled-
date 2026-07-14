@@ -208,6 +208,11 @@ export default function SuitorRoomScreen() {
           )}
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {myParticipant?.isPremium && (
+            <View style={styles.premiumBadge}>
+              <Text style={styles.premiumBadgeText}>★ PREMIUM</Text>
+            </View>
+          )}
           {isActive && (
             <View style={{ alignItems: "center" }}>
               <Text style={[styles.roundValue, { color: currentRound === 4 ? colors.primary : colors.secondary }]}>
@@ -374,5 +379,14 @@ function makeStyles(colors: ReturnType<typeof useColors>, insets: ReturnType<typ
       justifyContent: "center",
     },
     playAgainText: { fontSize: 13, fontFamily: "Inter_700Bold", letterSpacing: 1.5, textTransform: "uppercase" },
+    premiumBadge: {
+      borderRadius: 4,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+      backgroundColor: "#f59e0b20",
+      borderWidth: 1,
+      borderColor: "#f59e0b50",
+    },
+    premiumBadgeText: { fontSize: 8, fontFamily: "Inter_700Bold", color: "#f59e0b", letterSpacing: 0.5 },
   });
 }

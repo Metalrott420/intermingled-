@@ -10,9 +10,14 @@ const REVENUECAT_ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_AP
 
 export const REVENUECAT_ENTITLEMENT_IDENTIFIER = "premium";
 
-function getRevenueCatApiKey() {
-  if (!REVENUECAT_TEST_API_KEY || !REVENUECAT_IOS_API_KEY || !REVENUECAT_ANDROID_API_KEY) {
-    throw new Error("RevenueCat Public API Keys not found");
+export const isRevenueCatConfigured =
+  Boolean(REVENUECAT_TEST_API_KEY) &&
+  Boolean(REVENUECAT_IOS_API_KEY) &&
+  Boolean(REVENUECAT_ANDROID_API_KEY);
+
+function getRevenueCatApiKey(): string | null {
+  if (!isRevenueCatConfigured) {
+    return null;
   }
 
   if (
@@ -20,23 +25,26 @@ function getRevenueCatApiKey() {
     Platform.OS === "web" ||
     Constants.executionEnvironment === "storeClient"
   ) {
-    return REVENUECAT_TEST_API_KEY;
+    return REVENUECAT_TEST_API_KEY!;
   }
 
   if (Platform.OS === "ios") {
-    return REVENUECAT_IOS_API_KEY;
+    return REVENUECAT_IOS_API_KEY!;
   }
 
   if (Platform.OS === "android") {
-    return REVENUECAT_ANDROID_API_KEY;
+    return REVENUECAT_ANDROID_API_KEY!;
   }
 
-  return REVENUECAT_TEST_API_KEY;
+  return REVENUECAT_TEST_API_KEY!;
 }
 
 export function initializeRevenueCat(clerkUserId?: string) {
   const apiKey = getRevenueCatApiKey();
-  if (!apiKey) throw new Error("RevenueCat Public API Key not found");
+  if (!apiKey) {
+    console.warn("[RevenueCat] API keys not configured — subscriptions disabled.");
+    return;
+  }
 
   Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
   Purchases.configure({ apiKey });
@@ -54,6 +62,7 @@ function useSubscriptionContext() {
       return info;
     },
     staleTime: 60 * 1000,
+    enabled: isRevenueCatConfigured,
   });
 
   const offeringsQuery = useQuery({
@@ -63,6 +72,7 @@ function useSubscriptionContext() {
       return offerings;
     },
     staleTime: 300 * 1000,
+    enabled: isRevenueCatConfigured,
   });
 
   const purchaseMutation = useMutation({
@@ -87,7 +97,9 @@ function useSubscriptionContext() {
     customerInfo: customerInfoQuery.data,
     offerings: offeringsQuery.data,
     isSubscribed,
-    isLoading: customerInfoQuery.isLoading || offeringsQuery.isLoading,
+    isLoading: isRevenueCatConfigured
+      ? customerInfoQuery.isLoading || offeringsQuery.isLoading
+      : false,
     purchase: purchaseMutation.mutateAsync,
     restore: restoreMutation.mutateAsync,
     isPurchasing: purchaseMutation.isPending,

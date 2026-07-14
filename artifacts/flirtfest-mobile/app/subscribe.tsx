@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useSubscription } from "@/lib/revenuecat";
+import { isRevenueCatConfigured, useSubscription } from "@/lib/revenuecat";
 import { useColors } from "@/hooks/useColors";
 
 const FEATURES = [
@@ -32,6 +32,31 @@ export default function SubscribeScreen() {
   const packageToPurchase = currentOffering?.availablePackages[0];
   const priceString = packageToPurchase?.product.priceString ?? "—";
   const productTitle = packageToPurchase?.product.title ?? "Intermingled Premium";
+
+  if (!isRevenueCatConfigured) {
+    return (
+      <View
+        style={[
+          styles.unavailableContainer,
+          { backgroundColor: colors.background, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 },
+        ]}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          style={{ alignSelf: "flex-start", paddingBottom: 8, paddingHorizontal: 20 }}
+        >
+          <Text style={{ color: colors.mutedForeground, fontSize: 14 }}>← Back</Text>
+        </Pressable>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 16 }}>
+          <Text style={{ fontSize: 40 }}>🔒</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>Not Available</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 14, textAlign: "center", lineHeight: 21 }}>
+            Subscriptions are not available right now. Please check back later.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   const handlePurchase = async () => {
     if (!packageToPurchase) return;
@@ -225,6 +250,9 @@ export default function SubscribeScreen() {
 }
 
 const styles = StyleSheet.create({
+  unavailableContainer: {
+    flex: 1,
+  },
   container: {
     alignItems: "center",
     paddingHorizontal: 20,

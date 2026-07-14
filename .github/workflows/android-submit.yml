@@ -1,0 +1,109 @@
+name: Android Submit
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: EAS submit profile
+        required: false
+        default: production
+        type: choice
+        options:
+          - production
+
+jobs:
+  submit:
+    name: Submit to Google Play
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: artifacts/flirtfest-mobile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: artifacts/flirtfest-mobile/package.json
+
+      - name: Install EAS CLI
+        run: npm install --global eas-cli@latest
+
+      - name: Read app version
+        id: app_version
+        run: |
+          VERSION=$(node -e "const a=require('./app.json'); console.log(a.expo.version);")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Read submit track
+        id: submit_track
+        run: |
+          TRACK=$(node -e "
+            const eas = require('./eas.json');
+            const profile = '${{ inputs.profile }}';
+            console.log(eas.submit[profile]?.android?.track ?? 'internal');
+          ")
+          echo "track=$TRACK" >> "$GITHUB_OUTPUT"
+
+      - name: Submit to Google Play
+        id: submit
+        run: |
+          eas submit \
+            --platform android \
+            --profile "${{ inputs.profile }}" \
+            --latest \
+            --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Notify Slack — success
+        if: success()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": ":white_check_mark: *Android submission succeeded*",
+              "attachments": [
+                {
+                  "color": "#36a64f",
+                  "fields": [
+                    { "title": "App", "value": "Intermingled (`com.intermingled.app`)", "short": false },
+                    { "title": "Version", "value": "${{ steps.app_version.outputs.version }}", "short": true },
+                    { "title": "Track", "value": "${{ steps.submit_track.outputs.track }}", "short": true },
+                    { "title": "Profile", "value": "${{ inputs.profile }}", "short": true },
+                    { "title": "Run", "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>", "short": true }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify Slack — failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": ":x: *Android submission failed* — release may not have reached users",
+              "attachments": [
+                {
+                  "color": "#e01e5a",
+                  "fields": [
+                    { "title": "App", "value": "Intermingled (`com.intermingled.app`)", "short": false },
+                    { "title": "Version", "value": "${{ steps.app_version.outputs.version }}", "short": true },
+                    { "title": "Track", "value": "${{ steps.submit_track.outputs.track }}", "short": true },
+                    { "title": "Profile", "value": "${{ inputs.profile }}", "short": true },
+                    { "title": "Run", "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>", "short": true }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

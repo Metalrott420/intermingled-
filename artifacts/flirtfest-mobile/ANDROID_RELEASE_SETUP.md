@@ -57,17 +57,60 @@ You should see `GOOGLE_PLAY_SERVICE_ACCOUNT` listed with type `file`.
 
 ---
 
+## Step 6 — Set up GitHub Actions for automated submission with alerts
+
+The workflow at `.github/workflows/android-submit.yml` runs `eas submit` and sends a Slack message whether it succeeds or fails — so a failed release is never silently lost.
+
+### 6a — Add GitHub secrets
+
+In your GitHub repo → **Settings → Secrets and variables → Actions**, add:
+
+| Secret name | Value |
+|---|---|
+| `EXPO_TOKEN` | An EAS access token (`eas whoami --token` or create one at [expo.dev/accounts/\[account\]/settings/access-tokens](https://expo.dev/)) |
+| `SLACK_WEBHOOK_URL` | An [incoming webhook URL](https://api.slack.com/messaging/webhooks) for the channel where you want alerts |
+
+### 6b — Create a Slack incoming webhook
+
+1. Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App → From scratch**
+2. Name it `Intermingled Releases` and pick your workspace
+3. Under **Features**, click **Incoming Webhooks → Activate Incoming Webhooks**
+4. Click **Add New Webhook to Workspace**, pick the `#releases` channel (or any channel you prefer)
+5. Copy the webhook URL — paste it as the `SLACK_WEBHOOK_URL` GitHub secret above
+
+### 6c — Trigger the workflow
+
+The workflow is triggered manually (**workflow_dispatch**) — it doesn't run on every push. To submit a build:
+
+1. In GitHub → **Actions → Android Submit**
+2. Click **Run workflow** → pick the profile (`production`) → **Run workflow**
+
+On completion you will receive a Slack message in your chosen channel:
+
+- **Green** ✅ — version, track, and a link to the run
+- **Red** ❌ — failure alert with a direct link to the run logs so you can diagnose the problem immediately
+
+---
+
 ## Releasing a new version
 
-Build and submit in two commands:
+Build first, then submit via GitHub Actions:
 
 ```bash
-# From artifacts/flirtfest-mobile/
+# From artifacts/flirtfest-mobile/ — queue the build
+eas build --platform android --profile production
+```
+
+Once the build finishes, trigger the **Android Submit** workflow in GitHub Actions (see Step 6c above). The workflow calls `eas submit --latest` and posts the result to Slack.
+
+Or, for a fully local release (skipping the GitHub Actions alert):
+
+```bash
 eas build --platform android --profile production
 eas submit --platform android --profile production --latest
 ```
 
-Or combine into one:
+Or combine both into one command (note: no Slack alert in this path):
 
 ```bash
 eas build --platform android --profile production --auto-submit

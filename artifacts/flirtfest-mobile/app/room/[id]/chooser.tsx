@@ -449,7 +449,7 @@ export default function ChooserRoomScreen() {
                   </View>
                 )}
 
-                {phase === "choose_winner" && (
+                {phase === "choose_winner" && !tabSuitor.isBot && (
                   <Pressable
                     onPress={() => handleChoose(tabSuitor.id)}
                     disabled={chooseWinner.isPending}

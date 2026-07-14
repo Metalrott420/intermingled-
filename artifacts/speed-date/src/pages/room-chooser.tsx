@@ -362,7 +362,7 @@ export default function RoomChooser() {
                 </div>
               </div>
             )}
-            {phase === "choose_winner" && (
+            {phase === "choose_winner" && !suitor.isBot && (
               <div className="p-2 bg-secondary/5">
                 <Button onClick={() => handleChoose(suitor.id)} disabled={chooseWinner.isPending}
                   className="w-full h-9 font-display font-black uppercase tracking-widest text-xs gap-1 bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-[0_0_16px_hsl(var(--secondary)/0.4)]">

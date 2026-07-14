@@ -519,7 +519,7 @@ router.post("/rooms/:id/eliminate", requireAuth, async (req: any, res) => {
     const finalRoom = await buildRoomResponse(room.id);
     io.to(room.id).emit("room_updated", finalRoom);
     io.to(room.id).emit("suitor_eliminated", { participantId });
-    io.to(room.id).emit("session_ended", { winnerName: null, winnerId: null });
+    io.to(room.id).emit("session_ended", { winnerName: null, winnerId: null, reason: "no_human_suitors" });
     res.json(finalRoom);
     return;
   }
@@ -579,6 +579,19 @@ router.post("/rooms/:id/choose", requireAuth, async (req: any, res) => {
   });
   if (!winner) {
     res.status(400).json({ error: "Winner is not a participant in this room" });
+    return;
+  }
+
+  // Bots can never be chosen as winners — end the room without a match
+  if (winner.isBot) {
+    await db.update(roomsTable)
+      .set({ status: "ended", winnerId: null, winnerName: null })
+      .where(eq(roomsTable.id, room.id));
+    const finalRoom = await buildRoomResponse(room.id);
+    const io = getIo();
+    io.to(room.id).emit("room_updated", finalRoom);
+    io.to(room.id).emit("session_ended", { winnerName: null, winnerId: null, reason: "no_human_suitors" });
+    res.json(finalRoom);
     return;
   }
 

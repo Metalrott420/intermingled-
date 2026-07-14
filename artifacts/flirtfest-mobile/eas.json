@@ -33,8 +33,7 @@
       "ios": {
         "appleId": "$APPLE_ID",
         "ascAppId": "$ASC_APP_ID",
-        "appleTeamId": "$APPLE_TEAM_ID",
-        "track": "testflight"
+        "appleTeamId": "$APPLE_TEAM_ID"
       }
     }
   }

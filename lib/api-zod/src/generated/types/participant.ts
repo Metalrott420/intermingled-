@@ -15,4 +15,6 @@ export interface Participant {
   suitorSlot: number | null;
   /** True when this participant slot is an AI bot contestant */
   isBot: boolean;
+  /** True when this participant holds an active premium subscription (server-validated) */
+  isPremium: boolean;
 }

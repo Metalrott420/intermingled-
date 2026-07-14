@@ -14,7 +14,7 @@ import {
 } from "@workspace/api-zod";
 import { getIo, isUserInPool } from "../socket";
 import { rankSuitors } from "../lib/matchmaking";
-import { checkPremiumEntitlement } from "./entitlement";
+import { checkAndCachePremiumEntitlement, getCachedPremiumByClerkId } from "./entitlement";
 
 const router: IRouter = Router();
 
@@ -65,6 +65,7 @@ async function buildRoomResponse(roomId: string) {
       role: p.role,
       suitorSlot: p.suitorSlot ?? null,
       isBot: p.isBot,
+      isPremium: p.isPremium,
     })),
     createdAt: room.createdAt.toISOString(),
   };
@@ -210,9 +211,14 @@ router.post("/rooms/match", requireAuth, async (req: any, res) => {
   // Check premium entitlement for each candidate suitor so premium users
   // receive priority pool placement (PREMIUM_POOL_BOOST in matchmaking score).
   // RevenueCat app_user_id is the Clerk user ID (s.clerkId), not the DB UUID.
+  // Results are written back to users.is_premium (write-through cache) so that
+  // subsequent participant-level queries can read from the DB rather than calling
+  // RevenueCat again.
   const premiumFlags = await Promise.all(
     suitorsWithVector.map((s) =>
-      s.clerkId ? checkPremiumEntitlement(s.clerkId) : Promise.resolve(false),
+      s.clerkId
+        ? checkAndCachePremiumEntitlement(s.clerkId, s.id)
+        : Promise.resolve(false),
     ),
   );
   const suitorsWithPremium = suitorsWithVector.map((s, i) => ({
@@ -264,6 +270,7 @@ router.post("/rooms/match", requireAuth, async (req: any, res) => {
       name: suitor.name,
       role: "suitor",
       suitorSlot: i + 1,
+      isPremium: suitor.isPremium,
     });
     await db.update(usersTable).set({ status: "matched" }).where(eq(usersTable.id, suitor.id));
 
@@ -353,6 +360,14 @@ router.post("/rooms/:id/join", async (req, res) => {
     return;
   }
 
+  // Read the cached premium flag from the joining user's DB record if they
+  // are authenticated. The flag was last written by GET /api/entitlement/premium
+  // or by the matchmaking flow (checkAndCachePremiumEntitlement).
+  const joiningClerkId = getAuth(req)?.userId ?? null;
+  const joiningIsPremium = joiningClerkId
+    ? await getCachedPremiumByClerkId(joiningClerkId)
+    : false;
+
   const existing = await db.query.participantsTable.findMany({
     where: eq(participantsTable.roomId, room.id),
   });
@@ -404,6 +419,7 @@ router.post("/rooms/:id/join", async (req, res) => {
       role: "suitor",
       suitorSlot: slot,
       isBot: false,
+      isPremium: joiningIsPremium,
     });
     const io = getIo();
     const roomData = await buildRoomResponse(room.id);
@@ -430,6 +446,7 @@ router.post("/rooms/:id/join", async (req, res) => {
     role: "suitor",
     suitorSlot: slot,
     isBot: false,
+    isPremium: joiningIsPremium,
   });
 
   const io = getIo();

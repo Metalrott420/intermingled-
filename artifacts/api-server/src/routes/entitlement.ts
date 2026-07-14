@@ -1,5 +1,7 @@
 import { Router, type IRouter } from "express";
+import { eq } from "drizzle-orm";
 import { getAuth } from "@clerk/express";
+import { db, usersTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -61,10 +63,65 @@ export async function checkPremiumEntitlement(appUserId: string): Promise<boolea
   }
 }
 
+/**
+ * Check premium entitlement via RevenueCat and persist the result to the
+ * user record in the DB so it acts as a short-lived cache and a stable source
+ * of truth for participant-level flags (participants.is_premium).
+ *
+ * Pass the Clerk user ID (= RevenueCat app_user_id) and the DB user ID.
+ * If the DB user ID is not known, only the remote check runs (no write-through).
+ */
+export async function checkAndCachePremiumEntitlement(
+  clerkId: string,
+  dbUserId?: string,
+): Promise<boolean> {
+  const isPremium = await checkPremiumEntitlement(clerkId);
+
+  if (dbUserId) {
+    try {
+      await db
+        .update(usersTable)
+        .set({ isPremium })
+        .where(eq(usersTable.id, dbUserId));
+    } catch (err) {
+      logger.error({ err, dbUserId }, "Failed to cache premium flag on user record");
+    }
+  }
+
+  return isPremium;
+}
+
+/**
+ * Look up the cached isPremium value from the user record by Clerk ID.
+ * Falls back to false if the user is not found.
+ * This is used in room/participant flows where a live RevenueCat call would
+ * add too much latency (e.g. join routes that don't already batch-check).
+ */
+export async function getCachedPremiumByClerkId(clerkId: string): Promise<boolean> {
+  try {
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.clerkId, clerkId),
+      columns: { isPremium: true },
+    });
+    return user?.isPremium ?? false;
+  } catch (err) {
+    logger.error({ err, clerkId }, "Failed to read cached premium flag");
+    return false;
+  }
+}
+
 // GET /api/entitlement/premium — client-callable endpoint
+// Checks RevenueCat and writes the result back to the user record (write-through cache).
 router.get("/entitlement/premium", requireAuth, async (req: any, res) => {
   try {
-    const isPremium = await checkPremiumEntitlement(req.clerkUserId);
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.clerkId, req.clerkUserId),
+      columns: { id: true },
+    });
+    const isPremium = await checkAndCachePremiumEntitlement(
+      req.clerkUserId,
+      user?.id,
+    );
     res.json({ isPremium });
   } catch (err) {
     logger.error({ err }, "GET /entitlement/premium error");

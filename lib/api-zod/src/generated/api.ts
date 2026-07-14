@@ -142,7 +142,8 @@ export const ListActiveRoomsResponseItem = zod.object({
   "name": zod.string(),
   "role": zod.enum(['chooser', 'suitor']),
   "suitorSlot": zod.number().nullable(),
-  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant')
+  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant'),
+  "isPremium": zod.boolean().describe('True when this participant holds an active premium subscription (server-validated)')
 })),
   "createdAt": zod.string()
 })
@@ -172,7 +173,8 @@ export const GetRoomResponse = zod.object({
   "name": zod.string(),
   "role": zod.enum(['chooser', 'suitor']),
   "suitorSlot": zod.number().nullable(),
-  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant')
+  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant'),
+  "isPremium": zod.boolean().describe('True when this participant holds an active premium subscription (server-validated)')
 })),
   "createdAt": zod.string()
 })
@@ -211,7 +213,8 @@ export const JoinRoomResponse = zod.object({
   "name": zod.string(),
   "role": zod.enum(['chooser', 'suitor']),
   "suitorSlot": zod.number().nullable(),
-  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant')
+  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant'),
+  "isPremium": zod.boolean().describe('True when this participant holds an active premium subscription (server-validated)')
 })),
   "createdAt": zod.string()
 })
@@ -266,7 +269,8 @@ export const ChooseWinnerResponse = zod.object({
   "name": zod.string(),
   "role": zod.enum(['chooser', 'suitor']),
   "suitorSlot": zod.number().nullable(),
-  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant')
+  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant'),
+  "isPremium": zod.boolean().describe('True when this participant holds an active premium subscription (server-validated)')
 })),
   "createdAt": zod.string()
 })

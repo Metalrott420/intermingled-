@@ -338,6 +338,9 @@ export default function ChooserRoomScreen() {
                       ]}>
                         {s.name.slice(0, 5)}
                       </Text>
+                      {s.isPremium && !elim && (
+                        <Text style={{ fontSize: 8, color: "#f59e0b", fontFamily: "Inter_700Bold" }}>★</Text>
+                      )}
                       {s.isBot && !elim && (
                         <Text style={{ fontSize: 7, color: "#a78bfa", fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>AI</Text>
                       )}
@@ -359,8 +362,13 @@ export default function ChooserRoomScreen() {
           {/* Suitor bar */}
           {tabSuitor && !tabEliminated && (
             <View style={[styles.suitorBar, { borderBottomColor: colors.border }]}>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6 }}>
                 <Text style={[styles.suitorName, { color: colors.secondary }]}>{tabSuitor.name}</Text>
+                {tabSuitor.isPremium && (
+                  <View style={styles.premiumBadge}>
+                    <Text style={styles.premiumBadgeText}>★ PREMIUM</Text>
+                  </View>
+                )}
               </View>
               <Text style={[styles.questionCounter, {
                 color: tabQuotaMet ? colors.secondary : colors.mutedForeground,
@@ -539,6 +547,15 @@ function makeStyles(colors: ReturnType<typeof useColors>, insets: ReturnType<typ
       borderBottomWidth: 1,
     },
     suitorName: { fontSize: 14, fontFamily: "Inter_700Bold", letterSpacing: 1 },
+    premiumBadge: {
+      backgroundColor: "#f59e0b20",
+      borderWidth: 1,
+      borderColor: "#f59e0b50",
+      borderRadius: 4,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+    },
+    premiumBadgeText: { fontSize: 8, fontFamily: "Inter_700Bold", color: "#f59e0b", letterSpacing: 0.5 },
     questionCounter: {
       fontSize: 11,
       fontFamily: "Inter_700Bold",

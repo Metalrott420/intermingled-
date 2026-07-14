@@ -418,12 +418,16 @@ components:
         isBot:
           type: boolean
           description: "True when this participant slot is an AI bot contestant"
+        isPremium:
+          type: boolean
+          description: "True when this participant holds an active premium subscription (server-validated)"
       required:
         - id
         - name
         - role
         - suitorSlot
         - isBot
+        - isPremium
 
     Room:
       type: object

@@ -34,6 +34,7 @@ export const usersTable = pgTable("users", {
   isAdmin: boolean("is_admin").notNull().default(false),
   isBanned: boolean("is_banned").notNull().default(false),
   ageVerified: boolean("age_verified").notNull().default(false),
+  isPremium: boolean("is_premium").notNull().default(false),
   identitySessionId: text("identity_session_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

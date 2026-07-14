@@ -27,6 +27,7 @@ export const participantsTable = pgTable("participants", {
   role: participantRoleEnum("role").notNull(),
   suitorSlot: integer("suitor_slot"),
   isBot: boolean("is_bot").notNull().default(false),
+  isPremium: boolean("is_premium").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

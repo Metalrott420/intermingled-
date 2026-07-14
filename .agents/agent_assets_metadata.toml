@@ -6,3 +6,27 @@ id = "ayFpM-CG_cuz7c3mQp7Tz"
 uri = "file://artifacts/flirtfest-mobile/assets/images/icon.png"
 type = "image"
 title = "generated_image"
+
+[[generated]]
+id = "HqgUXuNQ7tTwESTB3D_w2"
+uri = "file://attached_assets/store/feature_graphic.png"
+type = "image"
+title = "intermingled feature graphic"
+
+[[generated]]
+id = "fYunD6bOniZqkkGuq0t0m"
+uri = "file://attached_assets/store/screenshot_1_quiz.png"
+type = "image"
+title = "intermingled quiz screenshot"
+
+[[generated]]
+id = "P4kRhgjJjc1KnbYj2aynh"
+uri = "file://attached_assets/store/screenshot_2_pool.png"
+type = "image"
+title = "intermingled pool screen"
+
+[[generated]]
+id = "oE5ztOiOnChsL2bp0aC3H"
+uri = "file://attached_assets/store/screenshot_3_inbox.png"
+type = "image"
+title = "intermingled inbox screenshot"

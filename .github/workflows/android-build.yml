@@ -1,6 +1,9 @@
 name: Android Build
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       profile:
@@ -48,7 +51,7 @@ jobs:
           set -o pipefail
           eas build \
             --platform android \
-            --profile "${{ inputs.profile }}" \
+            --profile "${{ inputs.profile || 'production' }}" \
             --non-interactive \
             --json 2>&1 | tee /tmp/eas-build-output.txt
           EXIT_CODE=${PIPESTATUS[0]}
@@ -108,7 +111,7 @@ jobs:
         run: |
           gh workflow run android-submit.yml \
             --ref "${{ github.ref }}" \
-            --field profile="${{ inputs.profile }}"
+            --field profile="${{ inputs.profile || 'production' }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -125,7 +128,7 @@ jobs:
                   "fields": [
                     { "title": "App", "value": "Intermingled (`com.intermingled.app`)", "short": false },
                     { "title": "Version", "value": "${{ steps.app_version.outputs.version }}", "short": true },
-                    { "title": "Profile", "value": "${{ inputs.profile }}", "short": true },
+                    { "title": "Profile", "value": "${{ inputs.profile || 'production' }}", "short": true },
                     { "title": "EAS Build", "value": "<${{ steps.build.outputs.build_url }}|View build>", "short": true },
                     { "title": "Run", "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>", "short": true }
                   ]
@@ -150,7 +153,7 @@ jobs:
                   "fields": [
                     { "title": "App", "value": "Intermingled (`com.intermingled.app`)", "short": false },
                     { "title": "Version", "value": "${{ steps.app_version.outputs.version }}", "short": true },
-                    { "title": "Profile", "value": "${{ inputs.profile }}", "short": true },
+                    { "title": "Profile", "value": "${{ inputs.profile || 'production' }}", "short": true },
                     { "title": "EAS Build", "value": "<${{ steps.build_failure.outputs.build_url }}|View build>", "short": true },
                     { "title": "Run", "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>", "short": true }
                   ]

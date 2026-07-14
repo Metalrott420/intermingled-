@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, inArray } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { getAuth } from "@clerk/express";
 import { db, roomsTable, participantsTable, messagesTable, usersTable, matchesTable } from "@workspace/db";
@@ -273,11 +273,30 @@ router.post("/rooms/match", requireAuth, async (req: any, res) => {
 });
 
 router.get("/rooms/active", async (_req, res) => {
-  const rooms = await db.query.roomsTable.findMany({
+  // Return rooms that are joinable: either still waiting, OR active but with
+  // bot slots available for displacement (so real suitors can replace bots).
+  const waitingRooms = await db.query.roomsTable.findMany({
     where: eq(roomsTable.status, "waiting"),
   });
 
-  const results = await Promise.all(rooms.map((r) => buildRoomResponse(r.id)));
+  // Find active rooms that still have at least one bot suitor
+  const botParticipants = await db.query.participantsTable.findMany({
+    where: and(eq(participantsTable.role, "suitor"), eq(participantsTable.isBot, true)),
+  });
+  const activeRoomIdsWithBots = [...new Set(botParticipants.map((p) => p.roomId))];
+
+  const activeRoomsWithBots =
+    activeRoomIdsWithBots.length > 0
+      ? await db.query.roomsTable.findMany({
+          where: and(
+            eq(roomsTable.status, "active"),
+            inArray(roomsTable.id, activeRoomIdsWithBots),
+          ),
+        })
+      : [];
+
+  const allJoinable = [...waitingRooms, ...activeRoomsWithBots];
+  const results = await Promise.all(allJoinable.map((r) => buildRoomResponse(r.id)));
   res.json(results.filter(Boolean));
 });
 

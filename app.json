@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "d7692d73-9a74-4645-aa9f-f019bf488943"
+      }
+    },
+    "android": {
+      "package": "com.intermingled.workspace"
+    },
+    "ios": {
+      "bundleIdentifier": "com.intermingled.workspace",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}

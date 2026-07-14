@@ -98,7 +98,7 @@ export default function PoolScreen() {
   }
 
   const count = poolCount ?? 0;
-  const enoughPlayers = count >= 5;
+  const enoughPlayers = count >= 3;
 
   return (
     <View style={styles.container}>
@@ -119,9 +119,9 @@ export default function PoolScreen() {
           <Text style={[styles.countNumber, { color: enoughPlayers ? colors.secondary : colors.foreground }]}>
             {poolCount === null ? "—" : count}
           </Text>
-          <Text style={styles.countLabel}>SUITORS WAITING · NEED 5</Text>
+          <Text style={styles.countLabel}>SUITORS WAITING · NEED 3</Text>
           <View style={styles.dotsRow}>
-            {[0, 1, 2, 3, 4].map((i) => (
+            {[0, 1, 2].map((i) => (
               <PulsingDot key={i} active={i < count} delay={i * 150} />
             ))}
           </View>

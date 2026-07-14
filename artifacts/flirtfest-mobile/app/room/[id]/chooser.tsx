@@ -93,8 +93,9 @@ export default function ChooserRoomScreen() {
   // ── Derived ──────────────────────────────────────────────────────────────────
   const currentRound = room?.currentRound ?? 1;
   const eliminatedParticipants = (room?.eliminatedParticipants ?? []) as string[];
-  const questionsPerRound = currentRound <= 3 ? 1 : 3;
-  const suitorSlots = [1, 2, 3, 4, 5];
+  const finalRound = (room?.maxSuitors ?? 3) - 1;
+  const questionsPerRound = currentRound < finalRound ? 1 : 3;
+  const suitorSlots = Array.from({ length: room?.maxSuitors ?? 3 }, (_, i) => i + 1);
 
   const isEliminated = useCallback((suitorId: string) =>
     eliminatedParticipants.includes(suitorId), [eliminatedParticipants]);
@@ -112,9 +113,9 @@ export default function ChooserRoomScreen() {
 
   useEffect(() => {
     if (!allQuestionsAsked || phase !== "messaging") return;
-    setPhase(currentRound < 4 ? "eliminate" : "choose_winner");
+    setPhase(currentRound < finalRound ? "eliminate" : "choose_winner");
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, [allQuestionsAsked, currentRound, phase]);
+  }, [allQuestionsAsked, currentRound, phase, finalRound]);
 
   useEffect(() => {
     setPhase("messaging");
@@ -288,7 +289,7 @@ export default function ChooserRoomScreen() {
         <View style={styles.waitingContainer}>
           <Text style={styles.waitingTitle}>Waiting for challengers</Text>
           <View style={styles.slotsRow}>
-            {[1, 2, 3, 4, 5].map((i) => (
+            {Array.from({ length: room.maxSuitors }, (_, idx) => idx + 1).map((i) => (
               <View
                 key={i}
                 style={[
@@ -304,7 +305,7 @@ export default function ChooserRoomScreen() {
               </View>
             ))}
           </View>
-          <Text style={styles.waitingCount}>{room.suitorCount} / 5 suitors joined</Text>
+          <Text style={styles.waitingCount}>{room.suitorCount} / {room.maxSuitors} suitors joined</Text>
         </View>
       ) : (
         <>

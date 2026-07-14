@@ -107,7 +107,7 @@ router.post("/rooms", async (req, res) => {
     code,
     chooserName: body.data.chooserName,
     status: "waiting",
-    maxSuitors: 5,
+    maxSuitors: 3,
   });
 
   const participantId = makeId();
@@ -156,7 +156,7 @@ router.post("/rooms/match", requireAuth, async (req: any, res) => {
   });
   const liveSuitorPool = dbCandidates.filter((u) => isUserInPool(u.id));
 
-  if (liveSuitorPool.length < 5) {
+  if (liveSuitorPool.length < 3) {
     res.status(409).json({
       error: "Not enough suitors in pool",
       count: liveSuitorPool.length,
@@ -172,7 +172,7 @@ router.post("/rooms/match", requireAuth, async (req: any, res) => {
   const suitorsWithVector = liveSuitorPool.filter(
     (u): u is typeof u & { personalityVector: number[] } => u.personalityVector !== null,
   );
-  const top5 = rankSuitors(chooser.personalityVector, suitorsWithVector, 5);
+  const topSuitors = rankSuitors(chooser.personalityVector, suitorsWithVector, 3);
 
   // Create room, start it active immediately — store chooserUserId for authorization
   const roomId = makeId();
@@ -183,7 +183,7 @@ router.post("/rooms/match", requireAuth, async (req: any, res) => {
     chooserName: chooser.name,
     chooserUserId: chooser.id,
     status: "active",
-    maxSuitors: 5,
+    maxSuitors: 3,
   });
 
   // Add chooser as participant with their DB user ID
@@ -202,10 +202,10 @@ router.post("/rooms/match", requireAuth, async (req: any, res) => {
 
   const io = getIo();
 
-  // Add top 5 suitors, update their status, notify them via socket, and
+  // Add top 3 suitors, update their status, notify them via socket, and
   // emit a per-suitor slot_filled event to the chooser for real-time UI updates
-  for (let i = 0; i < top5.length; i++) {
-    const suitor = top5[i];
+  for (let i = 0; i < topSuitors.length; i++) {
+    const suitor = topSuitors[i];
     const participantId = makeId();
     await db.insert(participantsTable).values({
       id: participantId,

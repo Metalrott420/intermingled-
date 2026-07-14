@@ -67,7 +67,7 @@ export default function Pool() {
     setLocation("/");
   };
 
-  const enoughPlayers = poolCount !== null && poolCount >= 5;
+  const enoughPlayers = poolCount !== null && poolCount >= 3;
   const currentProfile = browseProfiles[browseIndex];
 
   return (
@@ -126,7 +126,7 @@ export default function Pool() {
                   SUITOR{poolCount !== 1 ? "S" : ""} WAITING
                 </div>
                 <div className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">
-                  NEED 5 TO GO LIVE
+                  NEED 3 TO GO LIVE
                 </div>
                 {enoughPlayers && (
                   <div className="mt-2 text-xs font-mono text-secondary animate-pulse font-bold">
@@ -139,7 +139,7 @@ export default function Pool() {
 
           {/* Slot dots */}
           <div className="flex justify-center gap-2 mb-5">
-            {Array.from({ length: 5 }).map((_, i) => (
+            {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
                 className={`w-3.5 h-3.5 rounded-full transition-all duration-500 ${

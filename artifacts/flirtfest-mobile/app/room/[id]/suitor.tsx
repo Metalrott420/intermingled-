@@ -227,7 +227,7 @@ export default function SuitorRoomScreen() {
       {isActive && (
         <View style={[styles.roundStrip, { borderBottomColor: colors.border }]}>
           <Text style={[styles.roundStripText, { color: colors.mutedForeground }]}>
-            Round {ROUND_LABELS[currentRound] ?? currentRound} — {currentRound <= 3 ? `${6 - currentRound} suitors remain` : "Finals: make your case!"}
+            Round {ROUND_LABELS[currentRound] ?? currentRound} — {currentRound < (room?.maxSuitors ?? 3) - 1 ? `${(room?.maxSuitors ?? 3) + 1 - currentRound} suitors remain` : "Finals: make your case!"}
           </Text>
         </View>
       )}
@@ -236,8 +236,8 @@ export default function SuitorRoomScreen() {
         <View style={styles.waitContainer}>
           <ActivityIndicator color={colors.secondary} size="large" />
           <Text style={styles.waitTitle}>Waiting to start</Text>
-          <Text style={styles.waitSub}>{room.suitorCount} / 5 suitors joined</Text>
-          <Text style={styles.waitHint}>Session starts when all 5 slots fill</Text>
+          <Text style={styles.waitSub}>{room.suitorCount} / {room.maxSuitors} suitors joined</Text>
+          <Text style={styles.waitHint}>Session starts when all {room.maxSuitors} slots fill</Text>
         </View>
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={0}>

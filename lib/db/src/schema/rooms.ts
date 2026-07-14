@@ -13,7 +13,7 @@ export const roomsTable = pgTable("rooms", {
   chooserUserId: text("chooser_user_id"),
   winnerId: text("winner_id"),
   winnerName: text("winner_name"),
-  maxSuitors: integer("max_suitors").notNull().default(5),
+  maxSuitors: integer("max_suitors").notNull().default(3),
   currentRound: integer("current_round").notNull().default(1),
   eliminatedParticipants: jsonb("eliminated_participants").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),

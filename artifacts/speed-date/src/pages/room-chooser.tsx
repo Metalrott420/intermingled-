@@ -105,8 +105,9 @@ export default function RoomChooser() {
 
   const currentRound = room?.currentRound ?? 1;
   const eliminatedParticipants = (room?.eliminatedParticipants ?? []) as string[];
-  const questionsPerRound = currentRound <= 3 ? 1 : 3;
-  const suitorSlots = [1, 2, 3, 4, 5];
+  const finalRound = (room?.maxSuitors ?? 3) - 1;
+  const questionsPerRound = currentRound < finalRound ? 1 : 3;
+  const suitorSlots = Array.from({ length: room?.maxSuitors ?? 3 }, (_, i) => i + 1);
 
   const isEliminated = useCallback((suitorId: string) =>
     eliminatedParticipants.includes(suitorId), [eliminatedParticipants]);
@@ -126,7 +127,7 @@ export default function RoomChooser() {
 
   useEffect(() => {
     if (!allQuestionsAsked || phase !== "messaging") return;
-    setPhase(currentRound < 4 ? "eliminate" : "choose_winner");
+    setPhase(currentRound < finalRound ? "eliminate" : "choose_winner");
   }, [allQuestionsAsked, currentRound, phase]);
 
   useEffect(() => { setPhase("messaging"); }, [currentRound]);
@@ -406,7 +407,7 @@ export default function RoomChooser() {
           )}
           <div className="text-center border-r border-border pr-3 sm:pr-5">
             <div className="text-[9px] uppercase text-muted-foreground font-mono">Active</div>
-            <div className="font-display font-bold text-lg leading-none">{isActive ? activeSuitorCount : room.suitorCount}/5</div>
+            <div className="font-display font-bold text-lg leading-none">{isActive ? activeSuitorCount : room.suitorCount}/{room.maxSuitors}</div>
           </div>
           <div className="text-center">
             <div className="text-[9px] uppercase text-muted-foreground font-mono">Status</div>
@@ -482,7 +483,7 @@ export default function RoomChooser() {
               Waiting for Contestants
             </div>
             <div className="flex gap-2 sm:gap-4">
-              {Array.from({ length: 5 }).map((_, i) => (
+              {Array.from({ length: room.maxSuitors }).map((_, i) => (
                 <div key={i}
                   className={`w-12 h-16 sm:w-16 sm:h-20 rounded-xl border-2 flex flex-col items-center justify-end pb-2 transition-all ${
                     i < room.suitorCount
@@ -497,7 +498,7 @@ export default function RoomChooser() {
                 </div>
               ))}
             </div>
-            <p className="mt-6 text-sm font-mono text-muted-foreground">{room.suitorCount}/5 suitors joined</p>
+            <p className="mt-6 text-sm font-mono text-muted-foreground">{room.suitorCount}/{room.maxSuitors} suitors joined</p>
           </div>
         ) : (
           <>
@@ -537,7 +538,7 @@ export default function RoomChooser() {
             </div>
 
             {/* DESKTOP: grid */}
-            <div className="hidden sm:grid flex-1 grid-cols-5 gap-2 p-3 overflow-hidden">
+            <div className="hidden sm:grid flex-1 grid-cols-3 gap-2 p-3 overflow-hidden">
               {suitorSlots.map((slot) => <SlotPanel key={slot} slot={slot} />)}
             </div>
           </>

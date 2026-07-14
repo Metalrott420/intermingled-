@@ -210,8 +210,8 @@ export default function RoomSuitor() {
           <div className="px-4 py-2 bg-primary/5 border-b border-border/40 flex items-center justify-between">
             <span className="text-muted-foreground text-[10px] font-mono uppercase tracking-wider flex items-center gap-1.5">
               <Zap size={10} className="text-primary" />
-              {currentRound <= 3
-                ? `${6 - currentRound} suitors active · 1 question this round`
+              {currentRound < (room.maxSuitors - 1)
+                ? `${room.maxSuitors + 1 - currentRound} suitors active · 1 question this round`
                 : "FINALS · 3 questions · Give it everything"}
             </span>
           </div>
@@ -225,7 +225,7 @@ export default function RoomSuitor() {
               <h2 className="font-display text-2xl font-black uppercase tracking-widest mb-2">
                 Backstage
               </h2>
-              <p className="text-muted-foreground font-mono text-sm">{room.suitorCount} / 5 suitors ready</p>
+              <p className="text-muted-foreground font-mono text-sm">{room.suitorCount} / {room.maxSuitors} suitors ready</p>
               <p className="text-xs text-muted-foreground/60 font-mono mt-2">Show starts when all seats fill</p>
             </div>
           ) : (

@@ -1,0 +1,162 @@
+name: iOS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: EAS build profile
+        required: false
+        default: production
+        type: choice
+        options:
+          - production
+
+jobs:
+  build:
+    name: Build iOS (EAS)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    defaults:
+      run:
+        working-directory: artifacts/flirtfest-mobile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: artifacts/flirtfest-mobile/package.json
+
+      - name: Install EAS CLI
+        run: npm install --global eas-cli@latest
+
+      - name: Read app version
+        id: app_version
+        run: |
+          VERSION=$(node -e "const a=require('./app.json'); console.log(a.expo.version);")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build iOS
+        id: build
+        run: |
+          set -o pipefail
+          eas build \
+            --platform ios \
+            --profile "${{ inputs.profile }}" \
+            --non-interactive \
+            --json 2>&1 | tee /tmp/eas-build-output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+
+          BUILD_URL=$(grep -oE 'https://expo\.dev/accounts/[^[:space:]"]+' /tmp/eas-build-output.txt | head -1 || true)
+          if [ -z "$BUILD_URL" ]; then
+            BUILD_ID=$(node -e "
+              const fs = require('fs');
+              try {
+                const raw = fs.readFileSync('/tmp/eas-build-output.txt', 'utf8');
+                const jsonMatch = raw.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  const parsed = JSON.parse(jsonMatch[0]);
+                  const builds = Array.isArray(parsed) ? parsed : [parsed];
+                  process.stdout.write(builds[0]?.id ?? '');
+                }
+              } catch {}
+            " 2>/dev/null || true)
+            if [ -n "$BUILD_ID" ]; then
+              BUILD_URL="https://expo.dev/accounts/intermingled/projects/intermingled/builds/$BUILD_ID"
+            fi
+          fi
+
+          if [ -z "$BUILD_URL" ]; then
+            BUILD_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+
+          echo "build_url=$BUILD_URL" >> "$GITHUB_OUTPUT"
+          exit $EXIT_CODE
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Capture build URL and error on failure
+        id: build_failure
+        if: failure()
+        run: |
+          BUILD_URL=$(grep -oE 'https://expo\.dev/accounts/[^[:space:]"]+' /tmp/eas-build-output.txt | head -1 || true)
+          if [ -z "$BUILD_URL" ]; then
+            BUILD_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+          echo "build_url=$BUILD_URL" >> "$GITHUB_OUTPUT"
+
+          ERROR_SUMMARY=$(grep -iE '(error|failed|fatal|exception)' /tmp/eas-build-output.txt \
+            | tail -10 \
+            | sed 's/[[:cntrl:]]//g' \
+            | head -c 500 || true)
+          if [ -z "$ERROR_SUMMARY" ]; then
+            ERROR_SUMMARY=$(tail -10 /tmp/eas-build-output.txt | sed 's/[[:cntrl:]]//g' | head -c 500 || true)
+          fi
+          if [ -z "$ERROR_SUMMARY" ]; then
+            ERROR_SUMMARY="See the EAS build page or Actions run for details."
+          fi
+          printf 'error_summary=%s\n' "$ERROR_SUMMARY" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger iOS Submit workflow
+        if: success()
+        run: |
+          gh workflow run ios-submit.yml \
+            --ref "${{ github.ref }}" \
+            --field profile="${{ inputs.profile }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Slack — success
+        if: success()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": ":white_check_mark: *iOS build succeeded* — submit workflow triggered",
+              "attachments": [
+                {
+                  "color": "#36a64f",
+                  "fields": [
+                    { "title": "App", "value": "Intermingled (`com.intermingled.app`)", "short": false },
+                    { "title": "Version", "value": "${{ steps.app_version.outputs.version }}", "short": true },
+                    { "title": "Profile", "value": "${{ inputs.profile }}", "short": true },
+                    { "title": "EAS Build", "value": "<${{ steps.build.outputs.build_url }}|View build>", "short": true },
+                    { "title": "Run", "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>", "short": true }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify Slack — failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": ":x: *iOS build failed* — release pipeline blocked",
+              "attachments": [
+                {
+                  "color": "#e01e5a",
+                  "text": "${{ steps.build_failure.outputs.error_summary }}",
+                  "fields": [
+                    { "title": "App", "value": "Intermingled (`com.intermingled.app`)", "short": false },
+                    { "title": "Version", "value": "${{ steps.app_version.outputs.version }}", "short": true },
+                    { "title": "Profile", "value": "${{ inputs.profile }}", "short": true },
+                    { "title": "EAS Build", "value": "<${{ steps.build_failure.outputs.build_url }}|View build>", "short": true },
+                    { "title": "Run", "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>", "short": true }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

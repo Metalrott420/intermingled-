@@ -11,6 +11,49 @@
 
 ---
 
+## Automated Submission via GitHub Actions
+
+The recommended way to submit a release is through the **iOS Submit** GitHub Actions workflow (`.github/workflows/ios-submit.yml`). It runs `eas submit --platform ios --latest`, then posts a Slack alert on either success or failure — so a silent failure is no longer possible.
+
+### Required GitHub Secrets
+
+Add these under **Settings → Secrets and variables → Actions** in the repository before the workflow can run:
+
+| Secret | Description |
+|---|---|
+| `EXPO_TOKEN` | EAS personal access token — generate at expo.dev → Account → Access Tokens |
+| `SLACK_WEBHOOK_URL` | Slack incoming webhook URL for submission alerts (shared with Android workflow) |
+
+Apple credentials are managed by EAS via the `eas submit` configuration in `eas.json` and the credentials stored on expo.dev — no additional GitHub Secrets are needed for Apple auth once EAS credentials are set up (see One-Time Credential Setup below).
+
+### Running the workflow
+
+1. Go to your repository on GitHub.
+2. Navigate to **Actions → iOS Submit**.
+3. Click **Run workflow**, choose the profile (`production`), and confirm.
+
+The workflow will:
+- Read the app version from `app.json`
+- Submit the latest finished EAS build to TestFlight
+- Post a Slack notification including the version, track, and a link to the run logs
+
+### Slack alerts
+
+- **Success** — green attachment confirming the build reached TestFlight.
+- **Failure** — red attachment warning that the release may not have reached App Store / TestFlight, with a direct link to the failing run.
+
+Common failure causes and fixes:
+
+| Error | Likely cause | Fix |
+|---|---|---|
+| `Invalid credentials` | Apple credentials expired or not configured on expo.dev | Re-run `eas credentials --platform ios` and save to EAS |
+| `No provisioning profile` | App not yet in App Store Connect | Complete the App Store Connect setup below first |
+| `App Store Connect API quota exceeded` | Too many submissions in a short window | Wait a few minutes and re-run |
+| `EXPO_TOKEN expired` | Token was revoked | Generate a new token at expo.dev and update the GitHub Secret |
+| `No build found` | No finished production build available | Run `eas build --platform ios --profile production` first |
+
+---
+
 ## Prerequisites
 
 1. **Apple Developer account** — enroll at [developer.apple.com](https://developer.apple.com/) ($99/year)

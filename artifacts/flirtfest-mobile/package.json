@@ -61,6 +61,7 @@
   },
   "dependencies": {
     "expo-notifications": "^0.32.17",
+    "react-native-purchases": "^10.4.2",
     "socket.io-client": "^4.8.3"
   }
 }

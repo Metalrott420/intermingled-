@@ -9,6 +9,7 @@ import dmRouter from "./dm";
 import socialRouter from "./social";
 import adminRouter from "./admin";
 import identityRouter from "./identity";
+import entitlementRouter from "./entitlement";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(dmRouter);
 router.use(socialRouter);
 router.use(adminRouter);
 router.use(identityRouter);
+router.use(entitlementRouter);
 
 export default router;

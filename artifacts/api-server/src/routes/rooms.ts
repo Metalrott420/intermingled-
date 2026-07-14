@@ -14,6 +14,7 @@ import {
 } from "@workspace/api-zod";
 import { getIo, isUserInPool } from "../socket";
 import { rankSuitors } from "../lib/matchmaking";
+import { checkPremiumEntitlement } from "./entitlement";
 
 const router: IRouter = Router();
 
@@ -206,9 +207,22 @@ router.post("/rooms/match", requireAuth, async (req: any, res) => {
   const suitorsWithVector = liveSuitorPool.filter(
     (u): u is typeof u & { personalityVector: number[] } => u.personalityVector !== null,
   );
+  // Check premium entitlement for each candidate suitor so premium users
+  // receive priority pool placement (PREMIUM_POOL_BOOST in matchmaking score).
+  // RevenueCat app_user_id is the Clerk user ID (s.clerkId), not the DB UUID.
+  const premiumFlags = await Promise.all(
+    suitorsWithVector.map((s) =>
+      s.clerkId ? checkPremiumEntitlement(s.clerkId) : Promise.resolve(false),
+    ),
+  );
+  const suitorsWithPremium = suitorsWithVector.map((s, i) => ({
+    ...s,
+    isPremium: premiumFlags[i],
+  }));
+
   // Fill as many real suitors as available; bots fill remaining slots after room creation
-  const realSuitorCount = Math.min(suitorsWithVector.length, 3);
-  const topSuitors = rankSuitors(chooser.personalityVector, suitorsWithVector, realSuitorCount);
+  const realSuitorCount = Math.min(suitorsWithPremium.length, 3);
+  const topSuitors = rankSuitors(chooser.personalityVector, suitorsWithPremium, realSuitorCount);
 
   // Create room, start it active immediately — store chooserUserId for authorization
   const roomId = makeId();

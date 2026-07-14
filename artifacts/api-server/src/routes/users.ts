@@ -4,6 +4,7 @@ import { randomBytes } from "crypto";
 import { getAuth } from "@clerk/express";
 import { db, usersTable } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { checkPremiumEntitlement } from "./entitlement";
 
 const router: IRouter = Router();
 
@@ -65,19 +66,26 @@ router.post("/users", async (req, res) => {
               : 0;
 
           if (sessionsToday >= CHOOSER_DAILY_LIMIT) {
-            logger.info({ userId: existing.id, sessionsToday, limit: CHOOSER_DAILY_LIMIT }, "Chooser daily limit reached");
-            res.status(200).json({
-              id: existing.id,
-              name: existing.name,
-              role: existing.role ?? "chooser",
-              status: existing.status,
-              createdAt: existing.createdAt.toISOString(),
-              cooldown: true,
-              cooldownEndsAt: midnightUtc(),
-              sessionsToday,
-              chooserDailyLimit: CHOOSER_DAILY_LIMIT,
-            });
-            return;
+            // Premium subscribers bypass the daily limit
+            const isPremium = await checkPremiumEntitlement(clerkUserId);
+
+            if (!isPremium) {
+              logger.info({ userId: existing.id, sessionsToday, limit: CHOOSER_DAILY_LIMIT }, "Chooser daily limit reached");
+              res.status(200).json({
+                id: existing.id,
+                name: existing.name,
+                role: existing.role ?? "chooser",
+                status: existing.status,
+                createdAt: existing.createdAt.toISOString(),
+                cooldown: true,
+                cooldownEndsAt: midnightUtc(),
+                sessionsToday,
+                chooserDailyLimit: CHOOSER_DAILY_LIMIT,
+              });
+              return;
+            }
+
+            logger.info({ userId: existing.id, sessionsToday }, "Premium user bypassing chooser daily limit");
           }
 
           await db.update(usersTable).set({

@@ -4,6 +4,7 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useRef, useState } from "react";
+import { useSubscription } from "@/lib/revenuecat";
 import {
   ActivityIndicator,
   Platform,
@@ -253,6 +254,7 @@ export default function HomeScreen() {
   const createUser = useCreateUser();
   const { isSignedIn, isLoaded, user: clerkUser } = useUser();
   const { getToken } = useAuth();
+  const { isSubscribed } = useSubscription();
 
   const [phase, setPhase] = useState<Phase>("loading");
 
@@ -624,6 +626,24 @@ export default function HomeScreen() {
                   {cooldownInfo!.sessionsToday}/{cooldownInfo!.limit} sessions used today.
                   Resets in <Text style={{ color: "#f59e0b", fontFamily: "Inter_700Bold" }}>{countdown}</Text> at midnight UTC.
                 </Text>
+                {!isSubscribed && (
+                  <Pressable
+                    onPress={() => router.push("/subscribe")}
+                    style={({ pressed }) => ({
+                      marginTop: 10,
+                      backgroundColor: colors.primary,
+                      borderRadius: 10,
+                      paddingVertical: 10,
+                      paddingHorizontal: 18,
+                      alignSelf: "flex-start",
+                      opacity: pressed ? 0.8 : 1,
+                    })}
+                  >
+                    <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      👑 Go Premium — Unlimited Sessions
+                    </Text>
+                  </Pressable>
+                )}
               </View>
             )}
 

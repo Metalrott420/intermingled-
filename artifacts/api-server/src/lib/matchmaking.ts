@@ -13,14 +13,24 @@ export function cosineSimilarity(a: number[], b: number[]): number {
   return dot / denom;
 }
 
-export function rankSuitors<T extends { personalityVector: number[] }>(
+/**
+ * Boost applied to premium suitors' raw cosine-similarity score.
+ * Keeps premium users near the top of the selection without overriding a
+ * strongly compatible free-tier suitor — cosine similarity is bounded [0,1],
+ * so 0.15 is meaningful but not absolute.
+ */
+export const PREMIUM_POOL_BOOST = 0.15;
+
+export function rankSuitors<T extends { personalityVector: number[]; isPremium?: boolean }>(
   chooserVector: number[],
   suitors: T[],
   topN: number,
 ): T[] {
   const scored = suitors.map((s) => ({
     suitor: s,
-    score: cosineSimilarity(chooserVector, s.personalityVector),
+    score:
+      cosineSimilarity(chooserVector, s.personalityVector) +
+      (s.isPremium ? PREMIUM_POOL_BOOST : 0),
   }));
   scored.sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;

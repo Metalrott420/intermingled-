@@ -1,9 +1,13 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import { execSync } from "child_process";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const appJsonPath = resolve(scriptDir, "../../artifacts/flirtfest-mobile/app.json");
+const repoRoot = resolve(scriptDir, "../..");
+
+const noPush = process.argv.includes("--no-push");
 
 if (!existsSync(appJsonPath)) {
   console.error(
@@ -72,3 +76,32 @@ typed.expo.version = next;
 
 writeFileSync(appJsonPath, JSON.stringify(typed, null, 2) + "\n");
 console.log(`Bumped app.json version: ${current} → ${next}`);
+
+const tag = `v${next}`;
+
+function run(cmd: string, description: string): void {
+  try {
+    execSync(cmd, { cwd: repoRoot, stdio: "pipe" });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Error: ${description} failed.\nCommand: ${cmd}\nCause: ${msg}`);
+    process.exit(1);
+  }
+}
+
+const relativeAppJson = "artifacts/flirtfest-mobile/app.json";
+run(`git add ${relativeAppJson}`, "stage app.json");
+run(`git commit -m "chore: bump version to ${tag}"`, "create version commit");
+console.log(`Created commit: chore: bump version to ${tag}`);
+
+run(`git tag ${tag}`, "create version tag");
+console.log(`Created tag: ${tag}`);
+
+if (noPush) {
+  console.log("Skipping push (--no-push flag set). Run the following to publish:");
+  console.log(`  git push && git push origin ${tag}`);
+} else {
+  run("git push", "push commit to remote");
+  run(`git push origin ${tag}`, "push tag to remote");
+  console.log(`Pushed commit and tag ${tag} to remote.`);
+}

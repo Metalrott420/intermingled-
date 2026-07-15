@@ -59,6 +59,10 @@ function PulsingDot({ active, delay }: { active: boolean; delay: number }) {
   );
 }
 
+const API_BASE = process.env.EXPO_PUBLIC_DOMAIN
+  ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`
+  : "/api";
+
 export default function PoolScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -66,10 +70,21 @@ export default function PoolScreen() {
   const { getToken } = useAuth();
   const [showConfirm, setShowConfirm] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
     getToken().then((t) => setToken(t)).catch(() => {});
   }, [getToken]);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_BASE}/entitlement/premium`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data: { isPremium?: boolean }) => setIsPremium(data.isPremium ?? false))
+      .catch(() => {});
+  }, [token]);
 
   const onMatchFound = useCallback(
     async (roomId: string, participantId: string) => {
@@ -140,12 +155,26 @@ export default function PoolScreen() {
           </Text>
         </View>
 
+        {/* Premium priority badge */}
+        {isPremium && (
+          <Animated.View entering={FadeIn} style={[styles.priorityBadge, { borderColor: "#f59e0b40", backgroundColor: "#f59e0b15" }]}>
+            <Text style={styles.priorityStar}>★</Text>
+            <View>
+              <Text style={styles.priorityTitle}>PRIORITY PLACEMENT</Text>
+              <Text style={styles.priorityBody}>Your premium status ranks you higher in the pool</Text>
+            </View>
+          </Animated.View>
+        )}
+
         {/* Info */}
         <View style={[styles.infoCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
           <Text style={[styles.infoTitle, { color: colors.primary }]}>WHILE YOU WAIT</Text>
           <Text style={styles.infoText}>A chooser is ranked against your personality</Text>
           <Text style={styles.infoText}>You'll be redirected the moment you match</Text>
           <Text style={styles.infoText}>Keep this screen open</Text>
+          {!isPremium && (
+            <Text style={[styles.infoText, styles.infoUpgradeHint]}>★ Premium members get priority placement</Text>
+          )}
         </View>
 
         {/* Leave */}
@@ -325,6 +354,39 @@ function makeStyles(colors: ReturnType<typeof useColors>, insets: ReturnType<typ
       fontSize: 12,
       fontFamily: "Inter_700Bold",
       letterSpacing: 1.5,
+    },
+    priorityBadge: {
+      width: "100%",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      marginBottom: 12,
+    },
+    priorityStar: {
+      fontSize: 22,
+      color: "#f59e0b",
+    },
+    priorityTitle: {
+      fontSize: 10,
+      fontFamily: "Inter_700Bold",
+      color: "#f59e0b",
+      letterSpacing: 1.5,
+    },
+    priorityBody: {
+      fontSize: 11,
+      fontFamily: "Inter_400Regular",
+      color: "#f59e0b",
+      opacity: 0.8,
+      marginTop: 2,
+    },
+    infoUpgradeHint: {
+      color: "#f59e0b",
+      opacity: 0.7,
+      marginTop: 2,
     },
     leaveBtn: {
       paddingVertical: 8,

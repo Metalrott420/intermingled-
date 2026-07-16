@@ -96,13 +96,48 @@ jobs:
           FALLBACK_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
           bash "$GITHUB_WORKSPACE/.github/scripts/extract-build-url.sh"
 
-          ERROR_SUMMARY=$(grep -iE '(error|failed|fatal|exception)' /tmp/eas-build-output.txt \
-            | tail -10 \
-            | sed 's/[[:cntrl:]]//g' \
-            | head -c 500 || true)
+          # 1. Try to extract a structured error message from the EAS JSON output.
+          #    EAS --json produces an object/array with an `error` or `errors` field
+          #    for credential failures, Gradle daemon exits, and similar issues that
+          #    don't print a clear "Error:" line to stdout.
+          ERROR_SUMMARY=$(node -e "
+            const fs = require('fs');
+            try {
+              const raw = fs.readFileSync('/tmp/eas-build-output.txt', 'utf8');
+              const jsonMatch = raw.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+              if (!jsonMatch) process.exit(1);
+              const parsed = JSON.parse(jsonMatch[0]);
+              const builds = Array.isArray(parsed) ? parsed : [parsed];
+              const build = builds[0] || {};
+              const msg =
+                (build.error && typeof build.error === 'object' ? build.error.message : build.error) ||
+                (build.errors && build.errors[0] && typeof build.errors[0] === 'object'
+                  ? build.errors[0].message
+                  : build.errors && build.errors[0]) ||
+                null;
+              if (msg && String(msg).trim()) {
+                process.stdout.write(String(msg).trim().slice(0, 500));
+                process.exit(0);
+              }
+            } catch {}
+            process.exit(1);
+          " 2>/dev/null || true)
+
+          # 2. Fall back to grep for error-like lines in the raw output.
+          if [ -z "$ERROR_SUMMARY" ]; then
+            ERROR_SUMMARY=$(grep -iE '(error|failed|fatal|exception)' /tmp/eas-build-output.txt \
+              | grep -v '^[[:space:]]*$' \
+              | tail -10 \
+              | sed 's/[[:cntrl:]]//g' \
+              | head -c 500 || true)
+          fi
+
+          # 3. Fall back to the last 10 lines of raw output.
           if [ -z "$ERROR_SUMMARY" ]; then
             ERROR_SUMMARY=$(tail -10 /tmp/eas-build-output.txt | sed 's/[[:cntrl:]]//g' | head -c 500 || true)
           fi
+
+          # 4. Last-resort generic message.
           if [ -z "$ERROR_SUMMARY" ]; then
             ERROR_SUMMARY="See the EAS build page or Actions run for details."
           fi

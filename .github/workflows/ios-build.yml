@@ -92,6 +92,16 @@ jobs:
         id: build_failure
         if: failure() || cancelled()
         run: |
+          # extract-build-url.sh resolves the EAS build URL from tee'd CLI output.
+          # When /tmp/eas-build-output.txt is empty or contains no expo.dev link —
+          # e.g. the CLI crashed, timed out, or failed auth before the build was
+          # queued — the script falls back to the GitHub Actions run URL supplied
+          # via FALLBACK_URL.  This guarantees build_url is never empty so that the
+          # "Notify Slack — failure" step always links somewhere actionable.
+          #
+          # Fallback behavior is validated by:
+          #   .github/scripts/test-build-url-fallback.sh  (Scenarios 8–10: iOS-specific)
+          #   .github/workflows/build-url-fallback-test.yml  (CI gate on every change)
           EAS_OUTPUT_FILE=/tmp/eas-build-output.txt \
           FALLBACK_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
           bash "$GITHUB_WORKSPACE/.github/scripts/extract-build-url.sh"

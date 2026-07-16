@@ -124,6 +124,49 @@ run_test \
 Check your network connection and try again." \
   "$FALLBACK"
 
+# ------------------------------------------------------------------
+# iOS parity: Scenarios 8–10 mirror the "Capture build URL and error
+# on failure" step in ios-build.yml specifically.  These confirm that
+# the fallback fires for iOS with the same guarantees as Android when
+# the EAS CLI exits before printing any expo.dev link.
+#
+# The step runs:
+#   EAS_OUTPUT_FILE=/tmp/eas-build-output.txt \
+#   FALLBACK_URL="<github-actions-run-url>" \
+#   bash "$GITHUB_WORKSPACE/.github/scripts/extract-build-url.sh"
+#
+# …from the artifacts/flirtfest-mobile working-directory.  The three
+# cases below cover the failure modes most likely to produce an empty
+# or URL-free /tmp/eas-build-output.txt on iOS builds:
+#   8. EAS CLI crashes before printing anything (binary/signal fault)
+#   9. EAS token validation fails before the build is queued
+#  10. iOS-platform JSON with a build id but no plain-text URL
+# ------------------------------------------------------------------
+
+# Scenario 8: File is completely empty — EAS CLI crashed immediately
+# (e.g. SIGKILL, OOM, or binary not found).
+run_test \
+  "iOS: empty output file (EAS CLI crash) falls back to GitHub Actions URL" \
+  "" \
+  "$FALLBACK"
+
+# Scenario 9: Token/auth failure specific to iOS credentials — no URL
+# is ever printed because the build was never queued.
+run_test \
+  "iOS: EXPO_TOKEN invalid before iOS build is queued falls back to GitHub Actions URL" \
+  "Error: EXPO_TOKEN is invalid or expired.
+Unable to authenticate with Expo servers. Re-run 'eas login'.
+Build platform: ios
+Exiting with code 1." \
+  "$FALLBACK"
+
+# Scenario 10: EAS --json output for an iOS build carries an id but no
+# plain-text expo.dev URL — the script must construct the URL from the id.
+run_test \
+  "iOS: JSON output with ios platform id constructs expo.dev URL" \
+  '[{"id":"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee","platform":"ios","status":"in-progress"}]' \
+  "https://expo.dev/accounts/intermingled/projects/intermingled/builds/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+
 echo ""
 echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1

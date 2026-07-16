@@ -1,0 +1,50 @@
+name: Codegen Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/api-spec/**'
+      - 'lib/api-client-react/**'
+  pull_request:
+    paths:
+      - 'lib/api-spec/**'
+      - 'lib/api-client-react/**'
+
+jobs:
+  check:
+    name: Verify generated types are in sync with OpenAPI spec
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run codegen
+        run: pnpm --filter @workspace/api-spec run codegen
+
+      - name: Fail if generated files are stale
+        run: |
+          if ! git diff --quiet; then
+            echo ""
+            echo "ERROR: Generated API types are stale."
+            echo "Run 'pnpm --filter @workspace/api-spec run codegen' and commit the result."
+            echo ""
+            git diff --stat
+            exit 1
+          fi
+          echo "Generated types are up to date."

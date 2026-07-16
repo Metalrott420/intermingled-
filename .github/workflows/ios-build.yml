@@ -90,7 +90,7 @@ jobs:
 
       - name: Capture build URL and error on failure
         id: build_failure
-        if: failure()
+        if: failure() || cancelled()
         run: |
           EAS_OUTPUT_FILE=/tmp/eas-build-output.txt \
           FALLBACK_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
@@ -142,7 +142,7 @@ jobs:
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
       - name: Notify Slack — failure
-        if: failure()
+        if: failure() || cancelled()
         uses: slackapi/slack-github-action@v1
         with:
           payload: |

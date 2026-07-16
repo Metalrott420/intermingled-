@@ -112,6 +112,18 @@ run_test \
   "" \
   "$FALLBACK"
 
+# ------------------------------------------------------------------
+# Scenario 7: Output has brace/bracket characters but no valid JSON
+# e.g. "Error: request failed { connection: refused }" — the regex
+# matches the brace fragment, JSON.parse throws, BUILD_ID stays empty,
+# and the fallback URL must fire.
+# ------------------------------------------------------------------
+run_test \
+  "brace-like text with no valid JSON falls back to GitHub Actions URL" \
+  "Error: EAS build request failed { connection: refused }
+Check your network connection and try again." \
+  "$FALLBACK"
+
 echo ""
 echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1

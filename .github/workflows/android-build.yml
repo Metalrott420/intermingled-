@@ -92,11 +92,9 @@ jobs:
         id: build_failure
         if: failure()
         run: |
-          BUILD_URL=$(grep -oE 'https://expo\.dev/accounts/[^[:space:]"]+' /tmp/eas-build-output.txt | head -1 || true)
-          if [ -z "$BUILD_URL" ]; then
-            BUILD_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          fi
-          echo "build_url=$BUILD_URL" >> "$GITHUB_OUTPUT"
+          EAS_OUTPUT_FILE=/tmp/eas-build-output.txt \
+          FALLBACK_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+          bash "$GITHUB_WORKSPACE/.github/scripts/extract-build-url.sh"
 
           ERROR_SUMMARY=$(grep -iE '(error|failed|fatal|exception)' /tmp/eas-build-output.txt \
             | tail -10 \

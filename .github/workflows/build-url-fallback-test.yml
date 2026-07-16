@@ -1,0 +1,56 @@
+name: Build URL Fallback Tests
+
+on:
+  push:
+    paths:
+      - '.github/scripts/extract-build-url.sh'
+      - '.github/scripts/test-build-url-fallback.sh'
+      - '.github/workflows/build-url-fallback-test.yml'
+      - '.github/workflows/ios-build.yml'
+      - '.github/workflows/android-build.yml'
+  pull_request:
+    paths:
+      - '.github/scripts/extract-build-url.sh'
+      - '.github/scripts/test-build-url-fallback.sh'
+      - '.github/workflows/build-url-fallback-test.yml'
+      - '.github/workflows/ios-build.yml'
+      - '.github/workflows/android-build.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Verify EAS build URL fallback logic
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run build URL fallback tests (repo root context)
+        run: bash .github/scripts/test-build-url-fallback.sh
+
+      # Reproduce the exact working-directory context of ios-build.yml and
+      # android-build.yml to catch path-resolution bugs like calling a relative
+      # path from artifacts/flirtfest-mobile.
+      - name: Verify script resolves correctly from mobile working-directory
+        working-directory: artifacts/flirtfest-mobile
+        run: |
+          TMP=$(mktemp /tmp/eas-test-XXXXXX.txt)
+          printf 'Error: EXPO_TOKEN is invalid or expired.\nExiting with code 1.' > "$TMP"
+
+          RESULT=$(
+            EAS_OUTPUT_FILE="$TMP" \
+            FALLBACK_URL="https://github.com/org/repo/actions/runs/999" \
+            bash "$GITHUB_WORKSPACE/.github/scripts/extract-build-url.sh"
+          )
+          rm -f "$TMP"
+
+          EXPECTED="https://github.com/org/repo/actions/runs/999"
+          if [ "$RESULT" = "$EXPECTED" ]; then
+            echo "PASS: script reachable via GITHUB_WORKSPACE from mobile working-directory; fallback URL correct"
+          else
+            echo "FAIL: unexpected result from mobile working-directory"
+            echo "  expected: $EXPECTED"
+            echo "  got:      $RESULT"
+            exit 1
+          fi

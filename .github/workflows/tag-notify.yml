@@ -1,0 +1,32 @@
+name: Release Tag Notification
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  notify:
+    name: Notify Slack — release in flight
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": ":rocket: *Release ${{ github.ref_name }} is in flight* — iOS and Android builds are starting",
+              "attachments": [
+                {
+                  "color": "#6b46c1",
+                  "fields": [
+                    { "title": "Tag", "value": "${{ github.ref_name }}", "short": true },
+                    { "title": "Triggered by", "value": "${{ github.actor }}", "short": true },
+                    { "title": "Run", "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>", "short": false }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

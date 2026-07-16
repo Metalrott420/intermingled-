@@ -1,0 +1,73 @@
+name: Version Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version part to bump
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  bump:
+    name: Bump version and push tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PAT }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: version
+        working-directory: artifacts/flirtfest-mobile
+        run: |
+          OLD=$(node -e "console.log(require('./app.json').expo.version)")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$OLD"
+          case "${{ inputs.bump }}" in
+            major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR+1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH+1)) ;;
+          esac
+          NEW="$MAJOR.$MINOR.$PATCH"
+          node -e "
+            const fs = require('fs');
+            const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            app.expo.version = '$NEW';
+            app.expo.ios = app.expo.ios || {};
+            app.expo.android = app.expo.android || {};
+            app.expo.ios.buildNumber = '$NEW';
+            app.expo.android.versionCode = $((MAJOR*10000 + MINOR*100 + PATCH));
+            fs.writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n');
+          "
+          echo "old=$OLD" >> "$GITHUB_OUTPUT"
+          echo "new=$NEW" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and tag
+        run: |
+          git add artifacts/flirtfest-mobile/app.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new }}"
+          git tag "v${{ steps.version.outputs.new }}"
+          git push origin HEAD:main
+          git push origin "v${{ steps.version.outputs.new }}"
+
+      - name: Summary
+        run: |
+          echo "Bumped ${{ steps.version.outputs.old }} → ${{ steps.version.outputs.new }}"
+          echo "Tag v${{ steps.version.outputs.new }} pushed — iOS and Android builds are starting"

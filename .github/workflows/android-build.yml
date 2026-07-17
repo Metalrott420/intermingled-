@@ -40,8 +40,6 @@ jobs:
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
@@ -160,7 +158,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Notify Slack — success
-        if: success()
+        if: success() && secrets.SLACK_WEBHOOK_URL != ''
         uses: slackapi/slack-github-action@v1
         with:
           payload: |
@@ -184,7 +182,7 @@ jobs:
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
       - name: Notify Slack — failure
-        if: failure() || cancelled()
+        if: (failure() || cancelled()) && secrets.SLACK_WEBHOOK_URL != ''
         uses: slackapi/slack-github-action@v1
         with:
           payload: |

@@ -37,8 +37,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: artifacts/flirtfest-mobile/package.json
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: ${{ github.workspace }}
 
       - name: Install EAS CLI
         run: npm install --global eas-cli@latest

@@ -2,12 +2,12 @@
   "expo": {
     "name": "Intermingled",
     "slug": "intermingled",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "flirtfest-mobile",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled":true,
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
@@ -26,7 +26,15 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#0d0a14"
       },
-      "versionCode": 3
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "versionCode": 15
     },
     "web": {
       "favicon": "./assets/images/icon.png"

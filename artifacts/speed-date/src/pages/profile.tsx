@@ -467,6 +467,30 @@ export default function ProfilePage() {
 
           {/* Links */}
           <div className="space-y-2">
+            <button onClick={() => setLocation("/history")}
+              className="w-full flex items-center justify-between bg-card border border-border rounded-xl p-4 hover:border-primary/40 hover:bg-primary/5 transition-all group">
+              <div className="flex items-center gap-3">
+                <MessageSquare size={18} className="text-primary" />
+                <div className="text-left">
+                  <div className="font-semibold text-sm">Game History</div>
+                  <div className="text-xs text-muted-foreground">Review archived matches and outcomes</div>
+                </div>
+              </div>
+              <ArrowLeft size={16} className="text-muted-foreground rotate-180 group-hover:text-primary transition-colors" />
+            </button>
+
+            <button onClick={() => setLocation("/insights")}
+              className="w-full flex items-center justify-between bg-card border border-border rounded-xl p-4 hover:border-secondary/40 hover:bg-secondary/5 transition-all group">
+              <div className="flex items-center gap-3">
+                <Heart size={18} className="text-secondary" />
+                <div className="text-left">
+                  <div className="font-semibold text-sm">Player Insights</div>
+                  <div className="text-xs text-muted-foreground">Stats and achievements from archived gameplay</div>
+                </div>
+              </div>
+              <ArrowLeft size={16} className="text-muted-foreground rotate-180 group-hover:text-secondary transition-colors" />
+            </button>
+
             <button onClick={() => setLocation("/inbox")}
               className="w-full flex items-center justify-between bg-card border border-border rounded-xl p-4 hover:border-primary/40 hover:bg-primary/5 transition-all group">
               <div className="flex items-center gap-3">

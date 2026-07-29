@@ -9,6 +9,10 @@ import { useSocket } from "@/hooks/useSocket";
 import { Message } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Zap, Send } from "lucide-react";
+import CountdownTimer from "@/components/CountdownTimer";
+import RoundProgress from "@/components/RoundProgress";
+import { QuestionRatingPanel } from "@/components/QuestionRatingPanel";
+import { useGameCues } from "@/hooks/useGameCues";
 
 const ROUND_LABELS: Record<number, string> = { 1: "I", 2: "II", 3: "III", 4: "FINAL" };
 const SESSION_KEY = "intermingled_last_user";
@@ -24,6 +28,7 @@ export default function RoomSuitor() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isEliminated, setIsEliminated] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -44,6 +49,21 @@ export default function RoomSuitor() {
   const myParticipant = room?.participants.find((p) => p.id === participantId);
   const myParticipantName = myParticipant?.name;
   const currentRound = room?.currentRound ?? 1;
+  const endsAt = room?.roundEndsAt ?? null;
+  const numberOfRounds = room?.numberOfRounds ?? 3;
+  const currentRoundQuestions = (room?.currentRoundQuestions ?? []) as Array<{
+    id: string;
+    content: string;
+    packSlug?: string;
+    category: string;
+    difficulty: string;
+    ratingSummary?: {
+      questionId: string;
+      ratingCount: number;
+      averageRating: number | null;
+      qualityScore: number | null;
+    };
+  }>;
 
   const { getToken } = useAuth();
   const [socketToken, setSocketToken] = useState<string | null>(null);
@@ -52,8 +72,28 @@ export default function RoomSuitor() {
   }, [getToken]);
 
   const { isConnected, sendMessage, subscribe } = useSocket(
-    roomId, participantId || undefined, myParticipantName, "suitor", socketToken ?? undefined,
+    roomId, participantId || undefined, myParticipantName, "suitor", socketToken ?? undefined, room?.roomSnapshotVersion,
   );
+  const { playEliminationStinger } = useGameCues();
+
+  useEffect(() => {
+    if (room?.status === "active" && !isConnected) {
+      setIsReconnecting(true);
+      return;
+    }
+    setIsReconnecting(false);
+  }, [isConnected, room?.status]);
+
+  useEffect(() => {
+    if (!room || !participantId) return;
+    setIsEliminated(room.eliminatedParticipants.includes(participantId));
+  }, [participantId, room]);
+
+  useEffect(() => {
+    if (isEliminated) {
+      playEliminationStinger();
+    }
+  }, [isEliminated, playEliminationStinger]);
 
   useEffect(() => { if (!participantId) setLocation("/"); }, [participantId, setLocation]);
 
@@ -64,6 +104,12 @@ export default function RoomSuitor() {
   }, [initialMessages, participantId, myParticipant?.suitorSlot]);
 
   useEffect(() => {
+    if (!isConnected || !roomId) return;
+    queryClient.invalidateQueries({ queryKey: getGetRoomQueryKey(roomId) });
+    queryClient.invalidateQueries({ queryKey: getGetRoomMessagesQueryKey(roomId) });
+  }, [isConnected, roomId, queryClient]);
+
+  useEffect(() => {
     const unsubMsg = subscribe("message_received", (msg) => {
       if (myParticipant && msg.suitorSlot === myParticipant.suitorSlot) {
         setMessages((prev) => [...prev, msg]);
@@ -72,13 +118,25 @@ export default function RoomSuitor() {
     const unsubRoom = subscribe("room_updated", (updatedRoom) => {
       queryClient.setQueryData(getGetRoomQueryKey(roomId), updatedRoom);
     });
+    const unsubTimer = subscribe("timer_sync", ({ endsAt }) => {
+      const cached = queryClient.getQueryData(getGetRoomQueryKey(roomId)) as any;
+      if (cached) {
+        queryClient.setQueryData(getGetRoomQueryKey(roomId), { ...cached, roundEndsAt: endsAt });
+      }
+    });
+    const unsubRoundStart = subscribe("round_started", ({ round, endsAt }) => {
+      const cached = queryClient.getQueryData(getGetRoomQueryKey(roomId)) as any;
+      if (cached) {
+        queryClient.setQueryData(getGetRoomQueryKey(roomId), { ...cached, currentRound: round, roundEndsAt: endsAt });
+      }
+    });
     const unsubSessionEnded = subscribe("session_ended", () => {
       setLocation(`/result/${roomId}`);
     });
     const unsubEliminated = subscribe("suitor_eliminated", ({ participantId: eliminatedId }: { participantId: string }) => {
       if (eliminatedId === participantId) setIsEliminated(true);
     });
-    return () => { unsubMsg(); unsubRoom(); unsubSessionEnded(); unsubEliminated(); };
+    return () => { unsubMsg(); unsubRoom(); unsubTimer(); unsubRoundStart(); unsubSessionEnded(); unsubEliminated(); };
   }, [subscribe, roomId, setLocation, queryClient, myParticipant, participantId]);
 
   useEffect(() => {
@@ -86,9 +144,12 @@ export default function RoomSuitor() {
   }, [messages]);
 
   const isActive = room?.status === "active";
-  const isEnded = room?.status === "ended";
 
-  if (isEnded) { setLocation(`/result/${roomId}`); return null; }
+  useEffect(() => {
+    if (room?.status === "ended") {
+      setLocation(`/result/${roomId}`);
+    }
+  }, [room?.status, roomId, setLocation]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,10 +178,10 @@ export default function RoomSuitor() {
       : null;
 
     return (
-      <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center p-6 text-center spotlight-bg relative overflow-hidden">
+      <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center p-6 text-center spotlight-bg relative overflow-hidden animate-in fade-in duration-500">
         <div className="stage-light-1 pointer-events-none" />
 
-        <div className="max-w-md w-full gameshow-card p-10 space-y-5 relative z-10 elim-flash border-elimination/30">
+        <div className="max-w-md w-full gameshow-card p-10 space-y-5 relative z-10 elim-flash border-elimination/30 transition-transform duration-500 animate-in zoom-in-95 fade-in">
           <div className="text-8xl font-display font-black text-elimination/40 drop-shadow-[0_0_30px_hsl(var(--elimination)/0.3)] leading-none">✕</div>
           <h1 className="font-display text-5xl font-black uppercase tracking-tight text-elimination drop-shadow-[0_0_15px_hsl(var(--elimination)/0.5)]">
             ELIMINATED
@@ -202,6 +263,15 @@ export default function RoomSuitor() {
                 ? "bg-secondary shadow-[0_0_6px_hsl(var(--secondary))] animate-pulse"
                 : "bg-muted-foreground"
             }`} />
+            {!isConnected && (
+              <div className="ml-2 px-2 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-[10px] font-mono uppercase tracking-widest text-amber-400">
+                Reconnecting
+              </div>
+            )}
+            <div className="ml-3 flex items-center gap-3">
+              <CountdownTimer endsAt={endsAt} />
+              <RoundProgress currentRound={currentRound} numberOfRounds={numberOfRounds} />
+            </div>
           </div>
         </header>
 
@@ -215,6 +285,20 @@ export default function RoomSuitor() {
                 : "FINALS · 3 questions · Give it everything"}
             </span>
           </div>
+        )}
+        {isReconnecting && (
+          <div className="px-4 py-2 bg-amber-500/10 border-b border-amber-500/30 flex items-center justify-center">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400">Restoring your seat...</span>
+          </div>
+        )}
+
+        {isActive && currentRoundQuestions.length > 0 && (
+          <QuestionRatingPanel
+            roomId={roomId}
+            participantId={participantId}
+            questions={currentRoundQuestions}
+            authToken={socketToken}
+          />
         )}
 
         {/* Body */}

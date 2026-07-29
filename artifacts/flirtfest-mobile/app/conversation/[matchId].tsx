@@ -66,29 +66,57 @@ export default function ConversationScreen() {
   useEffect(() => {
     if (!isLoaded || !clerkUser || !matchId) return;
 
+    let isMounted = true;
+
     // Load my profile
-    authFetch(`${API}/profile/me`).then((r) => r.json()).then((me) => setMyUserId(me.id));
+    authFetch(`${API}/profile/me`).then((r) => r.json()).then((me) => {
+      if (isMounted) setMyUserId(me.id);
+    });
 
     // Load match info
     authFetch(`${API}/matches`).then((r) => r.json()).then((data) => {
       const match = (data.matches ?? []).find((m: MatchInfo) => m.id === matchId);
-      if (match) setMatchInfo(match);
+      if (match && isMounted) setMatchInfo(match);
     });
 
     // Load messages
     authFetch(`${API}/matches/${matchId}/messages`).then((r) => r.json()).then((data) => {
-      setMessages(data.messages ?? []);
-    }).finally(() => setLoading(false));
-
-    // Real-time socket
-    const socket = socketIO(WS, { path: "/ws/socket.io", transports: ["websocket"] });
-    socketRef.current = socket;
-    socket.emit("join_match", { matchId });
-    socket.on("dm_received", (msg: DM) => {
-      setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+      if (isMounted) setMessages(data.messages ?? []);
+    }).finally(() => {
+      if (isMounted) setLoading(false);
     });
 
-    return () => { socket.disconnect(); };
+    // Real-time socket
+    (async () => {
+      const token = await getToken();
+      if (!isMounted) return;
+
+      const socket = socketIO(WS, {
+        path: "/ws/socket.io",
+        transports: ["websocket"],
+        auth: token ? { token } : undefined,
+      });
+      socketRef.current = socket;
+
+      const joinMatch = () => {
+        socket.emit("join_match", { matchId, ...(token ? { token } : {}) });
+      };
+
+      if (socket.connected) {
+        joinMatch();
+      }
+
+      socket.on("connect", joinMatch);
+      socket.on("dm_received", (msg: DM) => {
+        setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+      });
+    })();
+
+    return () => {
+      isMounted = false;
+      socketRef.current?.disconnect();
+      socketRef.current = null;
+    };
   }, [isLoaded, clerkUser, matchId]);
 
   const handleSend = async () => {

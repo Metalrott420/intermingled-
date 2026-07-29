@@ -47,7 +47,7 @@ export function initializeRevenueCat(clerkUserId?: string) {
     return;
   }
 
-  Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
+  Purchases.setLogLevel(__DEV__ ? Purchases.LOG_LEVEL.DEBUG : Purchases.LOG_LEVEL.WARN);
   Purchases.configure({ apiKey });
 
   if (clerkUserId) {

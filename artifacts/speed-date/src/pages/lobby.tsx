@@ -14,6 +14,8 @@ export default function Lobby() {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState("");
+  const [maxSuitors, setMaxSuitors] = useState(5);
+  const [numberOfRounds, setNumberOfRounds] = useState(3);
   
   const createRoom = useCreateRoom();
   const joinRoom = useJoinRoom();
@@ -21,7 +23,7 @@ export default function Lobby() {
 
   const handleHost = () => {
     if (!name.trim()) return;
-    createRoom.mutate({ data: { chooserName: name } }, {
+    createRoom.mutate({ data: { chooserName: name, maxSuitors, numberOfRounds } }, {
       onSuccess: (room) => {
         // Automatically join as chooser
         joinRoom.mutate({ id: room.id, data: { name, role: JoinInputRole.chooser } }, {
@@ -108,13 +110,53 @@ export default function Lobby() {
           )}
 
           {action === "host" ? (
-            <Button 
-              className="w-full h-12 text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={handleHost}
-              disabled={createRoom.isPending || joinRoom.isPending || !name.trim()}
-            >
-              {createRoom.isPending ? "CREATING..." : "START HOSTING"}
-            </Button>
+            <>
+              <div className="space-y-3">
+                <div className="text-xs uppercase font-mono text-muted-foreground">Suitor slots</div>
+                <div className="grid grid-cols-4 gap-2">
+                  {[3, 4, 5, 6].map((count) => (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={() => setMaxSuitors(count)}
+                      className={`h-11 rounded-xl border text-sm font-bold uppercase transition-all ${
+                        maxSuitors === count
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-card text-foreground hover:border-primary/80"
+                      }`}
+                    >
+                      {count}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="text-xs uppercase font-mono text-muted-foreground">Rounds</div>
+                <div className="flex gap-2">
+                  {[3, 5].map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setNumberOfRounds(r)}
+                      className={`h-10 px-3 rounded-xl border text-sm font-bold uppercase transition-all ${
+                        numberOfRounds === r
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-card text-foreground hover:border-primary/80"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Button 
+                className="w-full h-12 text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={handleHost}
+                disabled={createRoom.isPending || joinRoom.isPending || !name.trim()}
+              >
+                {createRoom.isPending ? "CREATING..." : "START HOSTING"}
+              </Button>
+            </>
           ) : (
             <div className="space-y-4">
               <div className="text-xs uppercase font-mono text-muted-foreground border-b border-border pb-2">Active Rooms</div>

@@ -5,7 +5,17 @@
  * Speed dating chatroom API
  * OpenAPI spec version: 0.1.0
  */
+import type { RoomQuestionConfig } from './roomQuestionConfig';
 
 export interface MatchInput {
   chooserUserId: string;
+  /**
+     * Optional number of suitors for this auto-match session.
+     * @minimum 3
+     * @maximum 6
+     */
+  maxSuitors?: number;
+  /** Optional: choose 3 or 5 rounds for the session. Defaults to 3. */
+  numberOfRounds?: number;
+  questionConfig?: RoomQuestionConfig;
 }

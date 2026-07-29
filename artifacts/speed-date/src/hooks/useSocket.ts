@@ -6,12 +6,15 @@ interface ServerToClientEvents {
   message_received: (msg: Message) => void;
   room_updated: (room: Room) => void;
   session_started: (room: Room) => void;
-  session_ended: (data: { winnerId: string; winnerName: string }) => void;
+  countdown_started: (data: { roomId: string; startsAt: string; round: number; roomSnapshotVersion: number }) => void;
+  round_started: (data: { roomId: string; round: number; endsAt: string | null; roomSnapshotVersion: number }) => void;
+  timer_sync: (data: { roomId: string; endsAt: string | null; roomSnapshotVersion: number }) => void;
+  session_ended: (data: { winnerId: string | null; winnerName: string | null; reason?: string; roomSnapshotVersion: number }) => void;
   match_found: (data: { roomId: string; participantId: string }) => void;
   slot_filled: (data: { slot: number; suitorName: string; participantId: string; roomId: string }) => void;
   pool_count: (data: { count: number }) => void;
-  suitor_eliminated: (data: { participantId: string }) => void;
-  round_advanced: (data: { round: number }) => void;
+  suitor_eliminated: (data: { participantId: string; roomSnapshotVersion: number }) => void;
+  round_advanced: (data: { round: number; roomSnapshotVersion: number }) => void;
 }
 
 interface ClientToServerEvents {
@@ -36,9 +39,64 @@ export function useSocket(
   senderName?: string,
   senderRole?: 'chooser' | 'suitor',
   token?: string,
+  snapshotVersion?: number,
 ) {
+    const shouldLogStaleEvents = process.env.NODE_ENV !== 'production';
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  const latestSnapshotVersionRef = useRef(snapshotVersion ?? 0);
+
+  useEffect(() => {
+    latestSnapshotVersionRef.current = snapshotVersion ?? 0;
+  }, [snapshotVersion]);
+
+  const isFreshSnapshot = useCallback((version?: number) => {
+    if (typeof version !== 'number') return true;
+    return version >= latestSnapshotVersionRef.current;
+  }, []);
+
+  const updateSnapshotVersion = useCallback((version?: number) => {
+    if (typeof version === 'number' && version > latestSnapshotVersionRef.current) {
+      latestSnapshotVersionRef.current = version;
+    }
+  }, []);
+
+  const isVersionedEventFresh = useCallback((event: keyof ServerToClientEvents, payload: unknown) => {
+    if (event === 'room_updated' || event === 'session_started') {
+      const room = payload as Room;
+      if (!isFreshSnapshot(room.roomSnapshotVersion)) {
+        if (shouldLogStaleEvents) {
+          console.warn('Dropped stale room snapshot event', { event, incomingVersion: room.roomSnapshotVersion, currentVersion: latestSnapshotVersionRef.current });
+        }
+        return false;
+      }
+      updateSnapshotVersion(room.roomSnapshotVersion);
+      return true;
+    }
+    if (event === 'countdown_started' || event === 'round_started' || event === 'timer_sync') {
+      const versioned = payload as { roomSnapshotVersion?: number };
+      if (!isFreshSnapshot(versioned.roomSnapshotVersion)) {
+        if (shouldLogStaleEvents) {
+          console.warn('Dropped stale lifecycle event', { event, incomingVersion: versioned.roomSnapshotVersion, currentVersion: latestSnapshotVersionRef.current });
+        }
+        return false;
+      }
+      updateSnapshotVersion(versioned.roomSnapshotVersion);
+      return true;
+    }
+    if (event === 'suitor_eliminated' || event === 'round_advanced' || event === 'session_ended') {
+      const versioned = payload as { roomSnapshotVersion?: number };
+      if (!isFreshSnapshot(versioned.roomSnapshotVersion)) {
+        if (shouldLogStaleEvents) {
+          console.warn('Dropped stale terminal event', { event, incomingVersion: versioned.roomSnapshotVersion, currentVersion: latestSnapshotVersionRef.current });
+        }
+        return false;
+      }
+      updateSnapshotVersion(versioned.roomSnapshotVersion);
+      return true;
+    }
+    return true;
+  }, [isFreshSnapshot, shouldLogStaleEvents, updateSnapshotVersion]);
 
   useEffect(() => {
     if (!roomId || !participantId) return;
@@ -55,6 +113,26 @@ export function useSocket(
 
     socket.on('connect', onConnect);
     socket.on('disconnect', () => setIsConnected(false));
+    socket.on('room_updated', (room) => {
+      if (!isFreshSnapshot(room.roomSnapshotVersion)) return;
+      updateSnapshotVersion(room.roomSnapshotVersion);
+    });
+    socket.on('session_started', (room) => {
+      if (!isFreshSnapshot(room.roomSnapshotVersion)) return;
+      updateSnapshotVersion(room.roomSnapshotVersion);
+    });
+    socket.on('countdown_started', ({ roomSnapshotVersion }) => {
+      if (!isFreshSnapshot(roomSnapshotVersion)) return;
+      updateSnapshotVersion(roomSnapshotVersion);
+    });
+    socket.on('round_started', ({ roomSnapshotVersion }) => {
+      if (!isFreshSnapshot(roomSnapshotVersion)) return;
+      updateSnapshotVersion(roomSnapshotVersion);
+    });
+    socket.on('timer_sync', ({ roomSnapshotVersion }) => {
+      if (!isFreshSnapshot(roomSnapshotVersion)) return;
+      updateSnapshotVersion(roomSnapshotVersion);
+    });
 
     return () => {
       socket.disconnect();
@@ -75,10 +153,17 @@ export function useSocket(
   const subscribe = useCallback(
     <K extends keyof ServerToClientEvents>(event: K, callback: ServerToClientEvents[K]) => {
       const socket = socketRef.current;
-      if (socket) socket.on(event, callback as any);
-      return () => { if (socketRef.current) socketRef.current.off(event, callback as any); };
+      if (!socket) {
+        return () => {};
+      }
+      const wrapped = ((payload: Parameters<ServerToClientEvents[K]>[0]) => {
+        if (!isVersionedEventFresh(event, payload)) return;
+        (callback as any)(payload);
+      }) as ServerToClientEvents[K];
+      socket.on(event, wrapped as any);
+      return () => { if (socketRef.current) socketRef.current.off(event, wrapped as any); };
     },
-    [],
+    [isVersionedEventFresh],
   );
 
   return { isConnected, sendMessage, subscribe, socket: socketRef.current };

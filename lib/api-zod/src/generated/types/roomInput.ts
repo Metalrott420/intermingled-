@@ -5,8 +5,18 @@
  * Speed dating chatroom API
  * OpenAPI spec version: 0.1.0
  */
+import type { RoomQuestionConfig } from './roomQuestionConfig';
 
 export interface RoomInput {
   /** @minLength 1 */
   chooserName: string;
+  /**
+     * Optional number of suitors for this session. The game length will be maxSuitors - 1 rounds.
+     * @minimum 3
+     * @maximum 6
+     */
+  maxSuitors?: number;
+  /** Optional: choose 3 or 5 rounds for the session. Defaults to 3. */
+  numberOfRounds?: number;
+  questionConfig?: RoomQuestionConfig;
 }

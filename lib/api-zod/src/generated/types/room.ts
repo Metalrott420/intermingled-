@@ -6,16 +6,31 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Participant } from './participant';
+import type { RoomQuestionConfig } from './roomQuestionConfig';
+import type { RoomRoundQuestion } from './roomRoundQuestion';
 import type { RoomStatus } from './roomStatus';
 
 export interface Room {
   id: string;
   code: string;
   status: RoomStatus;
+  /** Monotonically increasing revision for canonical room snapshots. */
+  roomSnapshotVersion: number;
   /** @nullable */
   chooserName: string | null;
   suitorCount: number;
   maxSuitors: number;
+  /** Number of rounds for this session (defaults to 3 if absent). */
+  numberOfRounds?: number;
+  /** Per-round duration in seconds for chooser/question phase. */
+  roundDurationSeconds?: number;
+  /** Answer time in seconds for suitor responses. */
+  answerTimeSeconds?: number;
+  /**
+     * ISO timestamp when the current round ends (server authoritative).
+     * @nullable
+     */
+  roundEndsAt?: string | null;
   /** Current round (1-4). Rounds 1-3: 1 question/suitor then eliminate. Round 4: 3 questions/suitor then choose winner. */
   currentRound: number;
   /** Array of participant IDs who have been eliminated */
@@ -25,5 +40,7 @@ export interface Room {
   /** @nullable */
   winnerName: string | null;
   participants: Participant[];
+  questionConfig: RoomQuestionConfig;
+  currentRoundQuestions: RoomRoundQuestion[];
   createdAt: string;
 }

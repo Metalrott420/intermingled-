@@ -19,6 +19,9 @@ import ProfilePage from "@/pages/profile";
 import InboxPage from "@/pages/inbox";
 import ConversationPage from "@/pages/conversation";
 import WhoLikedMe from "@/pages/who-liked-me";
+import HistoryPage from "@/pages/history";
+import HistoryGamePage from "@/pages/history-game";
+import InsightsPage from "@/pages/insights";
 import PrivacyPolicy from "@/pages/privacy";
 import TermsOfService from "@/pages/terms";
 import AdminPage from "@/pages/admin";
@@ -144,6 +147,9 @@ function AppRoutes() {
       <Route path="/inbox" component={InboxPage} />
       <Route path="/conversation/:matchId" component={ConversationPage} />
       <Route path="/who-liked-me" component={WhoLikedMe} />
+      <Route path="/history" component={HistoryPage} />
+      <Route path="/history/:gameId" component={HistoryGamePage} />
+      <Route path="/insights" component={InsightsPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/terms" component={TermsOfService} />

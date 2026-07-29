@@ -27,8 +27,8 @@
   "submit": {
     "production": {
       "android": {
-        "serviceAccountKeyPath": "$GOOGLE_PLAY_SERVICE_ACCOUNT",
-        "track": "internal"
+        "track": "internal",
+        "serviceAccountKeyPath": "$GOOGLE_PLAY_SERVICE_ACCOUNT"
       },
       "ios": {
         "appleId": "$APPLE_ID",

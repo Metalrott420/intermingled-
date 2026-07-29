@@ -1,0 +1,1 @@
+ALTER TABLE "rooms" ADD COLUMN IF NOT EXISTS "room_snapshot_version" integer DEFAULT 0 NOT NULL;

@@ -5,7 +5,11 @@
  * Speed dating chatroom API
  * OpenAPI spec version: 0.1.0
  */
+import type { ErrorEnvelopeCode } from './errorEnvelopeCode';
+import type { ErrorEnvelopeDetails } from './errorEnvelopeDetails';
 
 export interface ErrorEnvelope {
   error: string;
+  code?: ErrorEnvelopeCode;
+  details?: ErrorEnvelopeDetails;
 }

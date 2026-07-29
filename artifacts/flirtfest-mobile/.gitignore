@@ -40,5 +40,9 @@ yarn-error.*
 
 .env
 
+# Build artifacts — never commit these, they are large and generated
+release/
+
 # Google Play service account key — never commit this, store via EAS secret instead
 google-play-service-account.json
+gen-lang-client-*.json

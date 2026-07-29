@@ -12,8 +12,12 @@ tags:
     description: Health operations
   - name: rooms
     description: Speed dating room operations
+  - name: events
+    description: Ballroom event discovery and featured launches
   - name: users
     description: User and matchmaking operations
+  - name: admin
+    description: Admin operations
   - name: Storage
     description: Object storage upload and serving endpoints.
 paths:
@@ -37,6 +41,72 @@ paths:
                 $ref: '#/components/schemas/UploadUrlResponse'
         '400':
           description: Missing or invalid fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /storage/public-objects/{filePath}:
+    get:
+      tags: [Storage]
+      operationId: getPublicObject
+      summary: Serve a public object asset by wildcard path
+      parameters:
+        - name: filePath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Object stream response
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /storage/objects/{path}:
+    get:
+      tags: [Storage]
+      operationId: getPrivateObject
+      summary: Serve an authenticated object by wildcard path
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Object stream response
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Object not found
           content:
             application/json:
               schema:
@@ -120,6 +190,849 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /users/{id}/block:
+    post:
+      operationId: blockUser
+      tags: [users]
+      summary: Block a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User blocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    delete:
+      operationId: unblockUser
+      tags: [users]
+      summary: Unblock a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User unblocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /users/{id}/like:
+    post:
+      operationId: likeUser
+      tags: [users]
+      summary: Like a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User liked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    delete:
+      operationId: unlikeUser
+      tags: [users]
+      summary: Remove a like from a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Like removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /users/{id}/report:
+    post:
+      operationId: reportUser
+      tags: [users]
+      summary: Report a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportUserInput"
+      responses:
+        "200":
+          description: Report submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /users/who-liked-me:
+    get:
+      operationId: getWhoLikedMe
+      tags: [users]
+      summary: List users who liked the current user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Users who liked me
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhoLikedMeResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /users/push-token:
+    post:
+      operationId: setPushToken
+      tags: [users]
+      summary: Register Expo push token for current user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushTokenInput"
+      responses:
+        "200":
+          description: Push token saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /profile/me:
+    get:
+      operationId: getMyProfile
+      tags: [users]
+      summary: Get current user's full profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    put:
+      operationId: updateMyProfile
+      tags: [users]
+      summary: Update current user's profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileInput"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /profile/{userId}:
+    get:
+      operationId: getPublicProfile
+      tags: [users]
+      summary: Get another user's public profile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /profile/me/photos/upload-url:
+    post:
+      operationId: createProfilePhotoUploadUrl
+      tags: [users]
+      summary: Create a pre-signed upload URL for profile photo
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfilePhotoUploadRequest"
+      responses:
+        "200":
+          description: Upload URL and object path
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /profile/me/photos:
+    post:
+      operationId: addProfilePhoto
+      tags: [users]
+      summary: Attach uploaded photo path to current profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfilePhotoPathInput"
+      responses:
+        "200":
+          description: Updated photos list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfilePhotosResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    delete:
+      operationId: removeProfilePhoto
+      tags: [users]
+      summary: Remove a photo path from current profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfilePhotoPathInput"
+      responses:
+        "200":
+          description: Updated photos list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfilePhotosResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /rooms/{roomId}/group-messages:
+    get:
+      operationId: getGroupMessages
+      tags: [rooms]
+      summary: Get post-game group messages for a room
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Group messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupMessagesResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    post:
+      operationId: createGroupMessage
+      tags: [rooms]
+      summary: Post a group message in a room
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupMessageInput"
+      responses:
+        "200":
+          description: Message created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupMessageResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Contact info blocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /stripe/me:
+    get:
+      operationId: getStripeMe
+      tags: [users]
+      summary: Get current user with stripe subscription summary
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Stripe account summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StripeMeResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /stripe/plans:
+    get:
+      operationId: getStripePlans
+      tags: [users]
+      summary: List available stripe plans
+      responses:
+        "200":
+          description: Stripe plans
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StripePlansResponse"
+
+  /stripe/checkout:
+    post:
+      operationId: createStripeCheckout
+      tags: [users]
+      summary: Create stripe checkout session
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StripeCheckoutInput"
+      responses:
+        "200":
+          description: Checkout URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StripeUrlResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /stripe/portal:
+    post:
+      operationId: createStripePortal
+      tags: [users]
+      summary: Create stripe billing portal session
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Billing portal URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StripeUrlResponse"
+        "400":
+          description: No billing account found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get admin dashboard summary counts
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Admin stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/users:
+    get:
+      operationId: getAdminUsers
+      tags: [admin]
+      summary: List users for admin moderation
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUserSummary"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/reports:
+    get:
+      operationId: getAdminReports
+      tags: [admin]
+      summary: List moderation reports
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Reports list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminReport"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/rooms:
+    get:
+      operationId: getAdminRooms
+      tags: [admin]
+      summary: List rooms for moderation and debugging
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Rooms list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Room"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/users/{id}/ban:
+    post:
+      operationId: banUser
+      tags: [admin]
+      summary: Ban a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User banned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          description: Invalid operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/users/{id}/unban:
+    post:
+      operationId: unbanUser
+      tags: [admin]
+      summary: Unban a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User unbanned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/users/{id}/grant-admin:
+    post:
+      operationId: grantUserAdmin
+      tags: [admin]
+      summary: Grant admin role to a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Admin granted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/users/{id}/revoke-admin:
+    post:
+      operationId: revokeUserAdmin
+      tags: [admin]
+      summary: Revoke admin role from a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Admin revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          description: Invalid operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
   /entitlement/premium/sync:
     post:
       operationId: syncPremiumEntitlement
@@ -141,6 +1054,84 @@ paths:
                 $ref: "#/components/schemas/PremiumSyncResult"
         "401":
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /entitlement/premium:
+    get:
+      operationId: getPremiumEntitlement
+      tags: [users]
+      summary: Get current premium entitlement status
+      description: |
+        Re-validates premium status against RevenueCat and returns
+        the caller's current entitlement status.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Entitlement status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PremiumEntitlementResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /identity/start:
+    post:
+      operationId: startIdentityVerification
+      tags: [users]
+      summary: Start Stripe Identity age verification
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Verification session started or already verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityStartResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /identity/status:
+    get:
+      operationId: getIdentityStatus
+      tags: [users]
+      summary: Get current age verification status
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current verification status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityStatusResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: User not found
           content:
             application/json:
               schema:
@@ -319,7 +1310,1130 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /rooms/{id}/questions/{questionId}/rating:
+    post:
+      operationId: rateRoomQuestion
+      tags: [rooms]
+      summary: Rate a question that appeared in the current room
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: questionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RateRoomQuestionInput"
+      responses:
+        "201":
+          description: Question rating recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionRatingResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Room or question not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /history:
+    get:
+      operationId: getHistory
+      tags: [rooms]
+      summary: Get current user's game history
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+
+            type: integer
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: matchStatus
+          in: query
+          schema:
+            type: string
+            enum: [matched, unmatched, unknown]
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [chooser, suitor]
+        - name: isWinner
+          in: query
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [newest, oldest]
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Paginated game history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryListResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /history/{gameId}:
+    get:
+      operationId: getHistoryGame
+      tags: [rooms]
+      summary: Get archived game detail for current user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Archived game detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryGameDetail"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Game not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /history/{gameId}/replay:
+    get:
+      operationId: getHistoryReplay
+      tags: [rooms]
+      summary: Get round-by-round replay timeline for an archived game
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Replay timeline payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryReplay"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Game not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /rooms/{roomId}/match:
+    get:
+      operationId: getRoomMatch
+      tags: [rooms]
+      summary: Get the private match record for a room
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Match lookup result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomMatchLookupResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /rooms/{id}/eliminate:
+    post:
+      operationId: eliminateSuitor
+      tags: [rooms]
+      summary: Eliminate a suitor from the current round
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EliminateSuitorInput"
+      responses:
+        "200":
+          description: Updated room after elimination
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /rooms/{id}/advance-round:
+    post:
+      operationId: advanceRoomRound
+      tags: [rooms]
+      summary: Advance the room to the next round
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated room after advancing round
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /matches:
+    get:
+      operationId: getMatches
+      tags: [rooms]
+      summary: List private matches for the current user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Matches list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchListResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /matches/{matchId}/messages:
+    get:
+      operationId: getMatchMessages
+      tags: [rooms]
+      summary: Get direct messages for a private match
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Direct messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchMessagesResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    post:
+      operationId: createMatchMessage
+      tags: [rooms]
+      summary: Send a direct message in a private match
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMatchMessageInput"
+      responses:
+        "201":
+          description: Created direct message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DirectMessage"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /matches/{matchId}/state:
+    get:
+      operationId: getMatchState
+      tags: [rooms]
+      summary: Get private chat lifecycle state for reconnect/presence/typing
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Match lifecycle state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchStateResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /matches/{matchId}/read:
+    post:
+      operationId: setMatchReadReceipt
+      tags: [rooms]
+      summary: Update read cursor for private match messages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchReadReceiptInput"
+      responses:
+        "200":
+          description: Read cursor updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchReadReceiptResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /players/{id}/stats:
+    get:
+      operationId: getPlayerStats
+      tags: [users]
+      summary: Get derived player statistics from archived games
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Player statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerStats"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /players/{id}/achievements:
+    get:
+      operationId: getPlayerAchievements
+      tags: [users]
+      summary: Get derived player achievements
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Player achievements
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AchievementListResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /analytics/summary:
+    get:
+      operationId: getAnalyticsSummary
+      tags: [users]
+      summary: Get analytics summary for dashboard reads
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+      responses:
+        "200":
+          description: Analytics summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsSummary"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /analytics/events:
+    get:
+      operationId: getAnalyticsEvents
+      tags: [users]
+      summary: Get analytics event stream for dashboard reads
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - name: eventType
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Analytics event list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsEventsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/question-packs:
+    get:
+      operationId: getAdminQuestionPacks
+      tags: [admin]
+      summary: List question pack coverage and active counts
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Question pack summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuestionPackSummary"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/question-analytics:
+    get:
+      operationId: getAdminQuestionAnalytics
+      tags: [admin]
+      summary: Get question intelligence dashboard data
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+        - name: days
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 90
+      responses:
+        "200":
+          description: Question intelligence dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionIntelligenceDashboard"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/guardian:
+    get:
+      operationId: getAdminGuardian
+      tags: [admin]
+      summary: Get moderation and safety dashboard data
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Guardian moderation dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuardianDashboard"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /events:
+    get:
+      operationId: getEvents
+      tags: [events]
+      summary: List ballroom events
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/BallroomEventStatus"
+        - name: featured
+          in: query
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Event list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BallroomEvent"
+
+  /events/featured:
+    get:
+      operationId: getFeaturedEvent
+      tags: [events]
+      summary: Get the current featured ballroom event
+      responses:
+        "200":
+          description: Featured event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BallroomEvent"
+        "404":
+          description: No featured event found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/events:
+    post:
+      operationId: createAdminEvent
+      tags: [admin]
+      summary: Create a ballroom event
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBallroomEventInput"
+      responses:
+        "201":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BallroomEvent"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/events/{id}:
+    patch:
+      operationId: updateAdminEvent
+      tags: [admin]
+      summary: Update a ballroom event
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBallroomEventInput"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BallroomEvent"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/events/{id}/notify:
+    post:
+      operationId: notifyAdminEvent
+      tags: [admin]
+      summary: Send push notifications for a ballroom event
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotifyBallroomEventInput"
+      responses:
+        "200":
+          description: Notification dispatch result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BallroomEventNotifyResult"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/questions:
+    get:
+      operationId: getAdminQuestions
+      tags: [admin]
+      summary: List questions with filtering and pagination
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: packSlug
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            $ref: "#/components/schemas/QuestionCategory"
+        - name: difficulty
+          in: query
+          schema:
+            $ref: "#/components/schemas/QuestionDifficulty"
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Paginated questions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminQuestionListResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    post:
+      operationId: createAdminQuestion
+      tags: [admin]
+      summary: Create a new question in the bank
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAdminQuestionInput"
+      responses:
+        "201":
+          description: Created question
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionBankItem"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Duplicate question content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/questions/{id}:
+    patch:
+      operationId: updateAdminQuestion
+      tags: [admin]
+      summary: Update question content or metadata
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAdminQuestionInput"
+      responses:
+        "200":
+          description: Updated question
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionBankItem"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Question not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Duplicate question content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /admin/questions/{id}/archive:
+    post:
+      operationId: archiveAdminQuestion
+      tags: [admin]
+      summary: Archive a question from active selection
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Archived question
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionBankItem"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Question not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     HealthStatus:
       type: object
@@ -405,6 +2519,16 @@ components:
       properties:
         chooserUserId:
           type: string
+        maxSuitors:
+          type: integer
+          minimum: 3
+          maximum: 6
+          description: "Optional number of suitors for this auto-match session."
+        numberOfRounds:
+          type: integer
+          description: "Optional: choose 3 or 5 rounds for the session. Defaults to 3."
+        questionConfig:
+          $ref: "#/components/schemas/RoomQuestionConfig"
       required:
         - chooserUserId
 
@@ -465,12 +2589,27 @@ components:
         status:
           type: string
           enum: [waiting, active, ended]
+        roomSnapshotVersion:
+          type: integer
+          description: "Monotonically increasing revision for canonical room snapshots."
         chooserName:
           type: ["string", "null"]
         suitorCount:
           type: integer
         maxSuitors:
           type: integer
+        numberOfRounds:
+          type: integer
+          description: "Number of rounds for this session (defaults to 3 if absent)."
+        roundDurationSeconds:
+          type: integer
+          description: "Per-round duration in seconds for chooser/question phase."
+        answerTimeSeconds:
+          type: integer
+          description: "Answer time in seconds for suitor responses."
+        roundEndsAt:
+          type: ["string", "null"]
+          description: "ISO timestamp when the current round ends (server authoritative)."
         currentRound:
           type: integer
           description: "Current round (1-4). Rounds 1-3: 1 question/suitor then eliminate. Round 4: 3 questions/suitor then choose winner."
@@ -487,12 +2626,19 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Participant"
+        questionConfig:
+          $ref: "#/components/schemas/RoomQuestionConfig"
+        currentRoundQuestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoomRoundQuestion"
         createdAt:
           type: string
       required:
         - id
         - code
         - status
+        - roomSnapshotVersion
         - chooserName
         - suitorCount
         - maxSuitors
@@ -501,6 +2647,8 @@ components:
         - winnerId
         - winnerName
         - participants
+        - questionConfig
+        - currentRoundQuestions
         - createdAt
 
     Message:
@@ -543,8 +2691,676 @@ components:
         chooserName:
           type: string
           minLength: 1
+        maxSuitors:
+          type: integer
+          minimum: 3
+          maximum: 6
+          description: "Optional number of suitors for this session. The game length will be maxSuitors - 1 rounds."
+        numberOfRounds:
+          type: integer
+          description: "Optional: choose 3 or 5 rounds for the session. Defaults to 3."
+        questionConfig:
+          $ref: "#/components/schemas/RoomQuestionConfig"
       required:
         - chooserName
+
+    QuestionCategory:
+      type: string
+      enum: [general, fun, deep]
+
+    QuestionDifficulty:
+      type: string
+      enum: [easy, medium, hard]
+
+    RoundDifficulty:
+      type: string
+      enum: [easy, medium, hard, wildcard]
+
+    QuestionPackStrategy:
+      oneOf:
+        - type: object
+          properties:
+            mode:
+              type: string
+              enum: [single]
+            packSlug:
+              type: string
+              minLength: 1
+          required: [mode, packSlug]
+        - type: object
+          properties:
+            mode:
+              type: string
+              enum: [multi]
+            packSlugs:
+              type: array
+              minItems: 1
+              items:
+                type: string
+                minLength: 1
+          required: [mode, packSlugs]
+        - type: object
+          properties:
+            mode:
+              type: string
+              enum: [weighted]
+            packWeights:
+              type: object
+              additionalProperties:
+                type: number
+                minimum: 0
+          required: [mode, packWeights]
+        - type: object
+          properties:
+            mode:
+              type: string
+              enum: [seasonal]
+            seasonalPackSlugs:
+              type: array
+              minItems: 1
+              items:
+                type: string
+                minLength: 1
+            fallbackPackSlugs:
+              type: array
+              items:
+                type: string
+                minLength: 1
+          required: [mode, seasonalPackSlugs]
+        - type: object
+          properties:
+            mode:
+              type: string
+              enum: [premium]
+            premiumPackSlugs:
+              type: array
+              minItems: 1
+              items:
+                type: string
+                minLength: 1
+            fallbackPackSlugs:
+              type: array
+              minItems: 1
+              items:
+                type: string
+                minLength: 1
+          required: [mode, premiumPackSlugs, fallbackPackSlugs]
+
+    RoomQuestionConfig:
+      type: object
+      properties:
+        packStrategy:
+          $ref: "#/components/schemas/QuestionPackStrategy"
+        categoryWeights:
+          type: object
+          properties:
+            general:
+              type: number
+              minimum: 0
+            fun:
+              type: number
+              minimum: 0
+            deep:
+              type: number
+              minimum: 0
+        difficultyPlan:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/RoundDifficulty"
+        avoidRecentGames:
+          type: integer
+          minimum: 0
+          maximum: 20
+        disallowRepeatsInGame:
+          type: boolean
+
+    RoomRoundQuestion:
+      type: object
+      required: [id, content, packSlug, category, difficulty, ratingSummary]
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        packSlug:
+          type: string
+        category:
+          $ref: "#/components/schemas/QuestionCategory"
+        difficulty:
+          $ref: "#/components/schemas/QuestionDifficulty"
+        ratingSummary:
+          $ref: "#/components/schemas/QuestionRatingSummary"
+
+    QuestionRatingSummary:
+      type: object
+      required: [questionId, ratingCount, averageRating, qualityScore]
+      properties:
+        questionId:
+          type: string
+        ratingCount:
+          type: integer
+        averageRating:
+          type: ["number", "null"]
+        qualityScore:
+          type: ["number", "null"]
+
+    QuestionBankItem:
+      type: object
+      required: [id, content, packSlug, category, difficulty, normalizedHash, isActive, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        packSlug:
+          type: string
+        category:
+          $ref: "#/components/schemas/QuestionCategory"
+        difficulty:
+          $ref: "#/components/schemas/QuestionDifficulty"
+        normalizedHash:
+          type: string
+        isActive:
+          type: boolean
+        createdByUserId:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    QuestionPackSummary:
+      type: object
+      required: [packSlug, total, active]
+      properties:
+        packSlug:
+          type: string
+        total:
+          type: integer
+        active:
+          type: integer
+
+    QuestionPerformanceSnapshot:
+      type: object
+      required:
+        - questionId
+        - content
+        - packSlug
+        - category
+        - difficulty
+        - usageCount
+        - exposureCount
+        - recentExposureCount
+        - ratingCount
+        - completedCount
+        - skippedCount
+        - timeoutCount
+        - confidenceScore
+        - freshnessScore
+        - qualityScore
+        - suggestedArchive
+        - suggestedPromote
+      properties:
+        questionId:
+          type: string
+        content:
+          type: string
+        packSlug:
+          type: string
+        category:
+          $ref: "#/components/schemas/QuestionCategory"
+        difficulty:
+          $ref: "#/components/schemas/QuestionDifficulty"
+        usageCount:
+          type: integer
+        exposureCount:
+          type: integer
+        recentExposureCount:
+          type: integer
+        ratingCount:
+          type: integer
+        averageRating:
+          type: ["number", "null"]
+        completedCount:
+          type: integer
+        completionRate:
+          type: ["number", "null"]
+        skippedCount:
+          type: integer
+        skipRate:
+          type: ["number", "null"]
+        timeoutCount:
+          type: integer
+        timeoutRate:
+          type: ["number", "null"]
+        averageResponseTimeSeconds:
+          type: ["number", "null"]
+        confidenceScore:
+          type: integer
+        freshnessScore:
+          type: integer
+        qualityScore:
+          type: integer
+        suggestedArchive:
+          type: boolean
+        suggestedPromote:
+          type: boolean
+
+    QuestionGroupPerformanceSnapshot:
+      type: object
+      required:
+        - groupValue
+        - questionCount
+        - exposureCount
+        - ratingCount
+        - suggestedArchiveCount
+        - suggestedPromoteCount
+      properties:
+        groupValue:
+          type: string
+        questionCount:
+          type: integer
+        exposureCount:
+          type: integer
+        ratingCount:
+          type: integer
+        averageRating:
+          type: ["number", "null"]
+        averageQualityScore:
+          type: ["number", "null"]
+        completionRate:
+          type: ["number", "null"]
+        skipRate:
+          type: ["number", "null"]
+        timeoutRate:
+          type: ["number", "null"]
+        averageResponseTimeSeconds:
+          type: ["number", "null"]
+        suggestedArchiveCount:
+          type: integer
+        suggestedPromoteCount:
+          type: integer
+
+    QuestionTrendPoint:
+      type: object
+      required: [bucket, exposureCount, ratingCount]
+      properties:
+        bucket:
+          type: string
+        exposureCount:
+          type: integer
+        ratingCount:
+          type: integer
+        averageRating:
+          type: ["number", "null"]
+        averageResponseTimeSeconds:
+          type: ["number", "null"]
+
+    QuestionIntelligenceDashboard:
+      type: object
+      required:
+        - leaderboard
+        - lowestPerforming
+        - packRankings
+        - categoryRankings
+        - difficultyRankings
+        - ratingTrends
+        - responseTimeTrends
+        - exposureMetrics
+      properties:
+        leaderboard:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuestionPerformanceSnapshot"
+        lowestPerforming:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuestionPerformanceSnapshot"
+        packRankings:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuestionGroupPerformanceSnapshot"
+        categoryRankings:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuestionGroupPerformanceSnapshot"
+        difficultyRankings:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuestionGroupPerformanceSnapshot"
+        ratingTrends:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuestionTrendPoint"
+        responseTimeTrends:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuestionTrendPoint"
+        exposureMetrics:
+          type: object
+          required:
+            - activeQuestions
+            - totalExposureCount
+            - recentExposureCount
+            - averageExposurePerQuestion
+            - recentWindowDays
+          properties:
+            activeQuestions:
+              type: integer
+            totalExposureCount:
+              type: integer
+            recentExposureCount:
+              type: integer
+            averageExposurePerQuestion:
+              type: number
+            recentWindowDays:
+              type: integer
+
+    GuardianOverview:
+      type: object
+      required:
+        - totalReports
+        - totalBlocks
+        - bannedUsers
+        - recentReportCount
+        - recentBlockCount
+      properties:
+        totalReports:
+          type: integer
+        totalBlocks:
+          type: integer
+        bannedUsers:
+          type: integer
+        recentReportCount:
+          type: integer
+        recentBlockCount:
+          type: integer
+
+    GuardianReportItem:
+      type: object
+      required:
+        - id
+        - reporterId
+        - reporterName
+        - reportedId
+        - reportedName
+        - reportedIsBanned
+        - reason
+        - createdAt
+      properties:
+        id:
+          type: string
+        reporterId:
+          type: string
+        reporterName:
+          type: string
+        reportedId:
+          type: string
+        reportedName:
+          type: string
+        reportedIsBanned:
+          type: boolean
+        reason:
+          type: string
+        detail:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    GuardianBlockItem:
+      type: object
+      required:
+        - blockerId
+        - blockerName
+        - blockedId
+        - blockedName
+        - createdAt
+      properties:
+        blockerId:
+          type: string
+        blockerName:
+          type: string
+        blockedId:
+          type: string
+        blockedName:
+          type: string
+        createdAt:
+          type: string
+
+    GuardianTopReportedUser:
+      type: object
+      required:
+        - userId
+        - userName
+        - reportCount
+        - isBanned
+      properties:
+        userId:
+          type: string
+        userName:
+          type: string
+        reportCount:
+          type: integer
+        isBanned:
+          type: boolean
+
+    GuardianDashboard:
+      type: object
+      required:
+        - overview
+        - recentReports
+        - recentBlocks
+        - topReportedUsers
+      properties:
+        overview:
+          $ref: "#/components/schemas/GuardianOverview"
+        recentReports:
+          type: array
+          items:
+            $ref: "#/components/schemas/GuardianReportItem"
+        recentBlocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/GuardianBlockItem"
+        topReportedUsers:
+          type: array
+          items:
+            $ref: "#/components/schemas/GuardianTopReportedUser"
+
+    BallroomEventStatus:
+      type: string
+      enum: [scheduled, live, completed, cancelled]
+
+    BallroomEvent:
+      type: object
+      required:
+        - id
+        - title
+        - status
+        - startsAt
+        - endsAt
+        - isFeatured
+        - metadata
+        - createdByUserId
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        status:
+          $ref: "#/components/schemas/BallroomEventStatus"
+        startsAt:
+          type: string
+        endsAt:
+          type: ["string", "null"]
+        isFeatured:
+          type: boolean
+        metadata:
+          type: object
+          additionalProperties: true
+        createdByUserId:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    CreateBallroomEventInput:
+      type: object
+      required: [title, startsAt]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 1000
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/BallroomEventStatus"
+        isFeatured:
+          type: boolean
+        metadata:
+          type: object
+          additionalProperties: true
+
+    UpdateBallroomEventInput:
+      type: object
+      minProperties: 1
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 1000
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/BallroomEventStatus"
+        isFeatured:
+          type: boolean
+        metadata:
+          type: object
+          additionalProperties: true
+
+    NotifyBallroomEventInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        body:
+          type: string
+          minLength: 1
+          maxLength: 240
+        dryRun:
+          type: boolean
+
+    BallroomEventNotifyResult:
+      type: object
+      required: [ok, notifiedCount, dryRun]
+      properties:
+        ok:
+          type: boolean
+        notifiedCount:
+          type: integer
+        dryRun:
+          type: boolean
+
+    RateRoomQuestionInput:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        participantId:
+          type: string
+          description: Optional participant id used to tie ratings to a live room seat.
+
+    QuestionRatingResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+
+    CreateAdminQuestionInput:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 1
+        packSlug:
+          type: string
+          minLength: 1
+          maxLength: 64
+        category:
+          $ref: "#/components/schemas/QuestionCategory"
+        difficulty:
+          $ref: "#/components/schemas/QuestionDifficulty"
+      required: [content, packSlug, category, difficulty]
+
+    UpdateAdminQuestionInput:
+      type: object
+      minProperties: 1
+      properties:
+        content:
+          type: string
+          minLength: 1
+        packSlug:
+          type: string
+          minLength: 1
+          maxLength: 64
+        category:
+          $ref: "#/components/schemas/QuestionCategory"
+        difficulty:
+          $ref: "#/components/schemas/QuestionDifficulty"
+        isActive:
+          type: boolean
+
+    AdminPagination:
+      type: object
+      required: [page, limit, total, totalPages]
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    AdminQuestionListResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuestionBankItem"
+        pagination:
+          $ref: "#/components/schemas/AdminPagination"
 
     JoinInput:
       type: object
@@ -612,9 +3428,842 @@ components:
         roomsUpdated:
           type: integer
           description: Number of active room participants that were updated
+
+    PremiumEntitlementResult:
+      type: object
+      required: [isPremium]
+      properties:
+        isPremium:
+          type: boolean
+          description: The caller's current premium status after the re-check
+
+    OkResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+
+    ReportUserInput:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+        detail:
+          type: string
+
+    WhoLikedMeUser:
+      type: object
+      required: [id, name, photos, bio, likedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        photos:
+          type: array
+          items:
+            type: string
+        bio:
+          type: ["string", "null"]
+        likedAt:
+          type: string
+
+    WhoLikedMeResponse:
+      type: object
+      required: [likers]
+      properties:
+        likers:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhoLikedMeUser"
+
+    PushTokenInput:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          minLength: 1
+
+    ProfilePrompt:
+      type: object
+      required: [question, answer]
+      properties:
+        question:
+          type: string
+        answer:
+          type: string
+
+    UpdateProfileInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        bio:
+          type: string
+          maxLength: 500
+        dateOfBirth:
+          type: string
+          description: Date in YYYY-MM-DD format
+        photos:
+          type: array
+          maxItems: 12
+          items:
+            type: string
+        profilePrompts:
+          type: array
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/ProfilePrompt"
+        gender:
+          type: string
+          enum: [man, woman, nonbinary, other]
+        showMeGender:
+          type: string
+          enum: [men, women, everyone]
+
+    PublicProfile:
+      type: object
+      required: [id, name, bio, age, photos, role]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        bio:
+          type: ["string", "null"]
+        age:
+          type: ["integer", "null"]
+        photos:
+          type: array
+          items:
+            type: string
+        role:
+          type: string
+
+    ProfilePhotoUploadRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+          minimum: 1
+        contentType:
+          type: string
+
+    ProfilePhotoPathInput:
+      type: object
+      required: [objectPath]
+      properties:
+        objectPath:
+          type: string
+
+    ProfilePhotosResponse:
+      type: object
+      required: [photos]
+      properties:
+        photos:
+          type: array
+          items:
+            type: string
+
+    GroupMessage:
+      type: object
+      required: [id, roomId, senderId, senderName, content, createdAt]
+      properties:
+        id:
+          type: string
+        roomId:
+          type: string
+        senderId:
+          type: string
+        senderName:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+
+    GroupMessagesResponse:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/GroupMessage"
+
+    GroupMessageInput:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+
+    GroupMessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          $ref: "#/components/schemas/GroupMessage"
+
+    StripeSubscriptionSummary:
+      type: object
+      additionalProperties: true
+
+    StripeMeResponse:
+      type: object
+      required: [user, subscription]
+      properties:
+        user:
+          $ref: "#/components/schemas/UserProfile"
+        subscription:
+          anyOf:
+            - $ref: "#/components/schemas/StripeSubscriptionSummary"
+            - type: "null"
+
+    StripePlan:
+      type: object
+      required: [product_id, product_name, price_id, unit_amount, currency, recurring]
+      properties:
+        product_id:
+          type: string
+        product_name:
+          type: string
+        product_description:
+          type: ["string", "null"]
+        product_metadata:
+          type: object
+          additionalProperties: true
+        price_id:
+          type: string
+        unit_amount:
+          type: ["integer", "null"]
+        currency:
+          type: string
+        recurring:
+          type: ["object", "null"]
+          additionalProperties: true
+
+    StripePlansResponse:
+      type: object
+      required: [plans]
+      properties:
+        plans:
+          type: array
+          items:
+            $ref: "#/components/schemas/StripePlan"
+
+    StripeCheckoutInput:
+      type: object
+      required: [priceId]
+      properties:
+        priceId:
+          type: string
+          minLength: 1
+
+    StripeUrlResponse:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+
+    AdminStats:
+      type: object
+      required: [totalUsers, totalRooms, openReports]
+      properties:
+        totalUsers:
+          type: integer
+        totalRooms:
+          type: integer
+        openReports:
+          type: integer
+
+    AdminUserSummary:
+      type: object
+      required: [id, name, email, role, status, isAdmin, isBanned, gender, createdAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: ["string", "null"]
+        role:
+          type: string
+        status:
+          type: string
+        isAdmin:
+          type: boolean
+        isBanned:
+          type: boolean
+        gender:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    AdminReport:
+      type: object
+      required:
+        [id, reporterId, reportedId, reason, detail, createdAt, reporterName, reportedName, reportedIsBanned]
+      properties:
+        id:
+          type: string
+        reporterId:
+          type: string
+        reportedId:
+          type: string
+        reason:
+          type: string
+        detail:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        reporterName:
+          type: string
+        reportedName:
+          type: string
+        reportedIsBanned:
+          type: boolean
+
+    IdentityStartResponse:
+      oneOf:
+        - type: object
+          required: [alreadyVerified]
+          properties:
+            alreadyVerified:
+              type: boolean
+              enum: [true]
+        - type: object
+          required: [url, sessionId]
+          properties:
+            url:
+              type: string
+            sessionId:
+              type: string
+
+    IdentityStatusResponse:
+      type: object
+      required: [verified, status]
+      properties:
+        verified:
+          type: boolean
+        status:
+          type: string
+          enum: [verified, not_started, failed, underage, canceled, requires_input]
+        message:
+          type: string
+
+    PaginationMeta:
+      type: object
+      required: [page, limit, total, totalPages, hasMore]
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+        hasMore:
+          type: boolean
+        nextCursor:
+          type: ["string", "null"]
+
+    HistoryItem:
+      type: object
+      required: [gameId, completionTimestamp, role, isWinner, matchStatus, roundsSurvived, winnerId, winnerName, participantCount]
+      properties:
+        gameId:
+          type: string
+        completionTimestamp:
+          type: string
+        role:
+          type: string
+        isWinner:
+          type: boolean
+        matchStatus:
+          type: string
+          enum: [matched, unmatched, unknown]
+        roundsSurvived:
+          type: integer
+        winnerId:
+          type: ["string", "null"]
+        winnerName:
+          type: ["string", "null"]
+        participantCount:
+          type: integer
+
+    HistoryListResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/HistoryItem"
+        pagination:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    ArchivedParticipant:
+      type: object
+      required: [id, name, role, suitorSlot, isBot, isPremium]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        suitorSlot:
+          type: ["integer", "null"]
+        isBot:
+          type: boolean
+        isPremium:
+          type: boolean
+
+    ArchivedQuestion:
+      type: object
+      required: [participantId, suitorSlot, round, content, createdAt]
+      properties:
+        participantId:
+          type: string
+        suitorSlot:
+          type: ["integer", "null"]
+        round:
+          type: ["integer", "null"]
+        content:
+          type: string
+        createdAt:
+          type: string
+
+    QuestionTelemetrySummary:
+      type: object
+      required:
+        [askedCount, completedCount, skippedCount, timeoutCount, ratedCount, averageResponseTimeSeconds, averageRating]
+      properties:
+        askedCount:
+          type: integer
+        completedCount:
+          type: integer
+        skippedCount:
+          type: integer
+        timeoutCount:
+          type: integer
+        ratedCount:
+          type: integer
+        averageResponseTimeSeconds:
+          type: ["number", "null"]
+        averageRating:
+          type: ["number", "null"]
+
+    HistoryGameDetail:
+      type: object
+      required: [gameId, completionTimestamp, winnerId, winnerName, matchStatus, eliminationOrder, participants, questionsAsked, roundDurations, analyticsMetadata, questionTelemetrySummary, playerPerspective]
+      properties:
+        gameId:
+          type: string
+        completionTimestamp:
+          type: string
+        winnerId:
+          type: ["string", "null"]
+        winnerName:
+          type: ["string", "null"]
+        matchStatus:
+          type: string
+          enum: [matched, unmatched, unknown]
+        eliminationOrder:
+          type: array
+          items:
+            type: string
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArchivedParticipant"
+        questionsAsked:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArchivedQuestion"
+        roundDurations:
+          type: array
+          items:
+            type: integer
+        analyticsMetadata:
+          type: object
+          additionalProperties: true
+        questionTelemetrySummary:
+          $ref: "#/components/schemas/QuestionTelemetrySummary"
+        playerPerspective:
+          type: object
+          required: [role, isWinner, roundsSurvived]
+          properties:
+            role:
+              type: string
+            isWinner:
+              type: boolean
+            roundsSurvived:
+              type: integer
+
+    HistoryReplayRoundQuestion:
+      type: object
+      required: [participantId, suitorSlot, content, createdAt]
+      properties:
+        participantId:
+          type: string
+        suitorSlot:
+          type: ["integer", "null"]
+        content:
+          type: string
+        createdAt:
+          type: string
+
+    HistoryReplayRound:
+      type: object
+      required: [round, durationSeconds, questions, eliminatedParticipantIds]
+      properties:
+        round:
+          type: integer
+        durationSeconds:
+          type: integer
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/HistoryReplayRoundQuestion"
+        eliminatedParticipantIds:
+          type: array
+          items:
+            type: string
+
+    HistoryReplay:
+      type: object
+      required: [gameId, completionTimestamp, winnerId, winnerName, matchStatus, rounds, eliminationOrder, participants, playerPerspective]
+      properties:
+        gameId:
+          type: string
+        completionTimestamp:
+          type: string
+        winnerId:
+          type: ["string", "null"]
+        winnerName:
+          type: ["string", "null"]
+        matchStatus:
+          type: string
+          enum: [matched, unmatched, unknown]
+        rounds:
+          type: array
+          items:
+            $ref: "#/components/schemas/HistoryReplayRound"
+        eliminationOrder:
+          type: array
+          items:
+            type: string
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArchivedParticipant"
+        playerPerspective:
+          type: object
+          required: [role, isWinner, roundsSurvived]
+          properties:
+            role:
+              type: string
+            isWinner:
+              type: boolean
+            roundsSurvived:
+              type: integer
+
+    RoomMatch:
+      type: object
+      required: [id, roomId, chooserUserId, suitorUserId, chooserName, suitorName, createdAt]
+      properties:
+        id:
+          type: string
+        roomId:
+          type: string
+        chooserUserId:
+          type: string
+        suitorUserId:
+          type: string
+        chooserName:
+          type: string
+        suitorName:
+          type: string
+        createdAt:
+          type: string
+
+    RoomMatchLookupResponse:
+      type: object
+      required: [match]
+      properties:
+        match:
+          anyOf:
+            - $ref: "#/components/schemas/RoomMatch"
+            - type: "null"
+
+    MatchSummary:
+      allOf:
+        - $ref: "#/components/schemas/RoomMatch"
+        - type: object
+          required: [otherUserId, otherName, otherPhotos, lastMessage]
+          properties:
+            otherUserId:
+              type: string
+            otherName:
+              type: string
+            otherPhotos:
+              type: array
+              items:
+                type: string
+            lastMessage:
+              anyOf:
+                - type: object
+                  required: [content, createdAt, senderName]
+                  properties:
+                    content:
+                      type: string
+                    createdAt:
+                      type: string
+                    senderName:
+                      type: string
+                - type: "null"
+
+    MatchListResponse:
+      type: object
+      required: [matches]
+      properties:
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/MatchSummary"
+
+    DirectMessage:
+      type: object
+      required: [id, matchId, senderId, senderName, content, createdAt]
+      properties:
+        id:
+          type: string
+        matchId:
+          type: string
+        senderId:
+          type: string
+        senderName:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+
+    MatchMessagesResponse:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/DirectMessage"
+
+    CreateMatchMessageInput:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+
+    MatchPresenceState:
+      type: object
+      required: [selfOnline, otherOnline, isOtherTyping, lastTypingAt]
+      properties:
+        selfOnline:
+          type: boolean
+        otherOnline:
+          type: boolean
+        isOtherTyping:
+          type: boolean
+        lastTypingAt:
+          type: ["string", "null"]
+
+    MatchStateResponse:
+      type: object
+      required: [matchId, unreadCount, lastReadAt, canResume, serverTime, presence]
+      properties:
+        matchId:
+          type: string
+        unreadCount:
+          type: integer
+        lastReadAt:
+          type: ["string", "null"]
+        canResume:
+          type: boolean
+        serverTime:
+          type: string
+        presence:
+          $ref: "#/components/schemas/MatchPresenceState"
+
+    MatchReadReceiptInput:
+      type: object
+      properties:
+        lastReadAt:
+          type: string
+          format: date-time
+
+    MatchReadReceiptResponse:
+      type: object
+      required: [ok, matchId, lastReadAt]
+      properties:
+        ok:
+          type: boolean
+        matchId:
+          type: string
+        lastReadAt:
+          type: string
+
+    EliminateSuitorInput:
+      type: object
+      required: [participantId]
+      properties:
+        participantId:
+          type: string
+
+    PlayerStreaks:
+      type: object
+      required: [currentWinStreak, maxWinStreak, currentMatchStreak, maxMatchStreak]
+      properties:
+        currentWinStreak:
+          type: integer
+        maxWinStreak:
+          type: integer
+        currentMatchStreak:
+          type: integer
+        maxMatchStreak:
+          type: integer
+
+    PlayerStats:
+      type: object
+      required: [gamesPlayed, wins, matches, winPercentage, matchPercentage, averageFinish, averageResponseTimeSeconds, streaks]
+      properties:
+        gamesPlayed:
+          type: integer
+        wins:
+          type: integer
+        matches:
+          type: integer
+        winPercentage:
+          type: number
+        matchPercentage:
+          type: number
+        averageFinish:
+          type: number
+        averageResponseTimeSeconds:
+          type: ["number", "null"]
+        streaks:
+          $ref: "#/components/schemas/PlayerStreaks"
+
+    Achievement:
+      type: object
+      required: [id, title, description, target, progress, unlocked]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        target:
+          type: integer
+        progress:
+          type: integer
+        unlocked:
+          type: boolean
+
+    AchievementListResponse:
+      type: object
+      required: [achievements]
+      properties:
+        achievements:
+          type: array
+          items:
+            $ref: "#/components/schemas/Achievement"
+
+    AnalyticsTopEventType:
+      type: object
+      required: [eventType, count]
+      properties:
+        eventType:
+          type: string
+        count:
+          type: integer
+
+    AnalyticsSummary:
+      type: object
+      required: [days, totalEvents, uniqueRooms, uniqueUsers, eventsByType, topEventTypes]
+      properties:
+        days:
+          type: integer
+        totalEvents:
+          type: integer
+        uniqueRooms:
+          type: integer
+        uniqueUsers:
+          type: integer
+        eventsByType:
+          type: object
+          additionalProperties:
+            type: integer
+        topEventTypes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnalyticsTopEventType"
+
+    AnalyticsEventItem:
+      type: object
+      required: [id, roomId, userId, participantId, eventType, payload, createdAt]
+      properties:
+        id:
+          type: string
+        roomId:
+          type: ["string", "null"]
+        userId:
+          type: ["string", "null"]
+        participantId:
+          type: ["string", "null"]
+        eventType:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+
+    AnalyticsEventsResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnalyticsEventItem"
+        pagination:
+          $ref: "#/components/schemas/PaginationMeta"
     ErrorEnvelope:
       type: object
       required: [error]
       properties:
         error:
           type: string
+        code:
+          type: string
+          enum: [unauthorized, forbidden, not_found, invalid_query, internal_error]
+        details:
+          type: object
+          additionalProperties: true

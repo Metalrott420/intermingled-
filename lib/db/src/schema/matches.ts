@@ -26,10 +26,26 @@ export const directMessagesTable = pgTable("direct_messages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Per-user read cursor for a match conversation.
+export const matchReadStatesTable = pgTable("match_read_states", {
+  id: text("id").primaryKey(),
+  matchId: text("match_id").notNull().references(() => matchesTable.id),
+  userId: text("user_id").notNull(),
+  lastReadAt: timestamp("last_read_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertMatchSchema = createInsertSchema(matchesTable).omit({ createdAt: true });
 export const insertDirectMessageSchema = createInsertSchema(directMessagesTable).omit({ createdAt: true });
+export const insertMatchReadStateSchema = createInsertSchema(matchReadStatesTable).omit({
+  createdAt: true,
+  updatedAt: true,
+});
 
 export type Match = typeof matchesTable.$inferSelect;
 export type InsertMatch = z.infer<typeof insertMatchSchema>;
 export type DirectMessage = typeof directMessagesTable.$inferSelect;
 export type InsertDirectMessage = z.infer<typeof insertDirectMessageSchema>;
+export type MatchReadState = typeof matchReadStatesTable.$inferSelect;
+export type InsertMatchReadState = z.infer<typeof insertMatchReadStateSchema>;

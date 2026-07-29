@@ -81,8 +81,73 @@ export interface UpdateUserStatusInput {
   status: UpdateUserStatusInputStatus;
 }
 
+export type QuestionPackStrategy = {
+  mode: 'single';
+  /** @minLength 1 */
+  packSlug: string;
+} | {
+  mode: 'multi';
+  /** @minItems 1 */
+  packSlugs: string[];
+} | {
+  mode: 'weighted';
+  packWeights: {[key: string]: number};
+} | {
+  mode: 'seasonal';
+  /** @minItems 1 */
+  seasonalPackSlugs: string[];
+  fallbackPackSlugs?: string[];
+} | {
+  mode: 'premium';
+  /** @minItems 1 */
+  premiumPackSlugs: string[];
+  /** @minItems 1 */
+  fallbackPackSlugs: string[];
+};
+
+export type RoundDifficulty = typeof RoundDifficulty[keyof typeof RoundDifficulty];
+
+
+export const RoundDifficulty = {
+  easy: 'easy',
+  medium: 'medium',
+  hard: 'hard',
+  wildcard: 'wildcard',
+} as const;
+
+export type RoomQuestionConfigCategoryWeights = {
+  /** @minimum 0 */
+  general?: number;
+  /** @minimum 0 */
+  fun?: number;
+  /** @minimum 0 */
+  deep?: number;
+};
+
+export interface RoomQuestionConfig {
+  packStrategy?: QuestionPackStrategy;
+  categoryWeights?: RoomQuestionConfigCategoryWeights;
+  /** @minItems 1 */
+  difficultyPlan?: RoundDifficulty[];
+  /**
+     * @minimum 0
+     * @maximum 20
+     */
+  avoidRecentGames?: number;
+  disallowRepeatsInGame?: boolean;
+}
+
 export interface MatchInput {
   chooserUserId: string;
+  /**
+     * Optional number of suitors for this auto-match session.
+     * @minimum 3
+     * @maximum 6
+     */
+  maxSuitors?: number;
+  /** Optional: choose 3 or 5 rounds for the session. Defaults to 3. */
+  numberOfRounds?: number;
+  questionConfig?: RoomQuestionConfig;
 }
 
 export type RoomStatus = typeof RoomStatus[keyof typeof RoomStatus];
@@ -114,14 +179,63 @@ export interface Participant {
   isPremium: boolean;
 }
 
+export type QuestionCategory = typeof QuestionCategory[keyof typeof QuestionCategory];
+
+
+export const QuestionCategory = {
+  general: 'general',
+  fun: 'fun',
+  deep: 'deep',
+} as const;
+
+export type QuestionDifficulty = typeof QuestionDifficulty[keyof typeof QuestionDifficulty];
+
+
+export const QuestionDifficulty = {
+  easy: 'easy',
+  medium: 'medium',
+  hard: 'hard',
+} as const;
+
+export interface QuestionRatingSummary {
+  questionId: string;
+  ratingCount: number;
+  /** @nullable */
+  averageRating: number | null;
+  /** @nullable */
+  qualityScore: number | null;
+}
+
+export interface RoomRoundQuestion {
+  id: string;
+  content: string;
+  packSlug: string;
+  category: QuestionCategory;
+  difficulty: QuestionDifficulty;
+  ratingSummary: QuestionRatingSummary;
+}
+
 export interface Room {
   id: string;
   code: string;
   status: RoomStatus;
+  /** Monotonically increasing revision for canonical room snapshots. */
+  roomSnapshotVersion: number;
   /** @nullable */
   chooserName: string | null;
   suitorCount: number;
   maxSuitors: number;
+  /** Number of rounds for this session (defaults to 3 if absent). */
+  numberOfRounds?: number;
+  /** Per-round duration in seconds for chooser/question phase. */
+  roundDurationSeconds?: number;
+  /** Answer time in seconds for suitor responses. */
+  answerTimeSeconds?: number;
+  /**
+     * ISO timestamp when the current round ends (server authoritative).
+     * @nullable
+     */
+  roundEndsAt?: string | null;
   /** Current round (1-4). Rounds 1-3: 1 question/suitor then eliminate. Round 4: 3 questions/suitor then choose winner. */
   currentRound: number;
   /** Array of participant IDs who have been eliminated */
@@ -131,6 +245,8 @@ export interface Room {
   /** @nullable */
   winnerName: string | null;
   participants: Participant[];
+  questionConfig: RoomQuestionConfig;
+  currentRoundQuestions: RoomRoundQuestion[];
   createdAt: string;
 }
 
@@ -171,6 +287,292 @@ export interface Message {
 export interface RoomInput {
   /** @minLength 1 */
   chooserName: string;
+  /**
+     * Optional number of suitors for this session. The game length will be maxSuitors - 1 rounds.
+     * @minimum 3
+     * @maximum 6
+     */
+  maxSuitors?: number;
+  /** Optional: choose 3 or 5 rounds for the session. Defaults to 3. */
+  numberOfRounds?: number;
+  questionConfig?: RoomQuestionConfig;
+}
+
+export interface QuestionBankItem {
+  id: string;
+  content: string;
+  packSlug: string;
+  category: QuestionCategory;
+  difficulty: QuestionDifficulty;
+  normalizedHash: string;
+  isActive: boolean;
+  /** @nullable */
+  createdByUserId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuestionPackSummary {
+  packSlug: string;
+  total: number;
+  active: number;
+}
+
+export interface QuestionPerformanceSnapshot {
+  questionId: string;
+  content: string;
+  packSlug: string;
+  category: QuestionCategory;
+  difficulty: QuestionDifficulty;
+  usageCount: number;
+  exposureCount: number;
+  recentExposureCount: number;
+  ratingCount: number;
+  /** @nullable */
+  averageRating?: number | null;
+  completedCount: number;
+  /** @nullable */
+  completionRate?: number | null;
+  skippedCount: number;
+  /** @nullable */
+  skipRate?: number | null;
+  timeoutCount: number;
+  /** @nullable */
+  timeoutRate?: number | null;
+  /** @nullable */
+  averageResponseTimeSeconds?: number | null;
+  confidenceScore: number;
+  freshnessScore: number;
+  qualityScore: number;
+  suggestedArchive: boolean;
+  suggestedPromote: boolean;
+}
+
+export interface QuestionGroupPerformanceSnapshot {
+  groupValue: string;
+  questionCount: number;
+  exposureCount: number;
+  ratingCount: number;
+  /** @nullable */
+  averageRating?: number | null;
+  /** @nullable */
+  averageQualityScore?: number | null;
+  /** @nullable */
+  completionRate?: number | null;
+  /** @nullable */
+  skipRate?: number | null;
+  /** @nullable */
+  timeoutRate?: number | null;
+  /** @nullable */
+  averageResponseTimeSeconds?: number | null;
+  suggestedArchiveCount: number;
+  suggestedPromoteCount: number;
+}
+
+export interface QuestionTrendPoint {
+  bucket: string;
+  exposureCount: number;
+  ratingCount: number;
+  /** @nullable */
+  averageRating?: number | null;
+  /** @nullable */
+  averageResponseTimeSeconds?: number | null;
+}
+
+export type QuestionIntelligenceDashboardExposureMetrics = {
+  activeQuestions: number;
+  totalExposureCount: number;
+  recentExposureCount: number;
+  averageExposurePerQuestion: number;
+  recentWindowDays: number;
+};
+
+export interface QuestionIntelligenceDashboard {
+  leaderboard: QuestionPerformanceSnapshot[];
+  lowestPerforming: QuestionPerformanceSnapshot[];
+  packRankings: QuestionGroupPerformanceSnapshot[];
+  categoryRankings: QuestionGroupPerformanceSnapshot[];
+  difficultyRankings: QuestionGroupPerformanceSnapshot[];
+  ratingTrends: QuestionTrendPoint[];
+  responseTimeTrends: QuestionTrendPoint[];
+  exposureMetrics: QuestionIntelligenceDashboardExposureMetrics;
+}
+
+export interface GuardianOverview {
+  totalReports: number;
+  totalBlocks: number;
+  bannedUsers: number;
+  recentReportCount: number;
+  recentBlockCount: number;
+}
+
+export interface GuardianReportItem {
+  id: string;
+  reporterId: string;
+  reporterName: string;
+  reportedId: string;
+  reportedName: string;
+  reportedIsBanned: boolean;
+  reason: string;
+  /** @nullable */
+  detail?: string | null;
+  createdAt: string;
+}
+
+export interface GuardianBlockItem {
+  blockerId: string;
+  blockerName: string;
+  blockedId: string;
+  blockedName: string;
+  createdAt: string;
+}
+
+export interface GuardianTopReportedUser {
+  userId: string;
+  userName: string;
+  reportCount: number;
+  isBanned: boolean;
+}
+
+export interface GuardianDashboard {
+  overview: GuardianOverview;
+  recentReports: GuardianReportItem[];
+  recentBlocks: GuardianBlockItem[];
+  topReportedUsers: GuardianTopReportedUser[];
+}
+
+export type BallroomEventStatus = typeof BallroomEventStatus[keyof typeof BallroomEventStatus];
+
+
+export const BallroomEventStatus = {
+  scheduled: 'scheduled',
+  live: 'live',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export type BallroomEventMetadata = { [key: string]: unknown };
+
+export interface BallroomEvent {
+  id: string;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  status: BallroomEventStatus;
+  startsAt: string;
+  /** @nullable */
+  endsAt: string | null;
+  isFeatured: boolean;
+  metadata: BallroomEventMetadata;
+  /** @nullable */
+  createdByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateBallroomEventInputMetadata = { [key: string]: unknown };
+
+export interface CreateBallroomEventInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  title: string;
+  /** @maxLength 1000 */
+  description?: string;
+  startsAt: string;
+  endsAt?: string;
+  status?: BallroomEventStatus;
+  isFeatured?: boolean;
+  metadata?: CreateBallroomEventInputMetadata;
+}
+
+export type UpdateBallroomEventInputMetadata = { [key: string]: unknown };
+
+export interface UpdateBallroomEventInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  title?: string;
+  /** @maxLength 1000 */
+  description?: string;
+  startsAt?: string;
+  endsAt?: string;
+  status?: BallroomEventStatus;
+  isFeatured?: boolean;
+  metadata?: UpdateBallroomEventInputMetadata;
+}
+
+export interface NotifyBallroomEventInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  title?: string;
+  /**
+     * @minLength 1
+     * @maxLength 240
+     */
+  body?: string;
+  dryRun?: boolean;
+}
+
+export interface BallroomEventNotifyResult {
+  ok: boolean;
+  notifiedCount: number;
+  dryRun: boolean;
+}
+
+export interface RateRoomQuestionInput {
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  rating: number;
+  /** Optional participant id used to tie ratings to a live room seat. */
+  participantId?: string;
+}
+
+export interface QuestionRatingResponse {
+  ok: boolean;
+}
+
+export interface CreateAdminQuestionInput {
+  /** @minLength 1 */
+  content: string;
+  /**
+     * @minLength 1
+     * @maxLength 64
+     */
+  packSlug: string;
+  category: QuestionCategory;
+  difficulty: QuestionDifficulty;
+}
+
+export interface UpdateAdminQuestionInput {
+  /** @minLength 1 */
+  content?: string;
+  /**
+     * @minLength 1
+     * @maxLength 64
+     */
+  packSlug?: string;
+  category?: QuestionCategory;
+  difficulty?: QuestionDifficulty;
+  isActive?: boolean;
+}
+
+export interface AdminPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface AdminQuestionListResponse {
+  items: QuestionBankItem[];
+  pagination: AdminPagination;
 }
 
 export type JoinInputRole = typeof JoinInputRole[keyof typeof JoinInputRole];
@@ -218,7 +620,645 @@ export interface PremiumSyncResult {
   roomsUpdated: number;
 }
 
+export interface PremiumEntitlementResult {
+  /** The caller's current premium status after the re-check */
+  isPremium: boolean;
+}
+
+export interface OkResponse {
+  ok: boolean;
+}
+
+export interface ReportUserInput {
+  /** @minLength 1 */
+  reason: string;
+  detail?: string;
+}
+
+export interface WhoLikedMeUser {
+  id: string;
+  name: string;
+  photos: string[];
+  /** @nullable */
+  bio: string | null;
+  likedAt: string;
+}
+
+export interface WhoLikedMeResponse {
+  likers: WhoLikedMeUser[];
+}
+
+export interface PushTokenInput {
+  /** @minLength 1 */
+  token: string;
+}
+
+export interface ProfilePrompt {
+  question: string;
+  answer: string;
+}
+
+export type UpdateProfileInputGender = typeof UpdateProfileInputGender[keyof typeof UpdateProfileInputGender];
+
+
+export const UpdateProfileInputGender = {
+  man: 'man',
+  woman: 'woman',
+  nonbinary: 'nonbinary',
+  other: 'other',
+} as const;
+
+export type UpdateProfileInputShowMeGender = typeof UpdateProfileInputShowMeGender[keyof typeof UpdateProfileInputShowMeGender];
+
+
+export const UpdateProfileInputShowMeGender = {
+  men: 'men',
+  women: 'women',
+  everyone: 'everyone',
+} as const;
+
+export interface UpdateProfileInput {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  name?: string;
+  /** @maxLength 500 */
+  bio?: string;
+  /** Date in YYYY-MM-DD format */
+  dateOfBirth?: string;
+  /** @maxItems 12 */
+  photos?: string[];
+  /** @maxItems 3 */
+  profilePrompts?: ProfilePrompt[];
+  gender?: UpdateProfileInputGender;
+  showMeGender?: UpdateProfileInputShowMeGender;
+}
+
+export interface PublicProfile {
+  id: string;
+  name: string;
+  /** @nullable */
+  bio: string | null;
+  /** @nullable */
+  age: number | null;
+  photos: string[];
+  role: string;
+}
+
+export interface ProfilePhotoUploadRequest {
+  name: string;
+  /** @minimum 1 */
+  size: number;
+  contentType: string;
+}
+
+export interface ProfilePhotoPathInput {
+  objectPath: string;
+}
+
+export interface ProfilePhotosResponse {
+  photos: string[];
+}
+
+export interface GroupMessage {
+  id: string;
+  roomId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface GroupMessagesResponse {
+  messages: GroupMessage[];
+}
+
+export interface GroupMessageInput {
+  /** @minLength 1 */
+  content: string;
+}
+
+export interface GroupMessageResponse {
+  message: GroupMessage;
+}
+
+export interface StripeSubscriptionSummary { [key: string]: unknown }
+
+export interface StripeMeResponse {
+  user: UserProfile;
+  subscription: StripeSubscriptionSummary | null;
+}
+
+export type StripePlanProductMetadata = { [key: string]: unknown };
+
+/**
+ * @nullable
+ */
+export type StripePlanRecurring = { [key: string]: unknown } | null;
+
+export interface StripePlan {
+  product_id: string;
+  product_name: string;
+  /** @nullable */
+  product_description?: string | null;
+  product_metadata?: StripePlanProductMetadata;
+  price_id: string;
+  /** @nullable */
+  unit_amount: number | null;
+  currency: string;
+  /** @nullable */
+  recurring: StripePlanRecurring;
+}
+
+export interface StripePlansResponse {
+  plans: StripePlan[];
+}
+
+export interface StripeCheckoutInput {
+  /** @minLength 1 */
+  priceId: string;
+}
+
+export interface StripeUrlResponse {
+  url: string;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  totalRooms: number;
+  openReports: number;
+}
+
+export interface AdminUserSummary {
+  id: string;
+  name: string;
+  /** @nullable */
+  email: string | null;
+  role: string;
+  status: string;
+  isAdmin: boolean;
+  isBanned: boolean;
+  /** @nullable */
+  gender: string | null;
+  createdAt: string;
+}
+
+export interface AdminReport {
+  id: string;
+  reporterId: string;
+  reportedId: string;
+  reason: string;
+  /** @nullable */
+  detail: string | null;
+  createdAt: string;
+  reporterName: string;
+  reportedName: string;
+  reportedIsBanned: boolean;
+}
+
+export type IdentityStartResponse = {
+  alreadyVerified: true;
+} | {
+  url: string;
+  sessionId: string;
+};
+
+export type IdentityStatusResponseStatus = typeof IdentityStatusResponseStatus[keyof typeof IdentityStatusResponseStatus];
+
+
+export const IdentityStatusResponseStatus = {
+  verified: 'verified',
+  not_started: 'not_started',
+  failed: 'failed',
+  underage: 'underage',
+  canceled: 'canceled',
+  requires_input: 'requires_input',
+} as const;
+
+export interface IdentityStatusResponse {
+  verified: boolean;
+  status: IdentityStatusResponseStatus;
+  message?: string;
+}
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+  /** @nullable */
+  nextCursor?: string | null;
+}
+
+export type HistoryItemMatchStatus = typeof HistoryItemMatchStatus[keyof typeof HistoryItemMatchStatus];
+
+
+export const HistoryItemMatchStatus = {
+  matched: 'matched',
+  unmatched: 'unmatched',
+  unknown: 'unknown',
+} as const;
+
+export interface HistoryItem {
+  gameId: string;
+  completionTimestamp: string;
+  role: string;
+  isWinner: boolean;
+  matchStatus: HistoryItemMatchStatus;
+  roundsSurvived: number;
+  /** @nullable */
+  winnerId: string | null;
+  /** @nullable */
+  winnerName: string | null;
+  participantCount: number;
+}
+
+export interface HistoryListResponse {
+  items: HistoryItem[];
+  pagination: PaginationMeta;
+}
+
+export interface ArchivedParticipant {
+  id: string;
+  name: string;
+  role: string;
+  /** @nullable */
+  suitorSlot: number | null;
+  isBot: boolean;
+  isPremium: boolean;
+}
+
+export interface ArchivedQuestion {
+  participantId: string;
+  /** @nullable */
+  suitorSlot: number | null;
+  /** @nullable */
+  round: number | null;
+  content: string;
+  createdAt: string;
+}
+
+export interface QuestionTelemetrySummary {
+  askedCount: number;
+  completedCount: number;
+  skippedCount: number;
+  timeoutCount: number;
+  ratedCount: number;
+  /** @nullable */
+  averageResponseTimeSeconds: number | null;
+  /** @nullable */
+  averageRating: number | null;
+}
+
+export type HistoryGameDetailMatchStatus = typeof HistoryGameDetailMatchStatus[keyof typeof HistoryGameDetailMatchStatus];
+
+
+export const HistoryGameDetailMatchStatus = {
+  matched: 'matched',
+  unmatched: 'unmatched',
+  unknown: 'unknown',
+} as const;
+
+export type HistoryGameDetailAnalyticsMetadata = { [key: string]: unknown };
+
+export type HistoryGameDetailPlayerPerspective = {
+  role: string;
+  isWinner: boolean;
+  roundsSurvived: number;
+};
+
+export interface HistoryGameDetail {
+  gameId: string;
+  completionTimestamp: string;
+  /** @nullable */
+  winnerId: string | null;
+  /** @nullable */
+  winnerName: string | null;
+  matchStatus: HistoryGameDetailMatchStatus;
+  eliminationOrder: string[];
+  participants: ArchivedParticipant[];
+  questionsAsked: ArchivedQuestion[];
+  roundDurations: number[];
+  analyticsMetadata: HistoryGameDetailAnalyticsMetadata;
+  questionTelemetrySummary: QuestionTelemetrySummary;
+  playerPerspective: HistoryGameDetailPlayerPerspective;
+}
+
+export interface HistoryReplayRoundQuestion {
+  participantId: string;
+  /** @nullable */
+  suitorSlot: number | null;
+  content: string;
+  createdAt: string;
+}
+
+export interface HistoryReplayRound {
+  round: number;
+  durationSeconds: number;
+  questions: HistoryReplayRoundQuestion[];
+  eliminatedParticipantIds: string[];
+}
+
+export type HistoryReplayMatchStatus = typeof HistoryReplayMatchStatus[keyof typeof HistoryReplayMatchStatus];
+
+
+export const HistoryReplayMatchStatus = {
+  matched: 'matched',
+  unmatched: 'unmatched',
+  unknown: 'unknown',
+} as const;
+
+export type HistoryReplayPlayerPerspective = {
+  role: string;
+  isWinner: boolean;
+  roundsSurvived: number;
+};
+
+export interface HistoryReplay {
+  gameId: string;
+  completionTimestamp: string;
+  /** @nullable */
+  winnerId: string | null;
+  /** @nullable */
+  winnerName: string | null;
+  matchStatus: HistoryReplayMatchStatus;
+  rounds: HistoryReplayRound[];
+  eliminationOrder: string[];
+  participants: ArchivedParticipant[];
+  playerPerspective: HistoryReplayPlayerPerspective;
+}
+
+export interface RoomMatch {
+  id: string;
+  roomId: string;
+  chooserUserId: string;
+  suitorUserId: string;
+  chooserName: string;
+  suitorName: string;
+  createdAt: string;
+}
+
+export interface RoomMatchLookupResponse {
+  match: RoomMatch | null;
+}
+
+export type MatchSummaryLastMessage = {
+  content: string;
+  createdAt: string;
+  senderName: string;
+} | null;
+
+export type MatchSummary = RoomMatch & {
+  otherUserId: string;
+  otherName: string;
+  otherPhotos: string[];
+  lastMessage: MatchSummaryLastMessage;
+};
+
+export interface MatchListResponse {
+  matches: MatchSummary[];
+}
+
+export interface DirectMessage {
+  id: string;
+  matchId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface MatchMessagesResponse {
+  messages: DirectMessage[];
+}
+
+export interface CreateMatchMessageInput {
+  /** @minLength 1 */
+  content: string;
+}
+
+export interface MatchPresenceState {
+  selfOnline: boolean;
+  otherOnline: boolean;
+  isOtherTyping: boolean;
+  /** @nullable */
+  lastTypingAt: string | null;
+}
+
+export interface MatchStateResponse {
+  matchId: string;
+  unreadCount: number;
+  /** @nullable */
+  lastReadAt: string | null;
+  canResume: boolean;
+  serverTime: string;
+  presence: MatchPresenceState;
+}
+
+export interface MatchReadReceiptInput {
+  lastReadAt?: string;
+}
+
+export interface MatchReadReceiptResponse {
+  ok: boolean;
+  matchId: string;
+  lastReadAt: string;
+}
+
+export interface EliminateSuitorInput {
+  participantId: string;
+}
+
+export interface PlayerStreaks {
+  currentWinStreak: number;
+  maxWinStreak: number;
+  currentMatchStreak: number;
+  maxMatchStreak: number;
+}
+
+export interface PlayerStats {
+  gamesPlayed: number;
+  wins: number;
+  matches: number;
+  winPercentage: number;
+  matchPercentage: number;
+  averageFinish: number;
+  /** @nullable */
+  averageResponseTimeSeconds: number | null;
+  streaks: PlayerStreaks;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  target: number;
+  progress: number;
+  unlocked: boolean;
+}
+
+export interface AchievementListResponse {
+  achievements: Achievement[];
+}
+
+export interface AnalyticsTopEventType {
+  eventType: string;
+  count: number;
+}
+
+export type AnalyticsSummaryEventsByType = {[key: string]: number};
+
+export interface AnalyticsSummary {
+  days: number;
+  totalEvents: number;
+  uniqueRooms: number;
+  uniqueUsers: number;
+  eventsByType: AnalyticsSummaryEventsByType;
+  topEventTypes: AnalyticsTopEventType[];
+}
+
+export type AnalyticsEventItemPayload = { [key: string]: unknown };
+
+export interface AnalyticsEventItem {
+  id: string;
+  /** @nullable */
+  roomId: string | null;
+  /** @nullable */
+  userId: string | null;
+  /** @nullable */
+  participantId: string | null;
+  eventType: string;
+  payload: AnalyticsEventItemPayload;
+  createdAt: string;
+}
+
+export interface AnalyticsEventsResponse {
+  items: AnalyticsEventItem[];
+  pagination: PaginationMeta;
+}
+
+export type ErrorEnvelopeCode = typeof ErrorEnvelopeCode[keyof typeof ErrorEnvelopeCode];
+
+
+export const ErrorEnvelopeCode = {
+  unauthorized: 'unauthorized',
+  forbidden: 'forbidden',
+  not_found: 'not_found',
+  invalid_query: 'invalid_query',
+  internal_error: 'internal_error',
+} as const;
+
+export type ErrorEnvelopeDetails = { [key: string]: unknown };
+
 export interface ErrorEnvelope {
   error: string;
+  code?: ErrorEnvelopeCode;
+  details?: ErrorEnvelopeDetails;
 }
+
+export type GetHistoryParams = {
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+matchStatus?: GetHistoryMatchStatus;
+role?: GetHistoryRole;
+isWinner?: boolean;
+search?: string;
+sort?: GetHistorySort;
+cursor?: string;
+};
+
+export type GetHistoryMatchStatus = typeof GetHistoryMatchStatus[keyof typeof GetHistoryMatchStatus];
+
+
+export const GetHistoryMatchStatus = {
+  matched: 'matched',
+  unmatched: 'unmatched',
+  unknown: 'unknown',
+} as const;
+
+export type GetHistoryRole = typeof GetHistoryRole[keyof typeof GetHistoryRole];
+
+
+export const GetHistoryRole = {
+  chooser: 'chooser',
+  suitor: 'suitor',
+} as const;
+
+export type GetHistorySort = typeof GetHistorySort[keyof typeof GetHistorySort];
+
+
+export const GetHistorySort = {
+  newest: 'newest',
+  oldest: 'oldest',
+} as const;
+
+export type GetAnalyticsSummaryParams = {
+/**
+ * @minimum 1
+ * @maximum 365
+ */
+days?: number;
+};
+
+export type GetAnalyticsEventsParams = {
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 200
+ */
+limit?: number;
+eventType?: string;
+};
+
+export type GetAdminQuestionAnalyticsParams = {
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+limit?: number;
+/**
+ * @minimum 1
+ * @maximum 90
+ */
+days?: number;
+};
+
+export type GetEventsParams = {
+status?: BallroomEventStatus;
+featured?: boolean;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type GetAdminQuestionsParams = {
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+search?: string;
+packSlug?: string;
+category?: QuestionCategory;
+difficulty?: QuestionDifficulty;
+isActive?: boolean;
+};
 

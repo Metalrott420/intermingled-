@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useLocation, useParams } from "wouter";
 import { useAuth } from "@clerk/react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,11 @@ import {
 import { useSocket } from "@/hooks/useSocket";
 import { Message } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { X, ChevronRight, Sparkles, Scissors, Flag, Trophy, Zap } from "lucide-react";
+import { X, Sparkles, Scissors, Flag, Trophy, Zap } from "lucide-react";
+import CountdownTimer from "@/components/CountdownTimer";
+import RoundProgress from "@/components/RoundProgress";
+import { QuestionRatingPanel } from "@/components/QuestionRatingPanel";
+import { useGameCues } from "@/hooks/useGameCues";
 
 type Phase = "messaging" | "eliminate" | "advancing" | "choose_winner";
 
@@ -83,7 +87,10 @@ export default function RoomChooser() {
   const [phase, setPhase] = useState<Phase>("messaging");
   const [isProcessing, setIsProcessing] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
+  const [pendingElimination, setPendingElimination] = useState<{ id: string; name: string } | null>(null);
   const messageEndRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const eliminationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { getToken } = useAuth();
 
@@ -100,14 +107,28 @@ export default function RoomChooser() {
   }, [getToken]);
 
   const chooseWinner = useChooseWinner();
+  const { playEliminationStinger } = useGameCues();
   const chooserName = room?.chooserName ?? undefined;
-  const { sendMessage, subscribe } = useSocket(roomId, participantId || undefined, chooserName, "chooser", socketToken ?? undefined);
+  const { isConnected, sendMessage, subscribe } = useSocket(roomId, participantId || undefined, chooserName, "chooser", socketToken ?? undefined, room?.roomSnapshotVersion);
 
   const currentRound = room?.currentRound ?? 1;
   const eliminatedParticipants = (room?.eliminatedParticipants ?? []) as string[];
   const finalRound = (room?.maxSuitors ?? 3) - 1;
   const questionsPerRound = currentRound < finalRound ? 1 : 3;
   const suitorSlots = Array.from({ length: room?.maxSuitors ?? 3 }, (_, i) => i + 1);
+  const currentRoundQuestions = (room?.currentRoundQuestions ?? []) as Array<{
+    id: string;
+    content: string;
+    packSlug?: string;
+    category: string;
+    difficulty: string;
+    ratingSummary?: {
+      questionId: string;
+      ratingCount: number;
+      averageRating: number | null;
+      qualityScore: number | null;
+    };
+  }>;
 
   const isEliminated = useCallback((suitorId: string) =>
     eliminatedParticipants.includes(suitorId), [eliminatedParticipants]);
@@ -126,15 +147,59 @@ export default function RoomChooser() {
     activeSlots.every((slot) => questionsAskedInRound(slot) >= questionsPerRound);
 
   useEffect(() => {
-    if (!allQuestionsAsked || phase !== "messaging") return;
-    setPhase(currentRound < finalRound ? "eliminate" : "choose_winner");
-  }, [allQuestionsAsked, currentRound, phase]);
+    if (phase === "advancing") return;
+    if (room?.status !== "active") {
+      setPhase("messaging");
+      return;
+    }
+    if (allQuestionsAsked) {
+      setPhase(currentRound < finalRound ? "eliminate" : "choose_winner");
+      return;
+    }
+    setPhase("messaging");
+  }, [allQuestionsAsked, currentRound, finalRound, phase, room?.status]);
+
+  useEffect(() => {
+    if (phase !== "advancing") return;
+    if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+    advanceTimerRef.current = setTimeout(() => {
+      void handleAdvanceRound();
+    }, 1200);
+    return () => {
+      if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+    };
+  }, [phase]);
+
+  useEffect(() => {
+    return () => {
+      if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+      if (eliminationTimerRef.current) clearTimeout(eliminationTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => { setPhase("messaging"); }, [currentRound]);
 
   useEffect(() => {
+    if (phase !== "advancing") return;
+    if (!room?.eliminatedParticipants?.length) return;
+    setPendingElimination(null);
+  }, [phase, room?.eliminatedParticipants]);
+
+  useEffect(() => {
     if (initialMessages) setMessages(initialMessages);
   }, [initialMessages]);
+
+  useEffect(() => {
+    if (!isConnected || !roomId) return;
+    queryClient.invalidateQueries({ queryKey: getGetRoomQueryKey(roomId) });
+    queryClient.invalidateQueries({ queryKey: getGetRoomMessagesQueryKey(roomId) });
+  }, [isConnected, roomId, queryClient]);
+
+  useEffect(() => {
+    if (room?.status === "ended") {
+      setLocation(`/result/${roomId}`);
+    }
+  }, [room?.status, roomId, setLocation]);
 
   useEffect(() => {
     if (!participantId) setLocation("/");
@@ -155,10 +220,22 @@ export default function RoomChooser() {
     const unsubRoom = subscribe("room_updated", (updatedRoom) => {
       queryClient.setQueryData(getGetRoomQueryKey(roomId), updatedRoom);
     });
+    const unsubTimer = subscribe("timer_sync", ({ endsAt }) => {
+      const cached = queryClient.getQueryData(getGetRoomQueryKey(roomId)) as any;
+      if (cached) {
+        queryClient.setQueryData(getGetRoomQueryKey(roomId), { ...cached, roundEndsAt: endsAt });
+      }
+    });
+    const unsubRoundStart = subscribe("round_started", ({ round, endsAt }) => {
+      const cached = queryClient.getQueryData(getGetRoomQueryKey(roomId)) as any;
+      if (cached) {
+        queryClient.setQueryData(getGetRoomQueryKey(roomId), { ...cached, currentRound: round, roundEndsAt: endsAt });
+      }
+    });
     const unsubSessionEnded = subscribe("session_ended", () => {
       setLocation(`/result/${roomId}`);
     });
-    return () => { unsubMsg(); unsubRoom(); unsubSessionEnded(); };
+    return () => { unsubMsg(); unsubRoom(); unsubTimer(); unsubRoundStart(); unsubSessionEnded(); };
   }, [subscribe, roomId, setLocation, queryClient]);
 
   useEffect(() => {
@@ -181,6 +258,14 @@ export default function RoomChooser() {
   const handleEliminate = async (pId: string) => {
     setIsProcessing(true);
     try {
+      const target = room?.participants.find((p) => p.id === pId);
+      setPendingElimination(target ? { id: target.id, name: target.name } : null);
+      playEliminationStinger();
+      setPhase("eliminate");
+      if (eliminationTimerRef.current) clearTimeout(eliminationTimerRef.current);
+      await new Promise((resolve) => {
+        eliminationTimerRef.current = setTimeout(resolve, 700);
+      });
       const t = await getToken();
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (t) headers["Authorization"] = `Bearer ${t}`;
@@ -217,8 +302,9 @@ export default function RoomChooser() {
 
   const isActive = room?.status === "active";
   const isEnded = room?.status === "ended";
+  const endsAt = room?.roundEndsAt ?? null;
+  const numberOfRounds = room?.numberOfRounds ?? 3;
 
-  if (isEnded) { setLocation(`/result/${roomId}`); return null; }
   if (isLoadingRoom || !room) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-background stage-bg">
@@ -272,7 +358,7 @@ export default function RoomChooser() {
               ? "border-secondary/30 bg-secondary/10"
               : "border-primary/20 bg-primary/8"
         }`}>
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             {eliminated && <X size={10} className="text-elimination shrink-0" />}
             <span className={`font-display font-black uppercase truncate text-sm tracking-wide ${
               eliminated ? "text-muted-foreground/40 line-through" : "text-foreground"
@@ -285,9 +371,9 @@ export default function RoomChooser() {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {!eliminated && (
-              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${
+              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
                 quotaMet
                   ? "bg-primary/20 text-primary border-primary/30"
                   : "text-muted-foreground border-border/30"
@@ -307,6 +393,17 @@ export default function RoomChooser() {
             {eliminated && <span className="text-[9px] font-mono text-elimination/60">OUT</span>}
           </div>
         </div>
+
+        {phase === "eliminate" && pendingElimination?.id === suitor.id && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/55 backdrop-blur-[2px] animate-pulse">
+            <div className="text-center space-y-2 px-4">
+              <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-muted-foreground">Suspense</div>
+              <div className="font-display font-black text-3xl uppercase text-elimination drop-shadow-[0_0_18px_hsl(var(--elimination)/0.45)]">
+                {suitor.name}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Messages */}
         <ScrollArea className="flex-1 p-2 sm:p-3">
@@ -357,7 +454,8 @@ export default function RoomChooser() {
             )}
             {phase === "advancing" && (
               <div className="p-2">
-                <div className="h-9 flex items-center justify-center text-xs font-mono text-muted-foreground">
+                <div className="h-9 flex items-center justify-center text-xs font-mono text-muted-foreground gap-2 animate-pulse">
+                  <span className="w-2 h-2 rounded-full bg-secondary" />
                   ROUND ENDING...
                 </div>
               </div>
@@ -424,12 +522,26 @@ export default function RoomChooser() {
               {isActive ? "🔴 LIVE" : "WAITING"}
             </div>
           </div>
+          <div className={`w-2 h-2 rounded-full ${
+            isConnected
+              ? "bg-secondary shadow-[0_0_6px_hsl(var(--secondary))] animate-pulse"
+              : "bg-muted-foreground"
+          }`} aria-label={isConnected ? "Connected" : "Reconnecting"} />
         </div>
       </header>
 
+      {isActive && currentRoundQuestions.length > 0 && (
+        <QuestionRatingPanel
+          roomId={roomId}
+          participantId={participantId}
+          questions={currentRoundQuestions}
+          authToken={socketToken}
+        />
+      )}
+
       {/* ── Phase banners ── */}
       {isActive && phase === "eliminate" && (
-        <div className="px-4 py-3 bg-elimination/12 border-b border-elimination/40 flex items-center gap-2 shrink-0">
+        <div className="px-4 py-3 bg-elimination/12 border-b border-elimination/40 flex items-center gap-2 shrink-0 animate-in fade-in zoom-in-95 duration-300">
           <Scissors size={14} className="text-elimination shrink-0 animate-pulse" />
           <span className="text-elimination text-xs font-display font-black uppercase tracking-widest">
             ELIMINATION ROUND — Cut one suitor to advance
@@ -437,23 +549,27 @@ export default function RoomChooser() {
         </div>
       )}
       {isActive && phase === "advancing" && (
-        <div className="px-4 py-2.5 bg-primary/12 border-b border-primary/40 flex items-center justify-between gap-4 shrink-0">
+        <div className="px-4 py-2.5 bg-primary/12 border-b border-primary/40 flex items-center justify-between gap-4 shrink-0 animate-in fade-in slide-in-from-top-1 duration-300">
           <span className="text-primary text-xs font-display font-black uppercase tracking-widest">
-            SUITOR ELIMINATED — Ready for Round {ROUND_LABELS[currentRound + 1] ?? currentRound + 1}?
+            SUITOR ELIMINATED — Advancing to Round {ROUND_LABELS[currentRound + 1] ?? currentRound + 1}
           </span>
-          <Button size="sm" onClick={handleAdvanceRound} disabled={isProcessing}
-            className="h-8 px-4 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/80 font-display font-black uppercase tracking-widest text-xs shrink-0">
-            START ROUND {ROUND_LABELS[currentRound + 1] ?? currentRound + 1}
-            <ChevronRight size={12} />
-          </Button>
+          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            AUTO-ADVANCING
+          </div>
         </div>
       )}
       {isActive && phase === "choose_winner" && (
-        <div className="px-4 py-3 bg-secondary/12 border-b border-secondary/40 flex items-center gap-2 shrink-0">
+        <div className="px-4 py-3 bg-secondary/12 border-b border-secondary/40 flex items-center gap-2 shrink-0 animate-in fade-in zoom-in-95 duration-300">
           <Sparkles size={14} className="text-secondary shrink-0 animate-pulse" />
           <span className="text-secondary text-xs font-display font-black uppercase tracking-widest">
             FINAL CHOICE — Who do you choose?
           </span>
+        </div>
+      )}
+      {isActive && !isConnected && (
+        <div className="px-4 py-2 bg-amber-500/10 border-b border-amber-500/30 flex items-center gap-2 shrink-0 animate-pulse">
+          <span className="text-amber-400 text-xs font-mono uppercase tracking-widest">Reconnecting to live room...</span>
         </div>
       )}
       {isActive && phase === "messaging" && (

@@ -1,98 +1,57 @@
 import { Server as SocketIOServer } from "socket.io";
 import type { Server as HttpServer } from "http";
-import { db, messagesTable, participantsTable, usersTable } from "@workspace/db";
+import { db, matchesTable, participantsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-import { randomBytes } from "crypto";
 import { verifyToken } from "@clerk/express";
 import { logger } from "./lib/logger";
-import Anthropic from "@anthropic-ai/sdk";
+import { saveGameMessage } from "./services/messagingService";
+import { buildRoomResponse } from "./lib/roomUtils";
+import { trackGameplayEvent } from "./services/analyticsService";
+import {
+  addUserToPool,
+  getAllPoolUserIds,
+  getPoolCount,
+  removeUserFromPool,
+} from "./services/poolService";
+import { SocketEvents } from "./socket/events";
 
 let io: SocketIOServer;
+const activeParticipantSockets = new Map<string, string>();
+const activeMatchUsers = new Map<string, Set<string>>();
+const matchTypingState = new Map<string, { userId: string; atIso: string }>();
 
-const anthropicClient = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL
-  ? new Anthropic({
-      baseURL: process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL,
-      apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY ?? "dummy",
-    })
-  : null;
+function trackMatchUserOnline(matchId: string, userId: string) {
+  const set = activeMatchUsers.get(matchId) ?? new Set<string>();
+  set.add(userId);
+  activeMatchUsers.set(matchId, set);
+}
 
-async function generateBotResponse(
-  roomId: string,
-  botParticipant: { id: string; name: string; suitorSlot: number | null; isBot: boolean },
-  chooserQuestion: string,
-  round: number | undefined,
-) {
-  // Realistic typing delay: 1–3 seconds
-  await new Promise<void>((resolve) => setTimeout(resolve, 1000 + Math.random() * 2000));
-
-  const fallbacks = [
-    "That's an interesting question — I'd say I live for the unexpected.",
-    "Hmm, honestly? I think you'd have to find out in person.",
-    "I like to think I'm an open book, but with a few locked chapters.",
-    "That really depends on who's asking... and I like how you ask.",
-    "I could answer that, but then I'd have to take you on a second date.",
-  ];
-  let responseText = fallbacks[Math.floor(Math.random() * fallbacks.length)]!;
-
-  if (anthropicClient) {
-    try {
-      const message = await anthropicClient.messages.create({
-        model: "claude-haiku-4-5",
-        max_tokens: 80,
-        messages: [
-          {
-            role: "user",
-            content: `You are ${botParticipant.name}, a charming, witty contestant on a speed-dating show. Keep answers short (1-2 sentences), playful, a little mysterious, and never too specific about yourself. Answer this question: "${chooserQuestion}"`,
-          },
-        ],
-      });
-      const block = message.content[0];
-      if (block?.type === "text") responseText = block.text.trim();
-    } catch (err) {
-      logger.error({ err }, "Anthropic bot response failed, using fallback");
-    }
+function trackMatchUserOffline(matchId: string, userId: string) {
+  const set = activeMatchUsers.get(matchId);
+  if (!set) return;
+  set.delete(userId);
+  if (set.size === 0) {
+    activeMatchUsers.delete(matchId);
   }
-
-  const msgId = randomBytes(8).toString("hex");
-  const now = new Date();
-
-  await db.insert(messagesTable).values({
-    id: msgId,
-    roomId,
-    senderId: botParticipant.id,
-    senderName: botParticipant.name,
-    senderRole: "suitor",
-    suitorSlot: botParticipant.suitorSlot,
-    round: round ?? null,
-    content: responseText,
-    createdAt: now,
-  });
-
-  io.to(roomId).emit("message_received", {
-    id: msgId,
-    roomId,
-    senderId: botParticipant.id,
-    senderName: botParticipant.name,
-    senderRole: "suitor",
-    suitorSlot: botParticipant.suitorSlot,
-    round: round ?? null,
-    content: responseText,
-    createdAt: now.toISOString(),
-  });
 }
 
-const activeSuitorPool = new Set<string>();
+export function getMatchPresenceSnapshot(matchId: string, selfUserId: string) {
+  const onlineUsers = activeMatchUsers.get(matchId) ?? new Set<string>();
+  const isSelfOnline = onlineUsers.has(selfUserId);
+  const isOtherOnline = [...onlineUsers].some((id) => id !== selfUserId);
+  const typing = matchTypingState.get(matchId);
+  const isOtherTyping = Boolean(typing && typing.userId !== selfUserId && Date.now() - Date.parse(typing.atIso) <= 5_000);
 
-export function isUserInPool(userId: string): boolean {
-  return activeSuitorPool.has(userId);
-}
-
-export function getPoolCount(): number {
-  return activeSuitorPool.size;
+  return {
+    selfOnline: isSelfOnline,
+    otherOnline: isOtherOnline,
+    isOtherTyping,
+    lastTypingAt: typing?.atIso ?? null,
+  };
 }
 
 function broadcastPoolCount() {
-  io.emit("pool_count", { count: activeSuitorPool.size });
+  io.emit(SocketEvents.POOL_COUNT, { count: getPoolCount() });
 }
 
 /**
@@ -125,7 +84,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
   io.on("connection", (socket) => {
     logger.info({ socketId: socket.id }, "Socket connected");
 
-    socket.emit("pool_count", { count: activeSuitorPool.size });
+    socket.emit(SocketEvents.POOL_COUNT, { count: getPoolCount() });
 
     // join_room — verify the participant record exists and, when the participant
     // is linked to a registered user (participants.user_id is set), require a
@@ -151,6 +110,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
         });
         if (!participant) {
           socket.emit("error", { message: "Invalid room or participant" });
+          await trackGameplayEvent("join_failure", { reason: "invalid_room_or_participant" }, { roomId, participantId });
           return;
         }
 
@@ -160,25 +120,83 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
           const dbUserId = await resolveDbUserId(resolvedToken);
           if (!dbUserId || dbUserId !== participant.userId) {
             socket.emit("error", { message: "Authentication required to join this room" });
+            await trackGameplayEvent("join_failure", { reason: "auth_required" }, { roomId, participantId, userId: participant.userId ?? null });
             return;
           }
           // Store verified identity so send_message can enforce ownership
           socket.data.dbUserId = dbUserId;
         }
 
+        const previousSocketId = activeParticipantSockets.get(participantId);
+        if (previousSocketId && previousSocketId !== socket.id) {
+          const previousSocket = io.sockets.sockets.get(previousSocketId);
+          previousSocket?.disconnect(true);
+        }
+        activeParticipantSockets.set(participantId, socket.id);
+
         socket.join(roomId);
         // Store verified participant identity on the socket for send_message
         socket.data.participantId = participantId;
         socket.data.roomId = roomId;
+        const roomData = await buildRoomResponse(roomId);
+        if (roomData) {
+          socket.emit(SocketEvents.ROOM_UPDATED, roomData);
+        }
+        await trackGameplayEvent("room_joined", { reconnect: true }, {
+          roomId,
+          participantId,
+          userId: participant.userId ?? socket.data.dbUserId ?? null,
+        });
         logger.info({ socketId: socket.id, roomId, participantId }, "Joined room");
       } catch (err) {
         logger.error({ err }, "join_room verification failed");
       }
     });
 
-    socket.on("join_match", ({ matchId }: { matchId: string }) => {
-      socket.join(`match_${matchId}`);
-      logger.info({ socketId: socket.id, matchId }, "Joined match DM room");
+    socket.on("join_match", async ({ matchId, token }: { matchId: string; token?: string }) => {
+      try {
+        if (!matchId) return;
+        const dbUserId = socket.data.dbUserId ?? await resolveDbUserId(token ?? socket.handshake.auth?.token);
+        if (!dbUserId) {
+          socket.emit("error", { message: "Authentication required for match chat" });
+          return;
+        }
+
+        const match = await db.query.matchesTable.findFirst({
+          where: eq(matchesTable.id, matchId),
+        });
+        if (!match) {
+          socket.emit("error", { message: "Match not found" });
+          return;
+        }
+        if (match.chooserUserId !== dbUserId && match.suitorUserId !== dbUserId) {
+          socket.emit("error", { message: "Forbidden" });
+          return;
+        }
+
+        socket.data.dbUserId = dbUserId;
+        socket.data.joinedMatchIds = new Set<string>([...(socket.data.joinedMatchIds ?? []), matchId]);
+        socket.join(`match_${matchId}`);
+        trackMatchUserOnline(matchId, dbUserId);
+        getIo().to(`match_${matchId}`).emit("presence", { matchId, userId: dbUserId, online: true, at: new Date().toISOString() });
+        logger.info({ socketId: socket.id, matchId, dbUserId }, "Joined match DM room");
+      } catch (err) {
+        logger.error({ err }, "join_match failed");
+      }
+    });
+
+    socket.on("typing", async ({ matchId }: { matchId: string }) => {
+      try {
+        const dbUserId = socket.data.dbUserId as string | undefined;
+        if (!matchId || !dbUserId) return;
+        const joinedMatchIds: Set<string> = socket.data.joinedMatchIds ?? new Set<string>();
+        if (!joinedMatchIds.has(matchId)) return;
+        const atIso = new Date().toISOString();
+        matchTypingState.set(matchId, { userId: dbUserId, atIso });
+        getIo().to(`match_${matchId}`).emit("typing", { matchId, userId: dbUserId, at: atIso });
+      } catch (err) {
+        logger.error({ err }, "typing event failed");
+      }
     });
 
     // enter_pool — requires a valid Clerk session token so the server can bind
@@ -191,8 +209,8 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
       }
       socket.join(`user_${dbUserId}`);
       socket.data.dbUserId = dbUserId;
-      activeSuitorPool.add(dbUserId);
-      logger.info({ socketId: socket.id, dbUserId, poolSize: activeSuitorPool.size }, "User entered pool");
+      addUserToPool(dbUserId);
+      logger.info({ socketId: socket.id, dbUserId, poolSize: getPoolCount() }, "User entered pool");
       broadcastPoolCount();
     });
 
@@ -214,8 +232,8 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
         socket.data.dbUserId ?? (await resolveDbUserId(token ?? socket.handshake.auth?.token) ?? undefined);
       if (!dbUserId) return;
       socket.leave(`user_${dbUserId}`);
-      activeSuitorPool.delete(dbUserId);
-      logger.info({ socketId: socket.id, dbUserId, poolSize: activeSuitorPool.size }, "User left pool");
+      removeUserFromPool(dbUserId);
+      logger.info({ socketId: socket.id, dbUserId, poolSize: getPoolCount() }, "User left pool");
       broadcastPoolCount();
     });
 
@@ -270,57 +288,17 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
             return;
           }
 
-          const id = randomBytes(8).toString("hex");
-          const now = new Date();
-
-          // For choosers, use the client-supplied suitorSlot so their messages
-          // are routed to the correct suitor tab; for suitors use their DB slot.
-          const resolvedSlot =
-            participant.role === "chooser"
-              ? (clientSuitorSlot ?? null)
-              : (participant.suitorSlot ?? null);
-
-          await db.insert(messagesTable).values({
-            id,
+          const response = await saveGameMessage(
             roomId,
-            senderId: participant.id,
-            senderName: participant.name,
-            senderRole: participant.role,
-            suitorSlot: resolvedSlot,
-            round: round ?? null,
-            content: content.trim(),
-            createdAt: now,
-          });
+            participantId,
+            content.trim(),
+            round ?? null,
+            socket.data.dbUserId ?? null,
+            clientSuitorSlot ?? null,
+          );
 
-          const msg = {
-            id,
-            roomId,
-            senderId: participant.id,
-            senderName: participant.name,
-            senderRole: participant.role,
-            suitorSlot: resolvedSlot,
-            round: round ?? null,
-            content: content.trim(),
-            createdAt: now.toISOString(),
-          };
-
-          io.to(roomId).emit("message_received", msg);
-
-          // If a chooser addressed a bot suitor, trigger an AI response
-          if (participant.role === "chooser" && resolvedSlot !== null) {
-            const botParticipant = await db.query.participantsTable.findFirst({
-              where: and(
-                eq(participantsTable.roomId, roomId),
-                eq(participantsTable.suitorSlot, resolvedSlot),
-                eq(participantsTable.isBot, true),
-              ),
-            });
-            if (botParticipant) {
-              generateBotResponse(roomId, botParticipant, content.trim(), round).catch(
-                (err) => logger.error({ err }, "Bot response pipeline failed"),
-              );
-            }
-          }
+          // message persistence and broadcast are handled by messagingService
+          logger.info({ socketId: socket.id, messageId: response.id }, "Message saved and broadcast");
         } catch (err) {
           logger.error({ err }, "Failed to save message");
         }
@@ -328,16 +306,41 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
     );
 
     socket.on("disconnect", () => {
-      const before = activeSuitorPool.size;
-      for (const userId of activeSuitorPool) {
+      const dbUserId = socket.data.dbUserId as string | undefined;
+      const joinedMatchIds: Set<string> = socket.data.joinedMatchIds ?? new Set<string>();
+      if (dbUserId) {
+        for (const matchId of joinedMatchIds) {
+          trackMatchUserOffline(matchId, dbUserId);
+          getIo().to(`match_${matchId}`).emit("presence", { matchId, userId: dbUserId, online: false, at: new Date().toISOString() });
+          const typing = matchTypingState.get(matchId);
+          if (typing?.userId === dbUserId) {
+            matchTypingState.delete(matchId);
+          }
+        }
+      }
+      if (socket.data.participantId) {
+        const currentSocketId = activeParticipantSockets.get(socket.data.participantId);
+        if (currentSocketId === socket.id) {
+          activeParticipantSockets.delete(socket.data.participantId);
+        }
+      }
+      const before = getPoolCount();
+      for (const userId of getAllPoolUserIds()) {
         const room = io.sockets.adapter.rooms.get(`user_${userId}`);
         if (!room || room.size === 0) {
-          activeSuitorPool.delete(userId);
+          removeUserFromPool(userId);
           logger.info({ userId }, "Removed from active pool on disconnect");
         }
       }
-      if (activeSuitorPool.size !== before) {
+      if (getPoolCount() !== before) {
         broadcastPoolCount();
+      }
+      if (socket.data.roomId || socket.data.participantId) {
+        void trackGameplayEvent("socket_disconnect", {}, {
+          roomId: socket.data.roomId ?? null,
+          participantId: socket.data.participantId ?? null,
+          userId: socket.data.dbUserId ?? null,
+        });
       }
       logger.info({ socketId: socket.id }, "Socket disconnected");
     });

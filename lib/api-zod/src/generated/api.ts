@@ -39,6 +39,22 @@ export const RequestUploadUrlResponse = zod.object({
 
 
 /**
+ * @summary Serve a public object asset by wildcard path
+ */
+export const GetPublicObjectParams = zod.object({
+  "filePath": zod.coerce.string()
+})
+
+
+/**
+ * @summary Serve an authenticated object by wildcard path
+ */
+export const GetPrivateObjectParams = zod.object({
+  "path": zod.coerce.string()
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */
@@ -105,6 +121,520 @@ export const UpdateUserStatusResponse = zod.object({
 
 
 /**
+ * @summary Block a user
+ */
+export const BlockUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const BlockUserResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Unblock a user
+ */
+export const UnblockUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UnblockUserResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Like a user
+ */
+export const LikeUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const LikeUserResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Remove a like from a user
+ */
+export const UnlikeUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UnlikeUserResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Report a user
+ */
+export const ReportUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+
+
+export const ReportUserBody = zod.object({
+  "reason": zod.string().min(1),
+  "detail": zod.string().optional()
+})
+
+export const ReportUserResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary List users who liked the current user
+ */
+export const GetWhoLikedMeResponse = zod.object({
+  "likers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "photos": zod.array(zod.string()),
+  "bio": zod.string().nullable(),
+  "likedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Register Expo push token for current user
+ */
+
+
+
+export const SetPushTokenBody = zod.object({
+  "token": zod.string().min(1)
+})
+
+export const SetPushTokenResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Get current user's full profile
+ */
+export const GetMyProfileResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['chooser', 'suitor']),
+  "status": zod.enum(['looking', 'matched', 'in_room']),
+  "createdAt": zod.string(),
+  "cooldown": zod.boolean().optional().describe('True when this Clerk user has hit their daily chooser session limit'),
+  "cooldownEndsAt": zod.string().nullish().describe('ISO timestamp when the daily cooldown resets (midnight UTC)'),
+  "sessionsToday": zod.number().optional().describe('Number of chooser sessions used today'),
+  "chooserDailyLimit": zod.number().optional().describe('Maximum chooser sessions allowed per day')
+})
+
+
+/**
+ * @summary Update current user's profile
+ */
+export const updateMyProfileBodyNameMax = 80;
+
+export const updateMyProfileBodyBioMax = 500;
+
+export const updateMyProfileBodyPhotosMax = 12;
+
+export const updateMyProfileBodyProfilePromptsMax = 3;
+
+
+
+export const UpdateMyProfileBody = zod.object({
+  "name": zod.string().min(1).max(updateMyProfileBodyNameMax).optional(),
+  "bio": zod.string().max(updateMyProfileBodyBioMax).optional(),
+  "dateOfBirth": zod.string().optional().describe('Date in YYYY-MM-DD format'),
+  "photos": zod.array(zod.string()).max(updateMyProfileBodyPhotosMax).optional(),
+  "profilePrompts": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).max(updateMyProfileBodyProfilePromptsMax).optional(),
+  "gender": zod.enum(['man', 'woman', 'nonbinary', 'other']).optional(),
+  "showMeGender": zod.enum(['men', 'women', 'everyone']).optional()
+})
+
+export const UpdateMyProfileResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['chooser', 'suitor']),
+  "status": zod.enum(['looking', 'matched', 'in_room']),
+  "createdAt": zod.string(),
+  "cooldown": zod.boolean().optional().describe('True when this Clerk user has hit their daily chooser session limit'),
+  "cooldownEndsAt": zod.string().nullish().describe('ISO timestamp when the daily cooldown resets (midnight UTC)'),
+  "sessionsToday": zod.number().optional().describe('Number of chooser sessions used today'),
+  "chooserDailyLimit": zod.number().optional().describe('Maximum chooser sessions allowed per day')
+})
+
+
+/**
+ * @summary Get another user's public profile
+ */
+export const GetPublicProfileParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const GetPublicProfileResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "bio": zod.string().nullable(),
+  "age": zod.number().nullable(),
+  "photos": zod.array(zod.string()),
+  "role": zod.string()
+})
+
+
+/**
+ * @summary Create a pre-signed upload URL for profile photo
+ */
+
+
+
+export const CreateProfilePhotoUploadUrlBody = zod.object({
+  "name": zod.string(),
+  "size": zod.number().min(1),
+  "contentType": zod.string()
+})
+
+
+
+
+
+
+export const CreateProfilePhotoUploadUrlResponse = zod.object({
+  "uploadURL": zod.string().url(),
+  "objectPath": zod.string(),
+  "metadata": zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().min(1),
+  "contentType": zod.string().min(1)
+}).optional()
+})
+
+
+/**
+ * @summary Attach uploaded photo path to current profile
+ */
+export const AddProfilePhotoBody = zod.object({
+  "objectPath": zod.string()
+})
+
+export const AddProfilePhotoResponse = zod.object({
+  "photos": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Remove a photo path from current profile
+ */
+export const RemoveProfilePhotoBody = zod.object({
+  "objectPath": zod.string()
+})
+
+export const RemoveProfilePhotoResponse = zod.object({
+  "photos": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Get post-game group messages for a room
+ */
+export const GetGroupMessagesParams = zod.object({
+  "roomId": zod.coerce.string()
+})
+
+export const GetGroupMessagesResponse = zod.object({
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "roomId": zod.string(),
+  "senderId": zod.string(),
+  "senderName": zod.string(),
+  "content": zod.string(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Post a group message in a room
+ */
+export const CreateGroupMessageParams = zod.object({
+  "roomId": zod.coerce.string()
+})
+
+
+
+
+export const CreateGroupMessageBody = zod.object({
+  "content": zod.string().min(1)
+})
+
+export const CreateGroupMessageResponse = zod.object({
+  "message": zod.object({
+  "id": zod.string(),
+  "roomId": zod.string(),
+  "senderId": zod.string(),
+  "senderName": zod.string(),
+  "content": zod.string(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
+ * @summary Get current user with stripe subscription summary
+ */
+export const GetStripeMeResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['chooser', 'suitor']),
+  "status": zod.enum(['looking', 'matched', 'in_room']),
+  "createdAt": zod.string(),
+  "cooldown": zod.boolean().optional().describe('True when this Clerk user has hit their daily chooser session limit'),
+  "cooldownEndsAt": zod.string().nullish().describe('ISO timestamp when the daily cooldown resets (midnight UTC)'),
+  "sessionsToday": zod.number().optional().describe('Number of chooser sessions used today'),
+  "chooserDailyLimit": zod.number().optional().describe('Maximum chooser sessions allowed per day')
+}),
+  "subscription": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()])
+})
+
+
+/**
+ * @summary List available stripe plans
+ */
+export const GetStripePlansResponse = zod.object({
+  "plans": zod.array(zod.object({
+  "product_id": zod.string(),
+  "product_name": zod.string(),
+  "product_description": zod.string().nullish(),
+  "product_metadata": zod.record(zod.string(), zod.unknown()).optional(),
+  "price_id": zod.string(),
+  "unit_amount": zod.number().nullable(),
+  "currency": zod.string(),
+  "recurring": zod.record(zod.string(), zod.unknown()).nullable()
+}))
+})
+
+
+/**
+ * @summary Create stripe checkout session
+ */
+
+
+
+export const CreateStripeCheckoutBody = zod.object({
+  "priceId": zod.string().min(1)
+})
+
+export const CreateStripeCheckoutResponse = zod.object({
+  "url": zod.string()
+})
+
+
+/**
+ * @summary Create stripe billing portal session
+ */
+export const CreateStripePortalResponse = zod.object({
+  "url": zod.string()
+})
+
+
+/**
+ * @summary Get admin dashboard summary counts
+ */
+export const GetAdminStatsResponse = zod.object({
+  "totalUsers": zod.number(),
+  "totalRooms": zod.number(),
+  "openReports": zod.number()
+})
+
+
+/**
+ * @summary List users for admin moderation
+ */
+export const GetAdminUsersResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "email": zod.string().nullable(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "isAdmin": zod.boolean(),
+  "isBanned": zod.boolean(),
+  "gender": zod.string().nullable(),
+  "createdAt": zod.string()
+})
+export const GetAdminUsersResponse = zod.array(GetAdminUsersResponseItem)
+
+
+/**
+ * @summary List moderation reports
+ */
+export const GetAdminReportsResponseItem = zod.object({
+  "id": zod.string(),
+  "reporterId": zod.string(),
+  "reportedId": zod.string(),
+  "reason": zod.string(),
+  "detail": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "reporterName": zod.string(),
+  "reportedName": zod.string(),
+  "reportedIsBanned": zod.boolean()
+})
+export const GetAdminReportsResponse = zod.array(GetAdminReportsResponseItem)
+
+
+/**
+ * @summary List rooms for moderation and debugging
+ */
+
+
+
+export const getAdminRoomsResponseQuestionConfigPackStrategyThreePackWeightsMinOne = 0;
+
+
+
+
+
+
+
+
+export const getAdminRoomsResponseQuestionConfigCategoryWeightsGeneralMin = 0;
+
+export const getAdminRoomsResponseQuestionConfigCategoryWeightsFunMin = 0;
+
+export const getAdminRoomsResponseQuestionConfigCategoryWeightsDeepMin = 0;
+
+
+export const getAdminRoomsResponseQuestionConfigAvoidRecentGamesMin = 0;
+export const getAdminRoomsResponseQuestionConfigAvoidRecentGamesMax = 20;
+
+
+
+export const GetAdminRoomsResponseItem = zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "status": zod.enum(['waiting', 'active', 'ended']),
+  "roomSnapshotVersion": zod.number().describe('Monotonically increasing revision for canonical room snapshots.'),
+  "chooserName": zod.string().nullable(),
+  "suitorCount": zod.number(),
+  "maxSuitors": zod.number(),
+  "numberOfRounds": zod.number().optional().describe('Number of rounds for this session (defaults to 3 if absent).'),
+  "roundDurationSeconds": zod.number().optional().describe('Per-round duration in seconds for chooser\/question phase.'),
+  "answerTimeSeconds": zod.number().optional().describe('Answer time in seconds for suitor responses.'),
+  "roundEndsAt": zod.string().nullish().describe('ISO timestamp when the current round ends (server authoritative).'),
+  "currentRound": zod.number().describe('Current round (1-4). Rounds 1-3: 1 question\/suitor then eliminate. Round 4: 3 questions\/suitor then choose winner.'),
+  "eliminatedParticipants": zod.array(zod.string()).describe('Array of participant IDs who have been eliminated'),
+  "winnerId": zod.string().nullable(),
+  "winnerName": zod.string().nullable(),
+  "participants": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['chooser', 'suitor']),
+  "suitorSlot": zod.number().nullable(),
+  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant'),
+  "isPremium": zod.boolean().describe('True when this participant holds an active premium subscription (server-validated)')
+})),
+  "questionConfig": zod.object({
+  "packStrategy": zod.union([zod.object({
+  "mode": zod.enum(['single']),
+  "packSlug": zod.string().min(1)
+}),zod.object({
+  "mode": zod.enum(['multi']),
+  "packSlugs": zod.array(zod.string().min(1)).min(1)
+}),zod.object({
+  "mode": zod.enum(['weighted']),
+  "packWeights": zod.record(zod.string(), zod.number().min(getAdminRoomsResponseQuestionConfigPackStrategyThreePackWeightsMinOne))
+}),zod.object({
+  "mode": zod.enum(['seasonal']),
+  "seasonalPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).optional()
+}),zod.object({
+  "mode": zod.enum(['premium']),
+  "premiumPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).min(1)
+})]).optional(),
+  "categoryWeights": zod.object({
+  "general": zod.number().min(getAdminRoomsResponseQuestionConfigCategoryWeightsGeneralMin).optional(),
+  "fun": zod.number().min(getAdminRoomsResponseQuestionConfigCategoryWeightsFunMin).optional(),
+  "deep": zod.number().min(getAdminRoomsResponseQuestionConfigCategoryWeightsDeepMin).optional()
+}).optional(),
+  "difficultyPlan": zod.array(zod.enum(['easy', 'medium', 'hard', 'wildcard'])).min(1).optional(),
+  "avoidRecentGames": zod.number().min(getAdminRoomsResponseQuestionConfigAvoidRecentGamesMin).max(getAdminRoomsResponseQuestionConfigAvoidRecentGamesMax).optional(),
+  "disallowRepeatsInGame": zod.boolean().optional()
+}),
+  "currentRoundQuestions": zod.array(zod.object({
+  "id": zod.string(),
+  "content": zod.string(),
+  "packSlug": zod.string(),
+  "category": zod.enum(['general', 'fun', 'deep']),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']),
+  "ratingSummary": zod.object({
+  "questionId": zod.string(),
+  "ratingCount": zod.number(),
+  "averageRating": zod.number().nullable(),
+  "qualityScore": zod.number().nullable()
+})
+})),
+  "createdAt": zod.string()
+})
+export const GetAdminRoomsResponse = zod.array(GetAdminRoomsResponseItem)
+
+
+/**
+ * @summary Ban a user
+ */
+export const BanUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const BanUserResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Unban a user
+ */
+export const UnbanUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UnbanUserResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Grant admin role to a user
+ */
+export const GrantUserAdminParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GrantUserAdminResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Revoke admin role from a user
+ */
+export const RevokeUserAdminParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const RevokeUserAdminResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
  * Re-validates premium status against RevenueCat, updates the user record,
 and updates any active participant rows for the caller. The server emits
 a room_updated socket event for every affected room so the chooser's UI
@@ -119,34 +649,207 @@ export const SyncPremiumEntitlementResponse = zod.object({
 
 
 /**
+ * Re-validates premium status against RevenueCat and returns
+the caller's current entitlement status.
+
+ * @summary Get current premium entitlement status
+ */
+export const GetPremiumEntitlementResponse = zod.object({
+  "isPremium": zod.boolean().describe('The caller\'s current premium status after the re-check')
+})
+
+
+/**
+ * @summary Start Stripe Identity age verification
+ */
+export const StartIdentityVerificationResponse = zod.union([zod.object({
+  "alreadyVerified": zod.literal(true)
+}),zod.object({
+  "url": zod.string(),
+  "sessionId": zod.string()
+})])
+
+
+/**
+ * @summary Get current age verification status
+ */
+export const GetIdentityStatusResponse = zod.object({
+  "verified": zod.boolean(),
+  "status": zod.enum(['verified', 'not_started', 'failed', 'underage', 'canceled', 'requires_input']),
+  "message": zod.string().optional()
+})
+
+
+/**
  * @summary Create a new speed dating room
  */
+
+export const createRoomBodyMaxSuitorsMin = 3;
+export const createRoomBodyMaxSuitorsMax = 6;
+
+
+
+
+export const createRoomBodyQuestionConfigPackStrategyThreePackWeightsMinOne = 0;
+
+
+
+
+
+
+
+
+export const createRoomBodyQuestionConfigCategoryWeightsGeneralMin = 0;
+
+export const createRoomBodyQuestionConfigCategoryWeightsFunMin = 0;
+
+export const createRoomBodyQuestionConfigCategoryWeightsDeepMin = 0;
+
+
+export const createRoomBodyQuestionConfigAvoidRecentGamesMin = 0;
+export const createRoomBodyQuestionConfigAvoidRecentGamesMax = 20;
 
 
 
 export const CreateRoomBody = zod.object({
-  "chooserName": zod.string().min(1)
+  "chooserName": zod.string().min(1),
+  "maxSuitors": zod.number().min(createRoomBodyMaxSuitorsMin).max(createRoomBodyMaxSuitorsMax).optional().describe('Optional number of suitors for this session. The game length will be maxSuitors - 1 rounds.'),
+  "numberOfRounds": zod.number().optional().describe('Optional: choose 3 or 5 rounds for the session. Defaults to 3.'),
+  "questionConfig": zod.object({
+  "packStrategy": zod.union([zod.object({
+  "mode": zod.enum(['single']),
+  "packSlug": zod.string().min(1)
+}),zod.object({
+  "mode": zod.enum(['multi']),
+  "packSlugs": zod.array(zod.string().min(1)).min(1)
+}),zod.object({
+  "mode": zod.enum(['weighted']),
+  "packWeights": zod.record(zod.string(), zod.number().min(createRoomBodyQuestionConfigPackStrategyThreePackWeightsMinOne))
+}),zod.object({
+  "mode": zod.enum(['seasonal']),
+  "seasonalPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).optional()
+}),zod.object({
+  "mode": zod.enum(['premium']),
+  "premiumPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).min(1)
+})]).optional(),
+  "categoryWeights": zod.object({
+  "general": zod.number().min(createRoomBodyQuestionConfigCategoryWeightsGeneralMin).optional(),
+  "fun": zod.number().min(createRoomBodyQuestionConfigCategoryWeightsFunMin).optional(),
+  "deep": zod.number().min(createRoomBodyQuestionConfigCategoryWeightsDeepMin).optional()
+}).optional(),
+  "difficultyPlan": zod.array(zod.enum(['easy', 'medium', 'hard', 'wildcard'])).min(1).optional(),
+  "avoidRecentGames": zod.number().min(createRoomBodyQuestionConfigAvoidRecentGamesMin).max(createRoomBodyQuestionConfigAvoidRecentGamesMax).optional(),
+  "disallowRepeatsInGame": zod.boolean().optional()
+}).optional()
 })
 
 
 /**
  * @summary Auto-match a chooser with the top 5 compatible suitors
  */
+export const matchRoomBodyMaxSuitorsMin = 3;
+export const matchRoomBodyMaxSuitorsMax = 6;
+
+
+
+
+export const matchRoomBodyQuestionConfigPackStrategyThreePackWeightsMinOne = 0;
+
+
+
+
+
+
+
+
+export const matchRoomBodyQuestionConfigCategoryWeightsGeneralMin = 0;
+
+export const matchRoomBodyQuestionConfigCategoryWeightsFunMin = 0;
+
+export const matchRoomBodyQuestionConfigCategoryWeightsDeepMin = 0;
+
+
+export const matchRoomBodyQuestionConfigAvoidRecentGamesMin = 0;
+export const matchRoomBodyQuestionConfigAvoidRecentGamesMax = 20;
+
+
+
 export const MatchRoomBody = zod.object({
-  "chooserUserId": zod.string()
+  "chooserUserId": zod.string(),
+  "maxSuitors": zod.number().min(matchRoomBodyMaxSuitorsMin).max(matchRoomBodyMaxSuitorsMax).optional().describe('Optional number of suitors for this auto-match session.'),
+  "numberOfRounds": zod.number().optional().describe('Optional: choose 3 or 5 rounds for the session. Defaults to 3.'),
+  "questionConfig": zod.object({
+  "packStrategy": zod.union([zod.object({
+  "mode": zod.enum(['single']),
+  "packSlug": zod.string().min(1)
+}),zod.object({
+  "mode": zod.enum(['multi']),
+  "packSlugs": zod.array(zod.string().min(1)).min(1)
+}),zod.object({
+  "mode": zod.enum(['weighted']),
+  "packWeights": zod.record(zod.string(), zod.number().min(matchRoomBodyQuestionConfigPackStrategyThreePackWeightsMinOne))
+}),zod.object({
+  "mode": zod.enum(['seasonal']),
+  "seasonalPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).optional()
+}),zod.object({
+  "mode": zod.enum(['premium']),
+  "premiumPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).min(1)
+})]).optional(),
+  "categoryWeights": zod.object({
+  "general": zod.number().min(matchRoomBodyQuestionConfigCategoryWeightsGeneralMin).optional(),
+  "fun": zod.number().min(matchRoomBodyQuestionConfigCategoryWeightsFunMin).optional(),
+  "deep": zod.number().min(matchRoomBodyQuestionConfigCategoryWeightsDeepMin).optional()
+}).optional(),
+  "difficultyPlan": zod.array(zod.enum(['easy', 'medium', 'hard', 'wildcard'])).min(1).optional(),
+  "avoidRecentGames": zod.number().min(matchRoomBodyQuestionConfigAvoidRecentGamesMin).max(matchRoomBodyQuestionConfigAvoidRecentGamesMax).optional(),
+  "disallowRepeatsInGame": zod.boolean().optional()
+}).optional()
 })
 
 
 /**
  * @summary List joinable rooms waiting for participants
  */
+
+
+
+export const listActiveRoomsResponseQuestionConfigPackStrategyThreePackWeightsMinOne = 0;
+
+
+
+
+
+
+
+
+export const listActiveRoomsResponseQuestionConfigCategoryWeightsGeneralMin = 0;
+
+export const listActiveRoomsResponseQuestionConfigCategoryWeightsFunMin = 0;
+
+export const listActiveRoomsResponseQuestionConfigCategoryWeightsDeepMin = 0;
+
+
+export const listActiveRoomsResponseQuestionConfigAvoidRecentGamesMin = 0;
+export const listActiveRoomsResponseQuestionConfigAvoidRecentGamesMax = 20;
+
+
+
 export const ListActiveRoomsResponseItem = zod.object({
   "id": zod.string(),
   "code": zod.string(),
   "status": zod.enum(['waiting', 'active', 'ended']),
+  "roomSnapshotVersion": zod.number().describe('Monotonically increasing revision for canonical room snapshots.'),
   "chooserName": zod.string().nullable(),
   "suitorCount": zod.number(),
   "maxSuitors": zod.number(),
+  "numberOfRounds": zod.number().optional().describe('Number of rounds for this session (defaults to 3 if absent).'),
+  "roundDurationSeconds": zod.number().optional().describe('Per-round duration in seconds for chooser\/question phase.'),
+  "answerTimeSeconds": zod.number().optional().describe('Answer time in seconds for suitor responses.'),
+  "roundEndsAt": zod.string().nullish().describe('ISO timestamp when the current round ends (server authoritative).'),
   "currentRound": zod.number().describe('Current round (1-4). Rounds 1-3: 1 question\/suitor then eliminate. Round 4: 3 questions\/suitor then choose winner.'),
   "eliminatedParticipants": zod.array(zod.string()).describe('Array of participant IDs who have been eliminated'),
   "winnerId": zod.string().nullable(),
@@ -158,6 +861,47 @@ export const ListActiveRoomsResponseItem = zod.object({
   "suitorSlot": zod.number().nullable(),
   "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant'),
   "isPremium": zod.boolean().describe('True when this participant holds an active premium subscription (server-validated)')
+})),
+  "questionConfig": zod.object({
+  "packStrategy": zod.union([zod.object({
+  "mode": zod.enum(['single']),
+  "packSlug": zod.string().min(1)
+}),zod.object({
+  "mode": zod.enum(['multi']),
+  "packSlugs": zod.array(zod.string().min(1)).min(1)
+}),zod.object({
+  "mode": zod.enum(['weighted']),
+  "packWeights": zod.record(zod.string(), zod.number().min(listActiveRoomsResponseQuestionConfigPackStrategyThreePackWeightsMinOne))
+}),zod.object({
+  "mode": zod.enum(['seasonal']),
+  "seasonalPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).optional()
+}),zod.object({
+  "mode": zod.enum(['premium']),
+  "premiumPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).min(1)
+})]).optional(),
+  "categoryWeights": zod.object({
+  "general": zod.number().min(listActiveRoomsResponseQuestionConfigCategoryWeightsGeneralMin).optional(),
+  "fun": zod.number().min(listActiveRoomsResponseQuestionConfigCategoryWeightsFunMin).optional(),
+  "deep": zod.number().min(listActiveRoomsResponseQuestionConfigCategoryWeightsDeepMin).optional()
+}).optional(),
+  "difficultyPlan": zod.array(zod.enum(['easy', 'medium', 'hard', 'wildcard'])).min(1).optional(),
+  "avoidRecentGames": zod.number().min(listActiveRoomsResponseQuestionConfigAvoidRecentGamesMin).max(listActiveRoomsResponseQuestionConfigAvoidRecentGamesMax).optional(),
+  "disallowRepeatsInGame": zod.boolean().optional()
+}),
+  "currentRoundQuestions": zod.array(zod.object({
+  "id": zod.string(),
+  "content": zod.string(),
+  "packSlug": zod.string(),
+  "category": zod.enum(['general', 'fun', 'deep']),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']),
+  "ratingSummary": zod.object({
+  "questionId": zod.string(),
+  "ratingCount": zod.number(),
+  "averageRating": zod.number().nullable(),
+  "qualityScore": zod.number().nullable()
+})
 })),
   "createdAt": zod.string()
 })
@@ -171,13 +915,42 @@ export const GetRoomParams = zod.object({
   "id": zod.coerce.string()
 })
 
+
+
+
+export const getRoomResponseQuestionConfigPackStrategyThreePackWeightsMinOne = 0;
+
+
+
+
+
+
+
+
+export const getRoomResponseQuestionConfigCategoryWeightsGeneralMin = 0;
+
+export const getRoomResponseQuestionConfigCategoryWeightsFunMin = 0;
+
+export const getRoomResponseQuestionConfigCategoryWeightsDeepMin = 0;
+
+
+export const getRoomResponseQuestionConfigAvoidRecentGamesMin = 0;
+export const getRoomResponseQuestionConfigAvoidRecentGamesMax = 20;
+
+
+
 export const GetRoomResponse = zod.object({
   "id": zod.string(),
   "code": zod.string(),
   "status": zod.enum(['waiting', 'active', 'ended']),
+  "roomSnapshotVersion": zod.number().describe('Monotonically increasing revision for canonical room snapshots.'),
   "chooserName": zod.string().nullable(),
   "suitorCount": zod.number(),
   "maxSuitors": zod.number(),
+  "numberOfRounds": zod.number().optional().describe('Number of rounds for this session (defaults to 3 if absent).'),
+  "roundDurationSeconds": zod.number().optional().describe('Per-round duration in seconds for chooser\/question phase.'),
+  "answerTimeSeconds": zod.number().optional().describe('Answer time in seconds for suitor responses.'),
+  "roundEndsAt": zod.string().nullish().describe('ISO timestamp when the current round ends (server authoritative).'),
   "currentRound": zod.number().describe('Current round (1-4). Rounds 1-3: 1 question\/suitor then eliminate. Round 4: 3 questions\/suitor then choose winner.'),
   "eliminatedParticipants": zod.array(zod.string()).describe('Array of participant IDs who have been eliminated'),
   "winnerId": zod.string().nullable(),
@@ -189,6 +962,47 @@ export const GetRoomResponse = zod.object({
   "suitorSlot": zod.number().nullable(),
   "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant'),
   "isPremium": zod.boolean().describe('True when this participant holds an active premium subscription (server-validated)')
+})),
+  "questionConfig": zod.object({
+  "packStrategy": zod.union([zod.object({
+  "mode": zod.enum(['single']),
+  "packSlug": zod.string().min(1)
+}),zod.object({
+  "mode": zod.enum(['multi']),
+  "packSlugs": zod.array(zod.string().min(1)).min(1)
+}),zod.object({
+  "mode": zod.enum(['weighted']),
+  "packWeights": zod.record(zod.string(), zod.number().min(getRoomResponseQuestionConfigPackStrategyThreePackWeightsMinOne))
+}),zod.object({
+  "mode": zod.enum(['seasonal']),
+  "seasonalPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).optional()
+}),zod.object({
+  "mode": zod.enum(['premium']),
+  "premiumPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).min(1)
+})]).optional(),
+  "categoryWeights": zod.object({
+  "general": zod.number().min(getRoomResponseQuestionConfigCategoryWeightsGeneralMin).optional(),
+  "fun": zod.number().min(getRoomResponseQuestionConfigCategoryWeightsFunMin).optional(),
+  "deep": zod.number().min(getRoomResponseQuestionConfigCategoryWeightsDeepMin).optional()
+}).optional(),
+  "difficultyPlan": zod.array(zod.enum(['easy', 'medium', 'hard', 'wildcard'])).min(1).optional(),
+  "avoidRecentGames": zod.number().min(getRoomResponseQuestionConfigAvoidRecentGamesMin).max(getRoomResponseQuestionConfigAvoidRecentGamesMax).optional(),
+  "disallowRepeatsInGame": zod.boolean().optional()
+}),
+  "currentRoundQuestions": zod.array(zod.object({
+  "id": zod.string(),
+  "content": zod.string(),
+  "packSlug": zod.string(),
+  "category": zod.enum(['general', 'fun', 'deep']),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']),
+  "ratingSummary": zod.object({
+  "questionId": zod.string(),
+  "ratingCount": zod.number(),
+  "averageRating": zod.number().nullable(),
+  "qualityScore": zod.number().nullable()
+})
 })),
   "createdAt": zod.string()
 })
@@ -209,15 +1023,44 @@ export const JoinRoomBody = zod.object({
   "role": zod.enum(['chooser', 'suitor'])
 })
 
+
+
+
+export const joinRoomResponseRoomQuestionConfigPackStrategyThreePackWeightsMinOne = 0;
+
+
+
+
+
+
+
+
+export const joinRoomResponseRoomQuestionConfigCategoryWeightsGeneralMin = 0;
+
+export const joinRoomResponseRoomQuestionConfigCategoryWeightsFunMin = 0;
+
+export const joinRoomResponseRoomQuestionConfigCategoryWeightsDeepMin = 0;
+
+
+export const joinRoomResponseRoomQuestionConfigAvoidRecentGamesMin = 0;
+export const joinRoomResponseRoomQuestionConfigAvoidRecentGamesMax = 20;
+
+
+
 export const JoinRoomResponse = zod.object({
   "participantId": zod.string(),
   "room": zod.object({
   "id": zod.string(),
   "code": zod.string(),
   "status": zod.enum(['waiting', 'active', 'ended']),
+  "roomSnapshotVersion": zod.number().describe('Monotonically increasing revision for canonical room snapshots.'),
   "chooserName": zod.string().nullable(),
   "suitorCount": zod.number(),
   "maxSuitors": zod.number(),
+  "numberOfRounds": zod.number().optional().describe('Number of rounds for this session (defaults to 3 if absent).'),
+  "roundDurationSeconds": zod.number().optional().describe('Per-round duration in seconds for chooser\/question phase.'),
+  "answerTimeSeconds": zod.number().optional().describe('Answer time in seconds for suitor responses.'),
+  "roundEndsAt": zod.string().nullish().describe('ISO timestamp when the current round ends (server authoritative).'),
   "currentRound": zod.number().describe('Current round (1-4). Rounds 1-3: 1 question\/suitor then eliminate. Round 4: 3 questions\/suitor then choose winner.'),
   "eliminatedParticipants": zod.array(zod.string()).describe('Array of participant IDs who have been eliminated'),
   "winnerId": zod.string().nullable(),
@@ -229,6 +1072,47 @@ export const JoinRoomResponse = zod.object({
   "suitorSlot": zod.number().nullable(),
   "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant'),
   "isPremium": zod.boolean().describe('True when this participant holds an active premium subscription (server-validated)')
+})),
+  "questionConfig": zod.object({
+  "packStrategy": zod.union([zod.object({
+  "mode": zod.enum(['single']),
+  "packSlug": zod.string().min(1)
+}),zod.object({
+  "mode": zod.enum(['multi']),
+  "packSlugs": zod.array(zod.string().min(1)).min(1)
+}),zod.object({
+  "mode": zod.enum(['weighted']),
+  "packWeights": zod.record(zod.string(), zod.number().min(joinRoomResponseRoomQuestionConfigPackStrategyThreePackWeightsMinOne))
+}),zod.object({
+  "mode": zod.enum(['seasonal']),
+  "seasonalPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).optional()
+}),zod.object({
+  "mode": zod.enum(['premium']),
+  "premiumPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).min(1)
+})]).optional(),
+  "categoryWeights": zod.object({
+  "general": zod.number().min(joinRoomResponseRoomQuestionConfigCategoryWeightsGeneralMin).optional(),
+  "fun": zod.number().min(joinRoomResponseRoomQuestionConfigCategoryWeightsFunMin).optional(),
+  "deep": zod.number().min(joinRoomResponseRoomQuestionConfigCategoryWeightsDeepMin).optional()
+}).optional(),
+  "difficultyPlan": zod.array(zod.enum(['easy', 'medium', 'hard', 'wildcard'])).min(1).optional(),
+  "avoidRecentGames": zod.number().min(joinRoomResponseRoomQuestionConfigAvoidRecentGamesMin).max(joinRoomResponseRoomQuestionConfigAvoidRecentGamesMax).optional(),
+  "disallowRepeatsInGame": zod.boolean().optional()
+}),
+  "currentRoundQuestions": zod.array(zod.object({
+  "id": zod.string(),
+  "content": zod.string(),
+  "packSlug": zod.string(),
+  "category": zod.enum(['general', 'fun', 'deep']),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']),
+  "ratingSummary": zod.object({
+  "questionId": zod.string(),
+  "ratingCount": zod.number(),
+  "averageRating": zod.number().nullable(),
+  "qualityScore": zod.number().nullable()
+})
 })),
   "createdAt": zod.string()
 })
@@ -267,13 +1151,42 @@ export const ChooseWinnerBody = zod.object({
   "winnerId": zod.string()
 })
 
+
+
+
+export const chooseWinnerResponseQuestionConfigPackStrategyThreePackWeightsMinOne = 0;
+
+
+
+
+
+
+
+
+export const chooseWinnerResponseQuestionConfigCategoryWeightsGeneralMin = 0;
+
+export const chooseWinnerResponseQuestionConfigCategoryWeightsFunMin = 0;
+
+export const chooseWinnerResponseQuestionConfigCategoryWeightsDeepMin = 0;
+
+
+export const chooseWinnerResponseQuestionConfigAvoidRecentGamesMin = 0;
+export const chooseWinnerResponseQuestionConfigAvoidRecentGamesMax = 20;
+
+
+
 export const ChooseWinnerResponse = zod.object({
   "id": zod.string(),
   "code": zod.string(),
   "status": zod.enum(['waiting', 'active', 'ended']),
+  "roomSnapshotVersion": zod.number().describe('Monotonically increasing revision for canonical room snapshots.'),
   "chooserName": zod.string().nullable(),
   "suitorCount": zod.number(),
   "maxSuitors": zod.number(),
+  "numberOfRounds": zod.number().optional().describe('Number of rounds for this session (defaults to 3 if absent).'),
+  "roundDurationSeconds": zod.number().optional().describe('Per-round duration in seconds for chooser\/question phase.'),
+  "answerTimeSeconds": zod.number().optional().describe('Answer time in seconds for suitor responses.'),
+  "roundEndsAt": zod.string().nullish().describe('ISO timestamp when the current round ends (server authoritative).'),
   "currentRound": zod.number().describe('Current round (1-4). Rounds 1-3: 1 question\/suitor then eliminate. Round 4: 3 questions\/suitor then choose winner.'),
   "eliminatedParticipants": zod.array(zod.string()).describe('Array of participant IDs who have been eliminated'),
   "winnerId": zod.string().nullable(),
@@ -286,7 +1199,1042 @@ export const ChooseWinnerResponse = zod.object({
   "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant'),
   "isPremium": zod.boolean().describe('True when this participant holds an active premium subscription (server-validated)')
 })),
+  "questionConfig": zod.object({
+  "packStrategy": zod.union([zod.object({
+  "mode": zod.enum(['single']),
+  "packSlug": zod.string().min(1)
+}),zod.object({
+  "mode": zod.enum(['multi']),
+  "packSlugs": zod.array(zod.string().min(1)).min(1)
+}),zod.object({
+  "mode": zod.enum(['weighted']),
+  "packWeights": zod.record(zod.string(), zod.number().min(chooseWinnerResponseQuestionConfigPackStrategyThreePackWeightsMinOne))
+}),zod.object({
+  "mode": zod.enum(['seasonal']),
+  "seasonalPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).optional()
+}),zod.object({
+  "mode": zod.enum(['premium']),
+  "premiumPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).min(1)
+})]).optional(),
+  "categoryWeights": zod.object({
+  "general": zod.number().min(chooseWinnerResponseQuestionConfigCategoryWeightsGeneralMin).optional(),
+  "fun": zod.number().min(chooseWinnerResponseQuestionConfigCategoryWeightsFunMin).optional(),
+  "deep": zod.number().min(chooseWinnerResponseQuestionConfigCategoryWeightsDeepMin).optional()
+}).optional(),
+  "difficultyPlan": zod.array(zod.enum(['easy', 'medium', 'hard', 'wildcard'])).min(1).optional(),
+  "avoidRecentGames": zod.number().min(chooseWinnerResponseQuestionConfigAvoidRecentGamesMin).max(chooseWinnerResponseQuestionConfigAvoidRecentGamesMax).optional(),
+  "disallowRepeatsInGame": zod.boolean().optional()
+}),
+  "currentRoundQuestions": zod.array(zod.object({
+  "id": zod.string(),
+  "content": zod.string(),
+  "packSlug": zod.string(),
+  "category": zod.enum(['general', 'fun', 'deep']),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']),
+  "ratingSummary": zod.object({
+  "questionId": zod.string(),
+  "ratingCount": zod.number(),
+  "averageRating": zod.number().nullable(),
+  "qualityScore": zod.number().nullable()
+})
+})),
   "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Rate a question that appeared in the current room
+ */
+export const RateRoomQuestionParams = zod.object({
+  "id": zod.coerce.string(),
+  "questionId": zod.coerce.string()
+})
+
+export const rateRoomQuestionBodyRatingMax = 5;
+
+
+
+export const RateRoomQuestionBody = zod.object({
+  "rating": zod.number().min(1).max(rateRoomQuestionBodyRatingMax),
+  "participantId": zod.string().optional().describe('Optional participant id used to tie ratings to a live room seat.')
+})
+
+
+/**
+ * @summary Get current user's game history
+ */
+
+export const getHistoryQueryLimitMax = 100;
+
+
+
+export const GetHistoryQueryParams = zod.object({
+  "page": zod.coerce.number().min(1).optional(),
+  "limit": zod.coerce.number().min(1).max(getHistoryQueryLimitMax).optional(),
+  "matchStatus": zod.enum(['matched', 'unmatched', 'unknown']).optional(),
+  "role": zod.enum(['chooser', 'suitor']).optional(),
+  "isWinner": zod.coerce.boolean().optional(),
+  "search": zod.coerce.string().optional(),
+  "sort": zod.enum(['newest', 'oldest']).optional(),
+  "cursor": zod.coerce.string().optional()
+})
+
+export const GetHistoryResponse = zod.object({
+  "items": zod.array(zod.object({
+  "gameId": zod.string(),
+  "completionTimestamp": zod.string(),
+  "role": zod.string(),
+  "isWinner": zod.boolean(),
+  "matchStatus": zod.enum(['matched', 'unmatched', 'unknown']),
+  "roundsSurvived": zod.number(),
+  "winnerId": zod.string().nullable(),
+  "winnerName": zod.string().nullable(),
+  "participantCount": zod.number()
+})),
+  "pagination": zod.object({
+  "page": zod.number(),
+  "limit": zod.number(),
+  "total": zod.number(),
+  "totalPages": zod.number(),
+  "hasMore": zod.boolean(),
+  "nextCursor": zod.string().nullish()
+})
+})
+
+
+/**
+ * @summary Get archived game detail for current user
+ */
+export const GetHistoryGameParams = zod.object({
+  "gameId": zod.coerce.string()
+})
+
+export const GetHistoryGameResponse = zod.object({
+  "gameId": zod.string(),
+  "completionTimestamp": zod.string(),
+  "winnerId": zod.string().nullable(),
+  "winnerName": zod.string().nullable(),
+  "matchStatus": zod.enum(['matched', 'unmatched', 'unknown']),
+  "eliminationOrder": zod.array(zod.string()),
+  "participants": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "suitorSlot": zod.number().nullable(),
+  "isBot": zod.boolean(),
+  "isPremium": zod.boolean()
+})),
+  "questionsAsked": zod.array(zod.object({
+  "participantId": zod.string(),
+  "suitorSlot": zod.number().nullable(),
+  "round": zod.number().nullable(),
+  "content": zod.string(),
+  "createdAt": zod.string()
+})),
+  "roundDurations": zod.array(zod.number()),
+  "analyticsMetadata": zod.record(zod.string(), zod.unknown()),
+  "questionTelemetrySummary": zod.object({
+  "askedCount": zod.number(),
+  "completedCount": zod.number(),
+  "skippedCount": zod.number(),
+  "timeoutCount": zod.number(),
+  "ratedCount": zod.number(),
+  "averageResponseTimeSeconds": zod.number().nullable(),
+  "averageRating": zod.number().nullable()
+}),
+  "playerPerspective": zod.object({
+  "role": zod.string(),
+  "isWinner": zod.boolean(),
+  "roundsSurvived": zod.number()
+})
+})
+
+
+/**
+ * @summary Get round-by-round replay timeline for an archived game
+ */
+export const GetHistoryReplayParams = zod.object({
+  "gameId": zod.coerce.string()
+})
+
+export const GetHistoryReplayResponse = zod.object({
+  "gameId": zod.string(),
+  "completionTimestamp": zod.string(),
+  "winnerId": zod.string().nullable(),
+  "winnerName": zod.string().nullable(),
+  "matchStatus": zod.enum(['matched', 'unmatched', 'unknown']),
+  "rounds": zod.array(zod.object({
+  "round": zod.number(),
+  "durationSeconds": zod.number(),
+  "questions": zod.array(zod.object({
+  "participantId": zod.string(),
+  "suitorSlot": zod.number().nullable(),
+  "content": zod.string(),
+  "createdAt": zod.string()
+})),
+  "eliminatedParticipantIds": zod.array(zod.string())
+})),
+  "eliminationOrder": zod.array(zod.string()),
+  "participants": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "suitorSlot": zod.number().nullable(),
+  "isBot": zod.boolean(),
+  "isPremium": zod.boolean()
+})),
+  "playerPerspective": zod.object({
+  "role": zod.string(),
+  "isWinner": zod.boolean(),
+  "roundsSurvived": zod.number()
+})
+})
+
+
+/**
+ * @summary Get the private match record for a room
+ */
+export const GetRoomMatchParams = zod.object({
+  "roomId": zod.coerce.string()
+})
+
+export const GetRoomMatchResponse = zod.object({
+  "match": zod.union([zod.object({
+  "id": zod.string(),
+  "roomId": zod.string(),
+  "chooserUserId": zod.string(),
+  "suitorUserId": zod.string(),
+  "chooserName": zod.string(),
+  "suitorName": zod.string(),
+  "createdAt": zod.string()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Eliminate a suitor from the current round
+ */
+export const EliminateSuitorParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const EliminateSuitorBody = zod.object({
+  "participantId": zod.string()
+})
+
+
+
+
+export const eliminateSuitorResponseQuestionConfigPackStrategyThreePackWeightsMinOne = 0;
+
+
+
+
+
+
+
+
+export const eliminateSuitorResponseQuestionConfigCategoryWeightsGeneralMin = 0;
+
+export const eliminateSuitorResponseQuestionConfigCategoryWeightsFunMin = 0;
+
+export const eliminateSuitorResponseQuestionConfigCategoryWeightsDeepMin = 0;
+
+
+export const eliminateSuitorResponseQuestionConfigAvoidRecentGamesMin = 0;
+export const eliminateSuitorResponseQuestionConfigAvoidRecentGamesMax = 20;
+
+
+
+export const EliminateSuitorResponse = zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "status": zod.enum(['waiting', 'active', 'ended']),
+  "roomSnapshotVersion": zod.number().describe('Monotonically increasing revision for canonical room snapshots.'),
+  "chooserName": zod.string().nullable(),
+  "suitorCount": zod.number(),
+  "maxSuitors": zod.number(),
+  "numberOfRounds": zod.number().optional().describe('Number of rounds for this session (defaults to 3 if absent).'),
+  "roundDurationSeconds": zod.number().optional().describe('Per-round duration in seconds for chooser\/question phase.'),
+  "answerTimeSeconds": zod.number().optional().describe('Answer time in seconds for suitor responses.'),
+  "roundEndsAt": zod.string().nullish().describe('ISO timestamp when the current round ends (server authoritative).'),
+  "currentRound": zod.number().describe('Current round (1-4). Rounds 1-3: 1 question\/suitor then eliminate. Round 4: 3 questions\/suitor then choose winner.'),
+  "eliminatedParticipants": zod.array(zod.string()).describe('Array of participant IDs who have been eliminated'),
+  "winnerId": zod.string().nullable(),
+  "winnerName": zod.string().nullable(),
+  "participants": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['chooser', 'suitor']),
+  "suitorSlot": zod.number().nullable(),
+  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant'),
+  "isPremium": zod.boolean().describe('True when this participant holds an active premium subscription (server-validated)')
+})),
+  "questionConfig": zod.object({
+  "packStrategy": zod.union([zod.object({
+  "mode": zod.enum(['single']),
+  "packSlug": zod.string().min(1)
+}),zod.object({
+  "mode": zod.enum(['multi']),
+  "packSlugs": zod.array(zod.string().min(1)).min(1)
+}),zod.object({
+  "mode": zod.enum(['weighted']),
+  "packWeights": zod.record(zod.string(), zod.number().min(eliminateSuitorResponseQuestionConfigPackStrategyThreePackWeightsMinOne))
+}),zod.object({
+  "mode": zod.enum(['seasonal']),
+  "seasonalPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).optional()
+}),zod.object({
+  "mode": zod.enum(['premium']),
+  "premiumPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).min(1)
+})]).optional(),
+  "categoryWeights": zod.object({
+  "general": zod.number().min(eliminateSuitorResponseQuestionConfigCategoryWeightsGeneralMin).optional(),
+  "fun": zod.number().min(eliminateSuitorResponseQuestionConfigCategoryWeightsFunMin).optional(),
+  "deep": zod.number().min(eliminateSuitorResponseQuestionConfigCategoryWeightsDeepMin).optional()
+}).optional(),
+  "difficultyPlan": zod.array(zod.enum(['easy', 'medium', 'hard', 'wildcard'])).min(1).optional(),
+  "avoidRecentGames": zod.number().min(eliminateSuitorResponseQuestionConfigAvoidRecentGamesMin).max(eliminateSuitorResponseQuestionConfigAvoidRecentGamesMax).optional(),
+  "disallowRepeatsInGame": zod.boolean().optional()
+}),
+  "currentRoundQuestions": zod.array(zod.object({
+  "id": zod.string(),
+  "content": zod.string(),
+  "packSlug": zod.string(),
+  "category": zod.enum(['general', 'fun', 'deep']),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']),
+  "ratingSummary": zod.object({
+  "questionId": zod.string(),
+  "ratingCount": zod.number(),
+  "averageRating": zod.number().nullable(),
+  "qualityScore": zod.number().nullable()
+})
+})),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Advance the room to the next round
+ */
+export const AdvanceRoomRoundParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+
+
+export const advanceRoomRoundResponseQuestionConfigPackStrategyThreePackWeightsMinOne = 0;
+
+
+
+
+
+
+
+
+export const advanceRoomRoundResponseQuestionConfigCategoryWeightsGeneralMin = 0;
+
+export const advanceRoomRoundResponseQuestionConfigCategoryWeightsFunMin = 0;
+
+export const advanceRoomRoundResponseQuestionConfigCategoryWeightsDeepMin = 0;
+
+
+export const advanceRoomRoundResponseQuestionConfigAvoidRecentGamesMin = 0;
+export const advanceRoomRoundResponseQuestionConfigAvoidRecentGamesMax = 20;
+
+
+
+export const AdvanceRoomRoundResponse = zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "status": zod.enum(['waiting', 'active', 'ended']),
+  "roomSnapshotVersion": zod.number().describe('Monotonically increasing revision for canonical room snapshots.'),
+  "chooserName": zod.string().nullable(),
+  "suitorCount": zod.number(),
+  "maxSuitors": zod.number(),
+  "numberOfRounds": zod.number().optional().describe('Number of rounds for this session (defaults to 3 if absent).'),
+  "roundDurationSeconds": zod.number().optional().describe('Per-round duration in seconds for chooser\/question phase.'),
+  "answerTimeSeconds": zod.number().optional().describe('Answer time in seconds for suitor responses.'),
+  "roundEndsAt": zod.string().nullish().describe('ISO timestamp when the current round ends (server authoritative).'),
+  "currentRound": zod.number().describe('Current round (1-4). Rounds 1-3: 1 question\/suitor then eliminate. Round 4: 3 questions\/suitor then choose winner.'),
+  "eliminatedParticipants": zod.array(zod.string()).describe('Array of participant IDs who have been eliminated'),
+  "winnerId": zod.string().nullable(),
+  "winnerName": zod.string().nullable(),
+  "participants": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['chooser', 'suitor']),
+  "suitorSlot": zod.number().nullable(),
+  "isBot": zod.boolean().describe('True when this participant slot is an AI bot contestant'),
+  "isPremium": zod.boolean().describe('True when this participant holds an active premium subscription (server-validated)')
+})),
+  "questionConfig": zod.object({
+  "packStrategy": zod.union([zod.object({
+  "mode": zod.enum(['single']),
+  "packSlug": zod.string().min(1)
+}),zod.object({
+  "mode": zod.enum(['multi']),
+  "packSlugs": zod.array(zod.string().min(1)).min(1)
+}),zod.object({
+  "mode": zod.enum(['weighted']),
+  "packWeights": zod.record(zod.string(), zod.number().min(advanceRoomRoundResponseQuestionConfigPackStrategyThreePackWeightsMinOne))
+}),zod.object({
+  "mode": zod.enum(['seasonal']),
+  "seasonalPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).optional()
+}),zod.object({
+  "mode": zod.enum(['premium']),
+  "premiumPackSlugs": zod.array(zod.string().min(1)).min(1),
+  "fallbackPackSlugs": zod.array(zod.string().min(1)).min(1)
+})]).optional(),
+  "categoryWeights": zod.object({
+  "general": zod.number().min(advanceRoomRoundResponseQuestionConfigCategoryWeightsGeneralMin).optional(),
+  "fun": zod.number().min(advanceRoomRoundResponseQuestionConfigCategoryWeightsFunMin).optional(),
+  "deep": zod.number().min(advanceRoomRoundResponseQuestionConfigCategoryWeightsDeepMin).optional()
+}).optional(),
+  "difficultyPlan": zod.array(zod.enum(['easy', 'medium', 'hard', 'wildcard'])).min(1).optional(),
+  "avoidRecentGames": zod.number().min(advanceRoomRoundResponseQuestionConfigAvoidRecentGamesMin).max(advanceRoomRoundResponseQuestionConfigAvoidRecentGamesMax).optional(),
+  "disallowRepeatsInGame": zod.boolean().optional()
+}),
+  "currentRoundQuestions": zod.array(zod.object({
+  "id": zod.string(),
+  "content": zod.string(),
+  "packSlug": zod.string(),
+  "category": zod.enum(['general', 'fun', 'deep']),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']),
+  "ratingSummary": zod.object({
+  "questionId": zod.string(),
+  "ratingCount": zod.number(),
+  "averageRating": zod.number().nullable(),
+  "qualityScore": zod.number().nullable()
+})
+})),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary List private matches for the current user
+ */
+export const GetMatchesResponse = zod.object({
+  "matches": zod.array(zod.object({
+  "id": zod.string(),
+  "roomId": zod.string(),
+  "chooserUserId": zod.string(),
+  "suitorUserId": zod.string(),
+  "chooserName": zod.string(),
+  "suitorName": zod.string(),
+  "createdAt": zod.string()
+}).and(zod.object({
+  "otherUserId": zod.string(),
+  "otherName": zod.string(),
+  "otherPhotos": zod.array(zod.string()),
+  "lastMessage": zod.union([zod.object({
+  "content": zod.string(),
+  "createdAt": zod.string(),
+  "senderName": zod.string()
+}),zod.null()])
+})))
+})
+
+
+/**
+ * @summary Get direct messages for a private match
+ */
+export const GetMatchMessagesParams = zod.object({
+  "matchId": zod.coerce.string()
+})
+
+export const GetMatchMessagesResponse = zod.object({
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "matchId": zod.string(),
+  "senderId": zod.string(),
+  "senderName": zod.string(),
+  "content": zod.string(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Send a direct message in a private match
+ */
+export const CreateMatchMessageParams = zod.object({
+  "matchId": zod.coerce.string()
+})
+
+
+
+
+export const CreateMatchMessageBody = zod.object({
+  "content": zod.string().min(1)
+})
+
+
+/**
+ * @summary Get private chat lifecycle state for reconnect/presence/typing
+ */
+export const GetMatchStateParams = zod.object({
+  "matchId": zod.coerce.string()
+})
+
+export const GetMatchStateResponse = zod.object({
+  "matchId": zod.string(),
+  "unreadCount": zod.number(),
+  "lastReadAt": zod.string().nullable(),
+  "canResume": zod.boolean(),
+  "serverTime": zod.string(),
+  "presence": zod.object({
+  "selfOnline": zod.boolean(),
+  "otherOnline": zod.boolean(),
+  "isOtherTyping": zod.boolean(),
+  "lastTypingAt": zod.string().nullable()
+})
+})
+
+
+/**
+ * @summary Update read cursor for private match messages
+ */
+export const SetMatchReadReceiptParams = zod.object({
+  "matchId": zod.coerce.string()
+})
+
+export const SetMatchReadReceiptBody = zod.object({
+  "lastReadAt": zod.coerce.date().optional()
+})
+
+export const SetMatchReadReceiptResponse = zod.object({
+  "ok": zod.boolean(),
+  "matchId": zod.string(),
+  "lastReadAt": zod.string()
+})
+
+
+/**
+ * @summary Get derived player statistics from archived games
+ */
+export const GetPlayerStatsParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetPlayerStatsResponse = zod.object({
+  "gamesPlayed": zod.number(),
+  "wins": zod.number(),
+  "matches": zod.number(),
+  "winPercentage": zod.number(),
+  "matchPercentage": zod.number(),
+  "averageFinish": zod.number(),
+  "averageResponseTimeSeconds": zod.number().nullable(),
+  "streaks": zod.object({
+  "currentWinStreak": zod.number(),
+  "maxWinStreak": zod.number(),
+  "currentMatchStreak": zod.number(),
+  "maxMatchStreak": zod.number()
+})
+})
+
+
+/**
+ * @summary Get derived player achievements
+ */
+export const GetPlayerAchievementsParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetPlayerAchievementsResponse = zod.object({
+  "achievements": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "target": zod.number(),
+  "progress": zod.number(),
+  "unlocked": zod.boolean()
+}))
+})
+
+
+/**
+ * @summary Get analytics summary for dashboard reads
+ */
+export const getAnalyticsSummaryQueryDaysMax = 365;
+
+
+
+export const GetAnalyticsSummaryQueryParams = zod.object({
+  "days": zod.coerce.number().min(1).max(getAnalyticsSummaryQueryDaysMax).optional()
+})
+
+export const GetAnalyticsSummaryResponse = zod.object({
+  "days": zod.number(),
+  "totalEvents": zod.number(),
+  "uniqueRooms": zod.number(),
+  "uniqueUsers": zod.number(),
+  "eventsByType": zod.record(zod.string(), zod.number()),
+  "topEventTypes": zod.array(zod.object({
+  "eventType": zod.string(),
+  "count": zod.number()
+}))
+})
+
+
+/**
+ * @summary Get analytics event stream for dashboard reads
+ */
+
+export const getAnalyticsEventsQueryLimitMax = 200;
+
+
+
+export const GetAnalyticsEventsQueryParams = zod.object({
+  "page": zod.coerce.number().min(1).optional(),
+  "limit": zod.coerce.number().min(1).max(getAnalyticsEventsQueryLimitMax).optional(),
+  "eventType": zod.coerce.string().optional()
+})
+
+export const GetAnalyticsEventsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "roomId": zod.string().nullable(),
+  "userId": zod.string().nullable(),
+  "participantId": zod.string().nullable(),
+  "eventType": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdAt": zod.string()
+})),
+  "pagination": zod.object({
+  "page": zod.number(),
+  "limit": zod.number(),
+  "total": zod.number(),
+  "totalPages": zod.number(),
+  "hasMore": zod.boolean(),
+  "nextCursor": zod.string().nullish()
+})
+})
+
+
+/**
+ * @summary List question pack coverage and active counts
+ */
+export const GetAdminQuestionPacksResponseItem = zod.object({
+  "packSlug": zod.string(),
+  "total": zod.number(),
+  "active": zod.number()
+})
+export const GetAdminQuestionPacksResponse = zod.array(GetAdminQuestionPacksResponseItem)
+
+
+/**
+ * @summary Get question intelligence dashboard data
+ */
+export const getAdminQuestionAnalyticsQueryLimitMax = 50;
+
+export const getAdminQuestionAnalyticsQueryDaysMax = 90;
+
+
+
+export const GetAdminQuestionAnalyticsQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(getAdminQuestionAnalyticsQueryLimitMax).optional(),
+  "days": zod.coerce.number().min(1).max(getAdminQuestionAnalyticsQueryDaysMax).optional()
+})
+
+export const GetAdminQuestionAnalyticsResponse = zod.object({
+  "leaderboard": zod.array(zod.object({
+  "questionId": zod.string(),
+  "content": zod.string(),
+  "packSlug": zod.string(),
+  "category": zod.enum(['general', 'fun', 'deep']),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']),
+  "usageCount": zod.number(),
+  "exposureCount": zod.number(),
+  "recentExposureCount": zod.number(),
+  "ratingCount": zod.number(),
+  "averageRating": zod.number().nullish(),
+  "completedCount": zod.number(),
+  "completionRate": zod.number().nullish(),
+  "skippedCount": zod.number(),
+  "skipRate": zod.number().nullish(),
+  "timeoutCount": zod.number(),
+  "timeoutRate": zod.number().nullish(),
+  "averageResponseTimeSeconds": zod.number().nullish(),
+  "confidenceScore": zod.number(),
+  "freshnessScore": zod.number(),
+  "qualityScore": zod.number(),
+  "suggestedArchive": zod.boolean(),
+  "suggestedPromote": zod.boolean()
+})),
+  "lowestPerforming": zod.array(zod.object({
+  "questionId": zod.string(),
+  "content": zod.string(),
+  "packSlug": zod.string(),
+  "category": zod.enum(['general', 'fun', 'deep']),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']),
+  "usageCount": zod.number(),
+  "exposureCount": zod.number(),
+  "recentExposureCount": zod.number(),
+  "ratingCount": zod.number(),
+  "averageRating": zod.number().nullish(),
+  "completedCount": zod.number(),
+  "completionRate": zod.number().nullish(),
+  "skippedCount": zod.number(),
+  "skipRate": zod.number().nullish(),
+  "timeoutCount": zod.number(),
+  "timeoutRate": zod.number().nullish(),
+  "averageResponseTimeSeconds": zod.number().nullish(),
+  "confidenceScore": zod.number(),
+  "freshnessScore": zod.number(),
+  "qualityScore": zod.number(),
+  "suggestedArchive": zod.boolean(),
+  "suggestedPromote": zod.boolean()
+})),
+  "packRankings": zod.array(zod.object({
+  "groupValue": zod.string(),
+  "questionCount": zod.number(),
+  "exposureCount": zod.number(),
+  "ratingCount": zod.number(),
+  "averageRating": zod.number().nullish(),
+  "averageQualityScore": zod.number().nullish(),
+  "completionRate": zod.number().nullish(),
+  "skipRate": zod.number().nullish(),
+  "timeoutRate": zod.number().nullish(),
+  "averageResponseTimeSeconds": zod.number().nullish(),
+  "suggestedArchiveCount": zod.number(),
+  "suggestedPromoteCount": zod.number()
+})),
+  "categoryRankings": zod.array(zod.object({
+  "groupValue": zod.string(),
+  "questionCount": zod.number(),
+  "exposureCount": zod.number(),
+  "ratingCount": zod.number(),
+  "averageRating": zod.number().nullish(),
+  "averageQualityScore": zod.number().nullish(),
+  "completionRate": zod.number().nullish(),
+  "skipRate": zod.number().nullish(),
+  "timeoutRate": zod.number().nullish(),
+  "averageResponseTimeSeconds": zod.number().nullish(),
+  "suggestedArchiveCount": zod.number(),
+  "suggestedPromoteCount": zod.number()
+})),
+  "difficultyRankings": zod.array(zod.object({
+  "groupValue": zod.string(),
+  "questionCount": zod.number(),
+  "exposureCount": zod.number(),
+  "ratingCount": zod.number(),
+  "averageRating": zod.number().nullish(),
+  "averageQualityScore": zod.number().nullish(),
+  "completionRate": zod.number().nullish(),
+  "skipRate": zod.number().nullish(),
+  "timeoutRate": zod.number().nullish(),
+  "averageResponseTimeSeconds": zod.number().nullish(),
+  "suggestedArchiveCount": zod.number(),
+  "suggestedPromoteCount": zod.number()
+})),
+  "ratingTrends": zod.array(zod.object({
+  "bucket": zod.string(),
+  "exposureCount": zod.number(),
+  "ratingCount": zod.number(),
+  "averageRating": zod.number().nullish(),
+  "averageResponseTimeSeconds": zod.number().nullish()
+})),
+  "responseTimeTrends": zod.array(zod.object({
+  "bucket": zod.string(),
+  "exposureCount": zod.number(),
+  "ratingCount": zod.number(),
+  "averageRating": zod.number().nullish(),
+  "averageResponseTimeSeconds": zod.number().nullish()
+})),
+  "exposureMetrics": zod.object({
+  "activeQuestions": zod.number(),
+  "totalExposureCount": zod.number(),
+  "recentExposureCount": zod.number(),
+  "averageExposurePerQuestion": zod.number(),
+  "recentWindowDays": zod.number()
+})
+})
+
+
+/**
+ * @summary Get moderation and safety dashboard data
+ */
+export const GetAdminGuardianResponse = zod.object({
+  "overview": zod.object({
+  "totalReports": zod.number(),
+  "totalBlocks": zod.number(),
+  "bannedUsers": zod.number(),
+  "recentReportCount": zod.number(),
+  "recentBlockCount": zod.number()
+}),
+  "recentReports": zod.array(zod.object({
+  "id": zod.string(),
+  "reporterId": zod.string(),
+  "reporterName": zod.string(),
+  "reportedId": zod.string(),
+  "reportedName": zod.string(),
+  "reportedIsBanned": zod.boolean(),
+  "reason": zod.string(),
+  "detail": zod.string().nullish(),
+  "createdAt": zod.string()
+})),
+  "recentBlocks": zod.array(zod.object({
+  "blockerId": zod.string(),
+  "blockerName": zod.string(),
+  "blockedId": zod.string(),
+  "blockedName": zod.string(),
+  "createdAt": zod.string()
+})),
+  "topReportedUsers": zod.array(zod.object({
+  "userId": zod.string(),
+  "userName": zod.string(),
+  "reportCount": zod.number(),
+  "isBanned": zod.boolean()
+}))
+})
+
+
+/**
+ * @summary List ballroom events
+ */
+export const getEventsQueryLimitMax = 100;
+
+
+
+export const GetEventsQueryParams = zod.object({
+  "status": zod.enum(['scheduled', 'live', 'completed', 'cancelled']).optional(),
+  "featured": zod.coerce.boolean().optional(),
+  "limit": zod.coerce.number().min(1).max(getEventsQueryLimitMax).optional()
+})
+
+export const GetEventsResponseItem = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "status": zod.enum(['scheduled', 'live', 'completed', 'cancelled']),
+  "startsAt": zod.string(),
+  "endsAt": zod.string().nullable(),
+  "isFeatured": zod.boolean(),
+  "metadata": zod.record(zod.string(), zod.unknown()),
+  "createdByUserId": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const GetEventsResponse = zod.array(GetEventsResponseItem)
+
+
+/**
+ * @summary Get the current featured ballroom event
+ */
+export const GetFeaturedEventResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "status": zod.enum(['scheduled', 'live', 'completed', 'cancelled']),
+  "startsAt": zod.string(),
+  "endsAt": zod.string().nullable(),
+  "isFeatured": zod.boolean(),
+  "metadata": zod.record(zod.string(), zod.unknown()),
+  "createdByUserId": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Create a ballroom event
+ */
+export const createAdminEventBodyTitleMax = 120;
+
+export const createAdminEventBodyDescriptionMax = 1000;
+
+
+
+export const CreateAdminEventBody = zod.object({
+  "title": zod.string().min(1).max(createAdminEventBodyTitleMax),
+  "description": zod.string().max(createAdminEventBodyDescriptionMax).optional(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().optional(),
+  "status": zod.enum(['scheduled', 'live', 'completed', 'cancelled']).optional(),
+  "isFeatured": zod.boolean().optional(),
+  "metadata": zod.record(zod.string(), zod.unknown()).optional()
+})
+
+
+/**
+ * @summary Update a ballroom event
+ */
+export const UpdateAdminEventParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateAdminEventBodyTitleMax = 120;
+
+export const updateAdminEventBodyDescriptionMax = 1000;
+
+
+
+export const UpdateAdminEventBody = zod.object({
+  "title": zod.string().min(1).max(updateAdminEventBodyTitleMax).optional(),
+  "description": zod.string().max(updateAdminEventBodyDescriptionMax).optional(),
+  "startsAt": zod.coerce.date().optional(),
+  "endsAt": zod.coerce.date().optional(),
+  "status": zod.enum(['scheduled', 'live', 'completed', 'cancelled']).optional(),
+  "isFeatured": zod.boolean().optional(),
+  "metadata": zod.record(zod.string(), zod.unknown()).optional()
+})
+
+export const UpdateAdminEventResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "status": zod.enum(['scheduled', 'live', 'completed', 'cancelled']),
+  "startsAt": zod.string(),
+  "endsAt": zod.string().nullable(),
+  "isFeatured": zod.boolean(),
+  "metadata": zod.record(zod.string(), zod.unknown()),
+  "createdByUserId": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Send push notifications for a ballroom event
+ */
+export const NotifyAdminEventParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const notifyAdminEventBodyTitleMax = 120;
+
+export const notifyAdminEventBodyBodyMax = 240;
+
+
+
+export const NotifyAdminEventBody = zod.object({
+  "title": zod.string().min(1).max(notifyAdminEventBodyTitleMax).optional(),
+  "body": zod.string().min(1).max(notifyAdminEventBodyBodyMax).optional(),
+  "dryRun": zod.boolean().optional()
+})
+
+export const NotifyAdminEventResponse = zod.object({
+  "ok": zod.boolean(),
+  "notifiedCount": zod.number(),
+  "dryRun": zod.boolean()
+})
+
+
+/**
+ * @summary List questions with filtering and pagination
+ */
+
+export const getAdminQuestionsQueryLimitMax = 100;
+
+
+
+export const GetAdminQuestionsQueryParams = zod.object({
+  "page": zod.coerce.number().min(1).optional(),
+  "limit": zod.coerce.number().min(1).max(getAdminQuestionsQueryLimitMax).optional(),
+  "search": zod.coerce.string().optional(),
+  "packSlug": zod.coerce.string().optional(),
+  "category": zod.enum(['general', 'fun', 'deep']).optional(),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']).optional(),
+  "isActive": zod.coerce.boolean().optional()
+})
+
+export const GetAdminQuestionsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "content": zod.string(),
+  "packSlug": zod.string(),
+  "category": zod.enum(['general', 'fun', 'deep']),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']),
+  "normalizedHash": zod.string(),
+  "isActive": zod.boolean(),
+  "createdByUserId": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "pagination": zod.object({
+  "page": zod.number(),
+  "limit": zod.number(),
+  "total": zod.number(),
+  "totalPages": zod.number()
+})
+})
+
+
+/**
+ * @summary Create a new question in the bank
+ */
+
+export const createAdminQuestionBodyPackSlugMax = 64;
+
+
+
+export const CreateAdminQuestionBody = zod.object({
+  "content": zod.string().min(1),
+  "packSlug": zod.string().min(1).max(createAdminQuestionBodyPackSlugMax),
+  "category": zod.enum(['general', 'fun', 'deep']),
+  "difficulty": zod.enum(['easy', 'medium', 'hard'])
+})
+
+
+/**
+ * @summary Update question content or metadata
+ */
+export const UpdateAdminQuestionParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+export const updateAdminQuestionBodyPackSlugMax = 64;
+
+
+
+export const UpdateAdminQuestionBody = zod.object({
+  "content": zod.string().min(1).optional(),
+  "packSlug": zod.string().min(1).max(updateAdminQuestionBodyPackSlugMax).optional(),
+  "category": zod.enum(['general', 'fun', 'deep']).optional(),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']).optional(),
+  "isActive": zod.boolean().optional()
+})
+
+export const UpdateAdminQuestionResponse = zod.object({
+  "id": zod.string(),
+  "content": zod.string(),
+  "packSlug": zod.string(),
+  "category": zod.enum(['general', 'fun', 'deep']),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']),
+  "normalizedHash": zod.string(),
+  "isActive": zod.boolean(),
+  "createdByUserId": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Archive a question from active selection
+ */
+export const ArchiveAdminQuestionParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ArchiveAdminQuestionResponse = zod.object({
+  "id": zod.string(),
+  "content": zod.string(),
+  "packSlug": zod.string(),
+  "category": zod.enum(['general', 'fun', 'deep']),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']),
+  "normalizedHash": zod.string(),
+  "isActive": zod.boolean(),
+  "createdByUserId": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
 })
 
 

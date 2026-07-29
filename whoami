@@ -1,0 +1,133 @@
+[33m96a3b50[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Initial commit
+[33m601cfd1[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Improve build process by fixing packaging conflict errors
+[33m16b64e6[m Add image asset for user interface elements
+[33m5244a7c[m Update script to allow pushing code directly with a token
+[33m16dcce9[m Add build property to exclude duplicate manifest files
+[33mc5774fc[m Update build configuration for app deployment
+[33m444c9ea[m Remove Slack notifications from build workflows
+[33m4079978[m Remove unused Slack notification steps from build workflows
+[33md0e59f8[m Remove unused Slack notification steps from build workflows
+[33mfb1958b[m Remove unused Slack notification steps from build workflows
+[33m4ca897d[m Remove unused Slack notification steps from build workflows
+[33m1ebdf82[m Remove unnecessary Slack notifications from build workflows
+[33m0fef035[m Improve build process by fixing version conflicts and Slack notifications
+[33m33c967e[m Improve build workflows by fixing pnpm versions and Slack notifications
+[33mf767f39[m Update build workflows to support pnpm monorepo setup
+[33m187a799[m Update build workflows to support pnpm monorepo dependencies
+[33mab2449e[m Update image assets for the application
+[33m68e0025[m Update project configuration and settings for mobile app builds
+[33mc1de878[m Update user interface with new visual assets
+[33m7417557[m Add a screenshot of the Replit secrets panel
+[33m7645759[m Add a screenshot of the GitHub secrets page
+[33m6cc5d31[m Add image to asset library for user interface elements
+[33m4998d06[m Add image to asset library for visual content
+[33mdcf2023[m Add an image file to project assets
+[33mc8582bb[m Add screenshot of successful code push to GitHub repository
+[33m0b2737d[m Add script to push code to GitHub repository
+[33m7809a18[m Add visual asset for user engagement
+[33m4c3778a[m Add image asset for user profile visualization
+[33m6ceeaa8[m Add image to project resources
+[33m1e98265[m task-54: Integration tests for premium badge refresh without rejoining
+[33m5e92957[m Add image asset to the project
+[33m497aa7d[m ios-submit: capture EAS output and include error summary in Slack failure alert
+[33m80e8089[m Add image file to project assets
+[33m8a94ebd[m Improve app submission error reporting and handling
+[33me3aa3d8[m Confirm iOS build URL fallback parity and add iOS-specific test scenarios
+[33m5a1d016[m feat: add version-bump workflow that pushes v* tags to trigger Android/iOS builds
+[33m2e03160[m Published your App
+[33mc5a24a7[m Add workflows for version bumping and release notifications
+[33m88580fc[m Improve EAS error extraction in Android and iOS build failure alerts
+[33m360e1c9[m Add test case for build alerts with no JSON output
+[33mcdbabae[m Improve build alerting and type checking for development tasks
+[33m4be7cad[m Add tested fallback URL logic for EAS build failure alerts
+[33m1d2bcbd[m Published your App
+[33mc31789a[m Add concurrency group to iOS and Android build workflows
+[33m414d151[m feat(pool): show premium priority placement badge on pool waiting screen
+[33m61f9521[m feat: refresh premium badge automatically when subscription activates mid-session
+[33m0a86c78[m Fix build errors by resolving Expo Router context modules correctly
+[33m2d76022[m Show premium badge to suitors on their own room screen
+[33mc90b0cd[m Add push-tag trigger and production fallbacks to ios-build.yml
+[33m6079b73[m Add image to document build progress and success
+[33m10d7310[m Trigger Android build automatically on every v* release tag
+[33m4578326[m Git commit prior to merge
+[33mfc21376[m Update project configuration to resolve build errors
+[33m3159fd4[m Remove unnecessary configuration file for build process
+[33m5dd7bfc[m Update EAS CLI version requirement to build the application
+[33m9f56138[m Fix build configuration by removing invalid iOS submit field
+[33mfa50186[m Add iOS Build workflow that auto-triggers iOS Submit on success
+[33m634b1d0[m Git commit prior to merge
+[33mb6c38b9[m Update user interface for initiating mobile app builds
+[33mcb58885[m feat(scripts): extend bump-version to create a git commit and tag
+[33m6fe1b0a[m Update package manager to ensure successful builds
+[33m6855b6c[m task-33: Harden bump-version script against malformed/missing app.json
+[33m8003730[m Add package manager configuration for consistent builds
+[33m014fd10[m Add a package manager setting to ensure builds use the correct tools
+[33ma377371[m Prevent paywall from crashing when RevenueCat isn't configured (#29)
+[33md1efa89[m feat: show premium badge on matched suitor profiles (task #28)
+[33m5b9e5bd[m Configure build environment to use correct package manager
+[33mdd5a505[m Configure build system to correctly use the package manager
+[33mbd227b0[m Add Android build GitHub Actions workflow with Slack alerts and auto-submit chaining
+[33ma3009ba[m feat: add iOS submission workflow with Slack alerts on success and failure
+[33m53728a4[m feat(mobile): auto-bump app.json version before EAS production builds
+[33m979b90f[m feat: wire RevenueCat premium subscription and implement priority pool placement
+[33m19d37ad[m Task #26: AI bot contestants fill empty suitor slots
+[33m11a9f8b[m Task #26: AI bot contestants fill empty suitor slots
+[33m8fa4ca8[m Task #26: AI bot contestants fill empty suitor slots
+[33m42f4999[m Shrink rooms from 5 suitors to 3 suitors (Task #25)
+[33m496ffc1[m Transitioned from Plan to Build mode
+[33m6cbc1ac[m task-19: Replace AI-generated store screenshots with real 1080×1920 app renders
+[33m4059b6e[m feat: add GitHub Actions workflow to alert on Android submission failure
+[33m193f327[m Add autoIncrement for Android production builds in eas.json
+[33mcb7f3b7[m Task #14: Set up Google Play store listing with screenshots and final copy
+[33mbfbc175[m Task #13: Automate Android releases via EAS secret for Google Play service account
+[33m30edc84[m Git commit prior to merge
+[33m42baed1[m Fix iOS build blockers for App Store submission
+[33m20f5812[m Task: Upload the Android app to Google Play Console
+[33m25c82ef[m Update project slug to match EAS build configuration
+[33m53b4ebf[m Add EAS build configuration and project ID to app settings
+[33mb8f5956[m Add EAS project ID to mobile app configuration
+[33m4d85df5[m Update app branding and configure build settings for app store submission
+[33m5434fb4[m Published your App
+[33m6b0e731[m Task 9: Storage and Profile Privacy — fix three security vulnerabilities
+[33m9af8bec[m Published your App
+[33m375746f[m Enhance security by adding authentication and validating data inputs
+[33mb263ac6[m fix(security): Fix four high-severity broken access control vulnerabilities (server + client)
+[33mdd1fca6[m Update dependencies to resolve module resolution errors in the mobile app
+[33me55a6fc[m fix(identity): require DOB in Stripe Identity verified_outputs before granting age-verified status
+[33md701274[m Saved progress at the end of the loop
+[33m0014b46[m Fix 21 dependency vulnerabilities via overrides and direct dep updates
+[33mf0c786c[m Security scan completed: Security scan (8 new vulnerability(ies)).
+[33m71b4d33[m Add secure age verification for users using facial recognition technology
+[33m5381517[m Improve Stripe credential retrieval reliability and logging
+[33m0dd7aad[m Remove unused UI components and update dependencies for better stability
+[33m5d1dec2[m Prioritize Stripe integration credentials over environment variables
+[33mfde5bf9[m Add admin panel access and protect against banned users
+[33m601e119[m Add administrative capabilities to manage users and content
+[33m5ad2761[m Add user gender preferences and push notification capabilities
+[33m7383702[m Add script to fully populate test chat rooms
+[33ma3d5c39[m Add screenshot of available social login options
+[33m8258bef[m Add screenshot of Stripe integration issue
+[33m3f397cc[m Add screenshot of Stripe API key error message to assets
+[33m24d7520[m Update site image for better online sharing and previews
+[33m51f87d7[m Add fallback for Stripe secret key and improve credentials fetching
+[33m915514c[m Update artifact titles to reflect the current brand name
+[33m8386b97[m Limit group chat access to eliminated players only
+[33m5029f97[m Anonymize users in group chat with unique color identifiers
+[33mf32b09c[m Add content filter to prevent sharing contact information in group chats
+[33m079e691[m Update the application to align with the Intermingled gameshow theme and branding
+[33md887135[m Fix login and signup functionality using updated Clerk integration
+[33m288ef2d[m Add a phased user onboarding and verification system
+[33m004c6ae[m Implement daily session limits for choosers and rejoin functionality
+[33m62dbe92[m Implement multi-round elimination and voting system for speed dating
+[33m2ddc164[m Add ability to message matches and securely link user accounts
+[33m5466409[m Enhance the dating app with mobile navigation and profile features
+[33m9c6c4f2[m Add profile, inbox, and direct messaging features
+[33m4d222c0[m Integrate Clerk authentication and Stripe payment processing
+[33m758415c[m Update app colors and fonts for a modern, sophisticated look
+[33me43ff23[m Update application name and branding to Intermingled
+[33m294292a[m Saved progress at the end of the loop
+[33mfba7c0a[m Update project dependencies for the mobile application
+[33m1e42f54[m Add live suitor count and improve mobile experience
+[33m8aecd4c[m feat: Personality quiz & auto-matchmaking (Task #1)
+[33me12780b[m Add real-time chat functionality and room management features
+[33m2246770[m Initial commit

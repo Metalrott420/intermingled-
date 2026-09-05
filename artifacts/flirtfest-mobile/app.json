@@ -2,7 +2,7 @@
   "expo": {
     "name": "Intermingled",
     "slug": "intermingled",
-    "version": "1.0.2",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "flirtfest-mobile",
@@ -17,7 +17,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.intermingled.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Intermingled needs your location to display nearby live radar beacons, events, and safe zones."
       }
     },
     "android": {
@@ -26,18 +27,24 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#0d0a14"
       },
-      "versionCode": 3
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.INTERNET",
+        "android.permission.CAMERA"
+      ],
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "versionCode": 31
     },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": "https://replit.com/"
-        }
-      ],
       "expo-font",
       "expo-web-browser",
       "./plugins/fix-packaging-conflict"
@@ -49,6 +56,9 @@
     "extra": {
       "eas": {
         "projectId": "600d565b-c228-43ef-9bcd-7d4c055b9151"
+      },
+      "router": {
+        "origin": "https://www.intermingledapp.com/"
       }
     }
   }

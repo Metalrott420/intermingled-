@@ -1,5 +1,3 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
 # compiled output
 dist
 tmp
@@ -10,6 +8,20 @@ out-tsc
 
 # dependencies
 node_modules
+**/node_modules
+
+# sub-projects excluded from mobile build archive
+artifacts/speed-date
+artifacts/api-server
+attached_assets
+lib/object-storage-web
+lib/api-spec
+
+# databases and logs
+*.sqlite
+*.log
+*.aab
+*.apk
 
 # IDEs and editors
 /.idea
@@ -19,8 +31,6 @@ node_modules
 *.launch
 .settings/
 *.sublime-workspace
-
-# IDE - VSCode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -36,14 +46,9 @@ npm-debug.log
 yarn-error.log
 testem.log
 /typings
-
-# System Files
 .DS_Store
 Thumbs.db
-
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
-
-# Replit
 .cache/
 .local/
+tmp/
+cache/

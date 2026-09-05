@@ -15,6 +15,10 @@
       }
     },
     "production": {
+      "env": {
+        "NPM_CONFIG_FROZEN_LOCKFILE": "false",
+        "CI": "false"
+      },
       "android": {
         "buildType": "app-bundle",
         "autoIncrement": true
@@ -27,7 +31,6 @@
   "submit": {
     "production": {
       "android": {
-        "serviceAccountKeyPath": "$GOOGLE_PLAY_SERVICE_ACCOUNT",
         "track": "internal"
       },
       "ios": {

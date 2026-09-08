@@ -2,8 +2,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install pnpm globally
-RUN npm install -g pnpm
+# Install the exact pnpm version pinned in package.json via corepack
+RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
 
 # Copy all repository files
 COPY . .

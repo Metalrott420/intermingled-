@@ -11,9 +11,13 @@ COPY . .
 # Install dependencies without frozen lockfile
 RUN pnpm install --no-frozen-lockfile
 
+# Build frontend first
+RUN cd artifacts/speed-date && pnpm build
+
 # Build backend bundle
 RUN cd artifacts/api-server && node build.mjs
 
 EXPOSE 8080
 
-CMD ["node", "artifacts/api-server/dist/index.mjs"]
+CMD ["pnpm", "--filter", "@workspace/api-server", "start"]
+

@@ -87,6 +87,7 @@ function SignInPage() {
   const logoClicks = useRef(0);
 
   const handleLogoClick = () => {
+    if (import.meta.env.MODE !== "development") return;
     logoClicks.current += 1;
     if (logoClicks.current >= 3) {
       console.log("[Developer Shortcut] Bypassing login...");

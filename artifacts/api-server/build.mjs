@@ -29,11 +29,6 @@ async function buildAll() {
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
       "@clerk/*",
-      "helmet",
-      "cors",
-      "pino",
-      "pino-http",
-      "socket.io",
       "*.node",
       "sharp",
       "better-sqlite3",

@@ -4,7 +4,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import pinoHttp from "pino-http";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
 import router from "./routes";
 import { WebhookHandlers } from "./webhookHandlers";
 import { logger } from "./lib/logger";

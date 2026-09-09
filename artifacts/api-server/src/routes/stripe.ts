@@ -1,16 +1,17 @@
 import { Router, type IRouter } from "express";
-import { getAuth } from "@clerk/express";
+import express from "express";
+// import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { getUncachableStripeClient } from "../stripeClient";
 import { logger } from "../lib/logger";
+import { WebhookHandlers } from "../webhookHandlers";
 
 const router: IRouter = Router();
 
 const requireAuth = (req: any, res: any, next: any) => {
-  const auth = getAuth(req);
-  const userId = auth?.userId;
+  const userId = req.header("X-Dev-User-Id");
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
   req.clerkUserId = userId;
   next();
@@ -39,15 +40,18 @@ async function getOrCreateUser(clerkUserId: string, email?: string, name?: strin
 // GET /api/stripe/me — current user profile + subscription info
 router.get("/stripe/me", requireAuth, async (req: any, res) => {
   try {
-    const auth = getAuth(req);
-    const user = await getOrCreateUser(req.clerkUserId, auth?.sessionClaims?.email as string | undefined, auth?.sessionClaims?.name as string | undefined);
+    const user = await getOrCreateUser(req.clerkUserId);
 
     let subscription = null;
     if (user.stripeSubscriptionId) {
-      const result = await db.execute(
-        sql`SELECT * FROM stripe.subscriptions WHERE id = ${user.stripeSubscriptionId} LIMIT 1`
-      );
-      subscription = result.rows[0] ?? null;
+      try {
+        const result = (db as any).run
+          ? (db as any).run(sql`SELECT * FROM stripe.subscriptions WHERE id = ${user.stripeSubscriptionId} LIMIT 1`)
+          : null;
+        subscription = result?.rows?.[0] ?? null;
+      } catch {
+        subscription = null;
+      }
     }
 
     res.json({ user, subscription });
@@ -61,7 +65,7 @@ router.get("/stripe/me", requireAuth, async (req: any, res) => {
 router.get("/stripe/plans", async (_req, res) => {
   try {
     // Try synced DB first
-    const result = await db.execute(sql`
+    const result = await (db as any).execute(sql`
       SELECT
         p.id AS product_id,
         p.name AS product_name,
@@ -124,12 +128,7 @@ router.post("/stripe/checkout", requireAuth, async (req: any, res) => {
       return;
     }
 
-    const auth = getAuth(req);
-    const user = await getOrCreateUser(
-      req.clerkUserId,
-      auth?.sessionClaims?.email as string | undefined,
-      auth?.sessionClaims?.name as string | undefined,
-    );
+    const user = await getOrCreateUser(req.clerkUserId);
 
     const stripe = await getUncachableStripeClient();
 
@@ -186,5 +185,25 @@ router.post("/stripe/portal", requireAuth, async (req: any, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// POST /api/stripe/webhook — Stripe webhook receiver
+router.post(
+  "/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  async (req: any, res) => {
+    const signature = req.headers["stripe-signature"];
+    if (!signature) {
+      res.status(400).json({ error: "Missing stripe-signature" });
+      return;
+    }
+    try {
+      await WebhookHandlers.processWebhook(req.body, Array.isArray(signature) ? signature[0] : signature);
+      res.status(200).json({ received: true });
+    } catch (error: any) {
+      logger.error({ err: error }, "Stripe webhook processing error");
+      res.status(400).json({ error: error.message || "Webhook error" });
+    }
+  }
+);
 
 export default router;

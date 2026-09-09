@@ -108,11 +108,11 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use("/api", router);
 
 // Serve static files from the web project's build directory
-const webDistPath = path.join(process.cwd(), "artifacts/speed-date/dist");
+const webDistPath = path.resolve(__dirname, "../../../artifacts/speed-date/dist");
 app.use(express.static(webDistPath));
 
 // Serve chat attachments
-const chatAssetsPath = path.join(process.cwd(), "attached_assets/chat");
+const chatAssetsPath = path.resolve(__dirname, "../../../attached_assets/chat");
 app.use("/api/chat/assets", express.static(chatAssetsPath));
 
 // ── Android App Links (.well-known/assetlinks.json) ─────────────────────────

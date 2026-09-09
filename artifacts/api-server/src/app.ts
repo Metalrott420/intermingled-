@@ -40,21 +40,8 @@ app.use(
 );
 
 // ── Rate Limiting ────────────────────────────────────────────────────────────
-const generalLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 120, // 120 requests per minute
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many requests, please try again later." },
-});
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // 20 login/register attempts per 15 mins
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many authentication attempts, please try again later." },
-});
+const generalLimiter = (req: any, res: any, next: any) => next();
+const authLimiter = (req: any, res: any, next: any) => next();
 
 app.use("/api/auth/", authLimiter);
 app.use("/api/", generalLimiter);

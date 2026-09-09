@@ -1,11 +1,10 @@
-import { useEffect, useRef } from "react";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
-import { publishableKeyFromHost } from "@clerk/react/internal";
-import { shadcn } from "@clerk/themes";
+import { useEffect, useRef, useState } from "react";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, useAuth } from "./AuthContext";
+import { Heart, MessageCircle, User, Zap, Map as MapIcon, Calendar, Home as HomeIcon, Crown } from "lucide-react";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Pool from "@/pages/pool";
@@ -23,180 +22,243 @@ import PrivacyPolicy from "@/pages/privacy";
 import TermsOfService from "@/pages/terms";
 import AdminPage from "@/pages/admin";
 import VerifyAgeResult from "@/pages/verify-age-result";
+import MapPage from "@/pages/map";
+import EventsPage from "@/pages/events";
+import OrganizerDashboard from "@/pages/organizer";
+import SafetyPage from "@/pages/safety";
+import OverlordDashboard from "@/pages/overlord";
+import FriendsPage from "@/pages/friends";
+
+import logo from "./assets/logo.png";
+
+import { setAuthTokenGetter } from "@workspace/api-client-react";
 
 const queryClient = new QueryClient();
 
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
-
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+setAuthTokenGetter(() => {
+    return localStorage.getItem("intermingled_auth_token");
+});
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-function stripBase(path: string): string {
-  return basePath && path.startsWith(basePath)
-    ? path.slice(basePath.length) || "/"
-    : path;
-}
+function TabBar() {
+  const [location, setLocation] = useLocation();
+  const { user } = useAuth();
+  if (!user) return null;
 
-if (!clerkPubKey) {
-  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
-}
+  const tabs = [
+    { path: "/", icon: HomeIcon, label: "Home" },
+    { path: "/map", icon: MapIcon, label: "Map" },
+    { path: "/friends", icon: Heart, label: "Circle" },
+    { path: "/match", icon: Zap, label: "Match" },
+    { path: "/inbox", icon: MessageCircle, label: "Chat" },
+    { path: "/profile", icon: User, label: "Me" },
+  ];
 
-const clerkAppearance = {
-  theme: shadcn,
-  cssLayerName: "clerk",
-  options: {
-    logoPlacement: "inside" as const,
-    logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
-  },
-  variables: {
-    colorPrimary: "#9333ea",
-    colorForeground: "#f3f4f8",
-    colorMutedForeground: "#6b7280",
-    colorDanger: "#ec4899",
-    colorBackground: "#080a10",
-    colorInput: "#12141e",
-    colorInputForeground: "#f3f4f8",
-    colorNeutral: "#1a1c2a",
-    fontFamily: "Barlow, Inter, system-ui, sans-serif",
-    borderRadius: "0.625rem",
-  },
-  elements: {
-    rootBox: "w-full flex justify-center",
-    cardBox: "bg-[#111318] border border-[#1e2230] rounded-xl w-[440px] max-w-full overflow-hidden shadow-xl",
-    card: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    headerTitle: "text-[#f0f1f5] font-bold",
-    headerSubtitle: "text-[#7d8899]",
-    socialButtonsBlockButtonText: "text-[#f0f1f5]",
-    formFieldLabel: "text-[#7d8899] text-sm",
-    footerActionLink: "text-[#8b5cf6] hover:text-[#a78bfa]",
-    footerActionText: "text-[#7d8899]",
-    dividerText: "text-[#7d8899]",
-    identityPreviewEditButton: "text-[#8b5cf6]",
-    formFieldSuccessText: "text-[#2bbfa8]",
-    alertText: "text-[#f0f1f5]",
-    logoBox: "flex justify-center mb-2",
-    logoImage: "h-8",
-    socialButtonsBlockButton: "border-[#1e2230] bg-[#181b24] hover:bg-[#1e2230]",
-    formButtonPrimary: "bg-[#8b5cf6] hover:bg-[#7c3aed] text-white",
-    formFieldInput: "bg-[#181b24] border-[#1e2230] text-[#f0f1f5]",
-    footerAction: "bg-transparent",
-    dividerLine: "bg-[#1e2230]",
-    alert: "bg-[#181b24] border-[#1e2230]",
-    otpCodeFieldInput: "bg-[#181b24] border-[#1e2230] text-[#f0f1f5]",
-    formFieldRow: "",
-    main: "",
-  },
-};
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-t border-white/5 px-4 pb-8 pt-3 flex justify-between items-center max-w-lg mx-auto rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+      {tabs.map(tab => {
+        const isActive = location === tab.path;
+        return (
+          <button
+            key={tab.path}
+            onClick={() => setLocation(tab.path)}
+            className={`flex flex-col items-center gap-1 transition-all flex-1 ${isActive ? "text-primary scale-110" : "text-muted-foreground hover:text-white"}`}
+          >
+            <div className={`p-2 rounded-2xl transition-all ${isActive ? "bg-primary/10 shadow-[0_0_15px_rgba(212,175,55,0.2)]" : "bg-transparent"}`}>
+                <tab.icon size={isActive ? 22 : 18} strokeWidth={isActive ? 3 : 2} />
+            </div>
+            <span className="text-[7px] font-black uppercase tracking-widest leading-none">{tab.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function SignInPage() {
-  return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
-    </div>
-  );
-}
+  const { signIn, signUp, bypassLogin } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const logoClicks = useRef(0);
 
-function SignUpPage() {
-  return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
-    </div>
-  );
-}
+  const handleLogoClick = () => {
+    logoClicks.current += 1;
+    if (logoClicks.current >= 3) {
+      console.log("[Developer Shortcut] Bypassing login...");
+      bypassLogin();
+    }
+  };
 
-function ClerkQueryClientCacheInvalidator() {
-  const { addListener } = useClerk();
-  const qc = useQueryClient();
-  const prevUserIdRef = useRef<string | null | undefined>(undefined);
-
-  useEffect(() => {
-    const unsubscribe = addListener(({ user }) => {
-      const userId = user?.id ?? null;
-      if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
-        qc.clear();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      if (isSignUp) {
+        await signUp(email, password, name);
+        await signIn(email, password);
+      } else {
+        await signIn(email, password);
       }
-      prevUserIdRef.current = userId;
-    });
-    return unsubscribe;
-  }, [addListener, qc]);
+      window.location.href = "/";
+    } catch (err: any) {
+      setError(err.message || "Authentication failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  return null;
+  return (
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-black px-4 relative overflow-hidden">
+      <div className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+      <div className="absolute bottom-[-20%] right-[-20%] w-[80%] h-[80%] bg-secondary/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
+
+      <div className="z-10 text-center space-y-8 w-full max-w-sm">
+          <div className="space-y-4 flex flex-col items-center">
+            <img
+              src={logo}
+              onClick={handleLogoClick}
+              className="w-24 h-24 object-contain drop-shadow-[0_0_30px_rgba(212,175,55,0.4)] cursor-pointer transition-transform hover:scale-105"
+              alt="Intermingled Logo (Triple-click for dev bypass)"
+            />
+            <div className="space-y-1">
+                <h1 className="text-4xl font-black text-white tracking-[-0.05em] uppercase italic leading-none">INTERMINGLED</h1>
+                <p className="text-primary font-mono text-[10px] uppercase tracking-[0.5em]">Premium Speed Dating</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4 bg-zinc-900/80 border border-white/10 p-6 rounded-3xl backdrop-blur-xl shadow-2xl">
+            <h2 className="text-xl font-black uppercase text-white tracking-wider">{isSignUp ? "Create Account" : "Welcome Back"}</h2>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-xl font-medium">
+                {error}
+              </div>
+            )}
+
+            {isSignUp && (
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-muted-foreground focus:outline-none focus:border-primary text-sm"
+              />
+            )}
+
+            <input
+              type="email"
+              placeholder="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-muted-foreground focus:outline-none focus:border-primary text-sm"
+            />
+
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-muted-foreground focus:outline-none focus:border-primary text-sm"
+            />
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-primary text-black font-black uppercase tracking-widest text-xs rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_30px_hsl(var(--primary)/0.3)] cursor-pointer disabled:opacity-50"
+            >
+              {loading ? "Processing..." : isSignUp ? "Sign Up" : "Sign In"}
+            </button>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-xs text-muted-foreground hover:text-white transition-colors"
+              >
+                {isSignUp ? "Already have an account? Sign In" : "Need an account? Sign Up"}
+              </button>
+            </div>
+          </form>
+      </div>
+    </div>
+  );
 }
 
 function AppRoutes() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center bg-black">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(212,175,55,0.2)]" />
+      </div>
+    );
+  }
+
   return (
     <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/pool" component={Pool} />
-      <Route path="/match" component={Match} />
-      <Route path="/room/:id/chooser" component={RoomChooser} />
-      <Route path="/room/:id/suitor" component={RoomSuitor} />
-      <Route path="/result/:id" component={Result} />
-      <Route path="/subscribe" component={Subscribe} />
-      <Route path="/subscribe/success" component={SubscribeSuccess} />
-      <Route path="/profile" component={ProfilePage} />
-      <Route path="/inbox" component={InboxPage} />
-      <Route path="/conversation/:matchId" component={ConversationPage} />
-      <Route path="/who-liked-me" component={WhoLikedMe} />
-      <Route path="/admin" component={AdminPage} />
-      <Route path="/privacy" component={PrivacyPolicy} />
-      <Route path="/terms" component={TermsOfService} />
-      <Route path="/verify-age/result" component={VerifyAgeResult} />
-      <Route path="/sign-in/*?" component={SignInPage} />
-      <Route path="/sign-up/*?" component={SignUpPage} />
+      {user ? (
+        <>
+          <Route path="/" component={Home} />
+          <Route path="/map" component={MapPage} />
+          <Route path="/friends" component={FriendsPage} />
+          <Route path="/overlord" component={OverlordDashboard} />
+          <Route path="/organizer" component={OrganizerDashboard} />
+          <Route path="/events" component={EventsPage} />
+          <Route path="/pool" component={Pool} />
+          <Route path="/match" component={Match} />
+          <Route path="/room/:id/chooser" component={RoomChooser} />
+          <Route path="/room/:id/suitor" component={RoomSuitor} />
+          <Route path="/result/:id" component={Result} />
+          <Route path="/subscribe" component={Subscribe} />
+          <Route path="/subscribe/success" component={SubscribeSuccess} />
+          <Route path="/profile" component={ProfilePage} />
+          <Route path="/safety" component={SafetyPage} />
+          <Route path="/inbox" component={InboxPage} />
+          <Route path="/conversation/:matchId" component={ConversationPage} />
+          <Route path="/who-liked-me" component={WhoLikedMe} />
+          <Route path="/admin" component={AdminPage} />
+          <Route path="/privacy" component={PrivacyPolicy} />
+          <Route path="/terms" component={TermsOfService} />
+          <Route path="/verify-age/result" component={VerifyAgeResult} />
+          <Route path="/sign-in"><Redirect to="/" /></Route>
+          <Route path="/sign-up"><Redirect to="/" /></Route>
+        </>
+      ) : (
+        <>
+          <Route path="/sign-in" component={SignInPage} />
+          <Route path="/sign-up" component={SignInPage} />
+          <Route><Redirect to="/sign-in" /></Route>
+        </>
+      )}
       <Route component={NotFound} />
     </Switch>
-  );
-}
-
-function ClerkProviderWithRoutes() {
-  const [, setLocation] = useLocation();
-
-  return (
-    <ClerkProvider
-      publishableKey={clerkPubKey}
-      proxyUrl={clerkProxyUrl}
-      appearance={clerkAppearance}
-      signInUrl={`${basePath}/sign-in`}
-      signUpUrl={`${basePath}/sign-up`}
-      localization={{
-        signIn: {
-          start: {
-            title: "Welcome back",
-            subtitle: "Sign in to your Intermingled account",
-          },
-        },
-        signUp: {
-          start: {
-            title: "Create your account",
-            subtitle: "Join Intermingled and find your match",
-          },
-        },
-      }}
-      routerPush={(to) => setLocation(stripBase(to))}
-      routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
-    >
-      <QueryClientProvider client={queryClient}>
-        <ClerkQueryClientCacheInvalidator />
-        <TooltipProvider>
-          <AppRoutes />
-          <Toaster />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ClerkProvider>
   );
 }
 
 function App() {
   return (
     <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <div className="min-h-[100dvh] bg-black selection:bg-primary/30">
+                <AppRoutes />
+                <TabBar />
+            </div>
+            <Toaster />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </AuthProvider>
     </WouterRouter>
   );
 }

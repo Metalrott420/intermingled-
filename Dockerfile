@@ -11,6 +11,12 @@ COPY . .
 # Install dependencies without frozen lockfile
 RUN pnpm install --no-frozen-lockfile
 
+# Frontend build requires PORT and BASE_PATH at build time
+ARG PORT=8080
+ARG BASE_PATH=/
+ENV PORT=$PORT
+ENV BASE_PATH=$BASE_PATH
+
 # Build frontend bundle
 RUN pnpm --dir artifacts/speed-date build
 

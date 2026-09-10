@@ -360,3 +360,5 @@ export function getIo(): SocketIOServer {
   if (!io) throw new Error("Socket.IO not initialized");
   return io;
 }
+
+export { isUserInPool } from "./services/poolService";

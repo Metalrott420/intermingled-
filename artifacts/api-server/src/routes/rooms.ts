@@ -12,7 +12,8 @@ import {
   ChooseWinnerParams,
   ChooseWinnerBody,
 } from "@workspace/api-zod";
-import { getIo, isUserInPool } from "../socket";
+import { getIo } from "../socket";
+import { isUserInPool } from "../services/poolService";
 import { rankSuitors } from "../lib/matchmaking";
 import { checkAndCachePremiumEntitlement, getCachedPremiumByClerkId } from "./entitlement";
 import { buildRoomResponse } from "../lib/roomUtils";

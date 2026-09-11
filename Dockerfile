@@ -11,7 +11,10 @@ COPY . .
 # Install dependencies without frozen lockfile
 RUN pnpm install --no-frozen-lockfile
 
-# Build backend bundle
+# Build frontend bundle
+RUN pnpm --dir artifacts/speed-date build
+
+# Build backend bundle & copy frontend assets
 RUN cd artifacts/api-server && node build.mjs
 
 EXPOSE 8080

@@ -111,6 +111,9 @@ app.get("/.well-known/assetlinks.json", (req, res) => {
 // Fallback to index.html for SPA routing
 app.get("*path", (req, res, next) => {
   if (req.path.startsWith("/api")) return next();
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
   res.sendFile(path.join(webDistPath, "index.html"));
 });
 

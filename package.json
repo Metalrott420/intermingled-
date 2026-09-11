@@ -4,13 +4,25 @@
   "license": "MIT",
   "packageManager": "pnpm@10.26.1",
   "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "codegen": "pnpm --filter @workspace/api-spec run codegen",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
+    "ship:ready": "pnpm --filter @workspace/scripts run ship-ready",
+    "ship:ready:ps": "powershell -ExecutionPolicy Bypass -File ./scripts/ship-ready.ps1",
+    "android:native": "pnpm --dir a android",
+    "start:native": "pnpm --dir a start",
+    "android:native:release": "pnpm --dir a android:release",
+    "android:native:bundle": "pnpm --dir a android:bundle",
+    "web:dev": "pnpm --dir artifacts/speed-date dev",
+    "web:build": "echo 'Using prebuilt frontend'"
   },
   "private": true,
   "devDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.62.2",
+    "@tailwindcss/oxide-win32-x64-msvc": "^4.3.3",
+    "expo": "~54.0.36",
+    "lightningcss-win32-x64-msvc": "^1.32.0",
     "prettier": "^3.8.3",
     "typescript": "~5.9.3"
   },

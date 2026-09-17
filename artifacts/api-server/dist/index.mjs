@@ -18892,7 +18892,7 @@ var require_view = __commonJS({
     "use strict";
     var debug = require_src()("express:view");
     var path6 = __require("node:path");
-    var fs2 = __require("node:fs");
+    var fs3 = __require("node:fs");
     var dirname2 = path6.dirname;
     var basename = path6.basename;
     var extname = path6.extname;
@@ -18972,7 +18972,7 @@ var require_view = __commonJS({
     function tryStat(path7) {
       debug('stat "%s"', path7);
       try {
-        return fs2.statSync(path7);
+        return fs3.statSync(path7);
       } catch (e) {
         return void 0;
       }
@@ -22774,7 +22774,7 @@ var require_send = __commonJS({
     var escapeHtml = require_escape_html();
     var etag = require_etag();
     var fresh = require_fresh();
-    var fs2 = __require("fs");
+    var fs3 = __require("fs");
     var mime = require_mime_types();
     var ms = require_ms();
     var onFinished = require_on_finished();
@@ -23056,7 +23056,7 @@ var require_send = __commonJS({
       var i = 0;
       var self2 = this;
       debug('stat "%s"', path7);
-      fs2.stat(path7, function onstat(err, stat) {
+      fs3.stat(path7, function onstat(err, stat) {
         var pathEndsWithSep = path7[path7.length - 1] === sep;
         if (err && err.code === "ENOENT" && !extname(path7) && !pathEndsWithSep) {
           return next(err);
@@ -23073,7 +23073,7 @@ var require_send = __commonJS({
         }
         var p = path7 + "." + self2._extensions[i++];
         debug('stat "%s"', p);
-        fs2.stat(p, function(err2, stat) {
+        fs3.stat(p, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self2.emit("file", p, stat);
@@ -23091,7 +23091,7 @@ var require_send = __commonJS({
         }
         var p = join2(path7, self2._index[i]);
         debug('stat "%s"', p);
-        fs2.stat(p, function(err2, stat) {
+        fs3.stat(p, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self2.emit("file", p, stat);
@@ -23103,7 +23103,7 @@ var require_send = __commonJS({
     SendStream.prototype.stream = function stream(path7, options) {
       var self2 = this;
       var res = this.res;
-      var stream2 = fs2.createReadStream(path7, options);
+      var stream2 = fs3.createReadStream(path7, options);
       this.emit("stream", stream2);
       stream2.pipe(res);
       function cleanup() {
@@ -25395,7 +25395,7 @@ var require_atomic_sleep = __commonJS({
 var require_sonic_boom = __commonJS({
   "../../node_modules/.pnpm/sonic-boom@4.2.1/node_modules/sonic-boom/index.js"(exports, module) {
     "use strict";
-    var fs2 = __require("fs");
+    var fs3 = __require("fs");
     var EventEmitter2 = __require("events");
     var inherits = __require("util").inherits;
     var path6 = __require("path");
@@ -25452,20 +25452,20 @@ var require_sonic_boom = __commonJS({
       const mode = sonic.mode;
       if (sonic.sync) {
         try {
-          if (sonic.mkdir) fs2.mkdirSync(path6.dirname(file2), { recursive: true });
-          const fd = fs2.openSync(file2, flags, mode);
+          if (sonic.mkdir) fs3.mkdirSync(path6.dirname(file2), { recursive: true });
+          const fd = fs3.openSync(file2, flags, mode);
           fileOpened(null, fd);
         } catch (err) {
           fileOpened(err);
           throw err;
         }
       } else if (sonic.mkdir) {
-        fs2.mkdir(path6.dirname(file2), { recursive: true }, (err) => {
+        fs3.mkdir(path6.dirname(file2), { recursive: true }, (err) => {
           if (err) return fileOpened(err);
-          fs2.open(file2, flags, mode, fileOpened);
+          fs3.open(file2, flags, mode, fileOpened);
         });
       } else {
-        fs2.open(file2, flags, mode, fileOpened);
+        fs3.open(file2, flags, mode, fileOpened);
       }
     }
     function SonicBoom(opts) {
@@ -25506,8 +25506,8 @@ var require_sonic_boom = __commonJS({
         this.flush = flushBuffer;
         this.flushSync = flushBufferSync;
         this._actualWrite = actualWriteBuffer;
-        fsWriteSync = () => fs2.writeSync(this.fd, this._writingBuf);
-        fsWrite = () => fs2.write(this.fd, this._writingBuf, this.release);
+        fsWriteSync = () => fs3.writeSync(this.fd, this._writingBuf);
+        fsWrite = () => fs3.write(this.fd, this._writingBuf, this.release);
       } else if (contentMode === void 0 || contentMode === kContentModeUtf8) {
         this._writingBuf = "";
         this.write = write;
@@ -25516,15 +25516,15 @@ var require_sonic_boom = __commonJS({
         this._actualWrite = actualWrite;
         fsWriteSync = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs2.writeSync(this.fd, this._writingBuf);
+            return fs3.writeSync(this.fd, this._writingBuf);
           }
-          return fs2.writeSync(this.fd, this._writingBuf, "utf8");
+          return fs3.writeSync(this.fd, this._writingBuf, "utf8");
         };
         fsWrite = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs2.write(this.fd, this._writingBuf, this.release);
+            return fs3.write(this.fd, this._writingBuf, this.release);
           }
-          return fs2.write(this.fd, this._writingBuf, "utf8", this.release);
+          return fs3.write(this.fd, this._writingBuf, "utf8", this.release);
         };
       } else {
         throw new Error(`SonicBoom supports "${kContentModeUtf8}" and "${kContentModeBuffer}", but passed ${contentMode}`);
@@ -25581,7 +25581,7 @@ var require_sonic_boom = __commonJS({
           }
         }
         if (this._fsync) {
-          fs2.fsyncSync(this.fd);
+          fs3.fsyncSync(this.fd);
         }
         const len = this._len;
         if (this._reopening) {
@@ -25695,7 +25695,7 @@ var require_sonic_boom = __commonJS({
       const onDrain = () => {
         if (!this._fsync) {
           try {
-            fs2.fsync(this.fd, (err) => {
+            fs3.fsync(this.fd, (err) => {
               this._flushPending = false;
               cb(err);
             });
@@ -25797,7 +25797,7 @@ var require_sonic_boom = __commonJS({
       const fd = this.fd;
       this.once("ready", () => {
         if (fd !== this.fd) {
-          fs2.close(fd, (err) => {
+          fs3.close(fd, (err) => {
             if (err) {
               return this.emit("error", err);
             }
@@ -25846,7 +25846,7 @@ var require_sonic_boom = __commonJS({
           buf = this._bufs[0];
         }
         try {
-          const n = Buffer.isBuffer(buf) ? fs2.writeSync(this.fd, buf) : fs2.writeSync(this.fd, buf, "utf8");
+          const n = Buffer.isBuffer(buf) ? fs3.writeSync(this.fd, buf) : fs3.writeSync(this.fd, buf, "utf8");
           const releasedBufObj = releaseWritingBuf(buf, this._len, n);
           buf = releasedBufObj.writingBuf;
           this._len = releasedBufObj.len;
@@ -25862,7 +25862,7 @@ var require_sonic_boom = __commonJS({
         }
       }
       try {
-        fs2.fsyncSync(this.fd);
+        fs3.fsyncSync(this.fd);
       } catch {
       }
     }
@@ -25883,7 +25883,7 @@ var require_sonic_boom = __commonJS({
           buf = mergeBuf(this._bufs[0], this._lens[0]);
         }
         try {
-          const n = fs2.writeSync(this.fd, buf);
+          const n = fs3.writeSync(this.fd, buf);
           buf = buf.subarray(n);
           this._len = Math.max(this._len - n, 0);
           if (buf.length <= 0) {
@@ -25911,13 +25911,13 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : this._bufs.shift() || "";
       if (this.sync) {
         try {
-          const written = Buffer.isBuffer(this._writingBuf) ? fs2.writeSync(this.fd, this._writingBuf) : fs2.writeSync(this.fd, this._writingBuf, "utf8");
+          const written = Buffer.isBuffer(this._writingBuf) ? fs3.writeSync(this.fd, this._writingBuf) : fs3.writeSync(this.fd, this._writingBuf, "utf8");
           release2(null, written);
         } catch (err) {
           release2(err);
         }
       } else {
-        fs2.write(this.fd, this._writingBuf, release2);
+        fs3.write(this.fd, this._writingBuf, release2);
       }
     }
     function actualWriteBuffer() {
@@ -25926,7 +25926,7 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : mergeBuf(this._bufs.shift(), this._lens.shift());
       if (this.sync) {
         try {
-          const written = fs2.writeSync(this.fd, this._writingBuf);
+          const written = fs3.writeSync(this.fd, this._writingBuf);
           release2(null, written);
         } catch (err) {
           release2(err);
@@ -25935,7 +25935,7 @@ var require_sonic_boom = __commonJS({
         if (kCopyBuffer) {
           this._writingBuf = Buffer.from(this._writingBuf);
         }
-        fs2.write(this.fd, this._writingBuf, release2);
+        fs3.write(this.fd, this._writingBuf, release2);
       }
     }
     function actualClose(sonic) {
@@ -25951,12 +25951,12 @@ var require_sonic_boom = __commonJS({
       sonic._lens = [];
       assert2(typeof sonic.fd === "number", `sonic.fd must be a number, got ${typeof sonic.fd}`);
       try {
-        fs2.fsync(sonic.fd, closeWrapped);
+        fs3.fsync(sonic.fd, closeWrapped);
       } catch {
       }
       function closeWrapped() {
         if (sonic.fd !== 1 && sonic.fd !== 2) {
-          fs2.close(sonic.fd, done);
+          fs3.close(sonic.fd, done);
         } else {
           done();
         }
@@ -53971,17 +53971,17 @@ var require_jsonwebtoken = __commonJS({
 // ../../node_modules/.pnpm/yesql@7.0.0/node_modules/yesql/yesql.js
 var require_yesql = __commonJS({
   "../../node_modules/.pnpm/yesql@7.0.0/node_modules/yesql/yesql.js"(exports, module) {
-    var fs2 = __require("fs");
+    var fs3 = __require("fs");
     var path6 = __require("path");
     var matchQuoted = /('[^']*(\\.[^'\\]*)*')/;
     var matchDoubleQuoted = /("[^"]*(\\.[^"\\]*)*")/;
     var readSqlFiles = (dir, options = {}) => {
-      return fs2.readdirSync(dir).filter((file2) => {
+      return fs3.readdirSync(dir).filter((file2) => {
         return file2.endsWith(".sql");
       }).map((file2) => {
         return {
           name: file2,
-          content: fs2.readFileSync(path6.resolve(dir, file2), "utf8").replace(/\r\n/g, "\n")
+          content: fs3.readFileSync(path6.resolve(dir, file2), "utf8").replace(/\r\n/g, "\n")
         };
       }).reduce((acc, value) => {
         acc[value.name] = value.content;
@@ -55676,15 +55676,15 @@ var require_pg_connection_string = __commonJS({
       if (config2.sslnegotiation === "direct" && config2.ssl === void 0) {
         config2.ssl = true;
       }
-      const fs2 = config2.sslcert || config2.sslkey || config2.sslrootcert ? __require("fs") : null;
+      const fs3 = config2.sslcert || config2.sslkey || config2.sslrootcert ? __require("fs") : null;
       if (config2.sslcert) {
-        config2.ssl.cert = fs2.readFileSync(config2.sslcert).toString();
+        config2.ssl.cert = fs3.readFileSync(config2.sslcert).toString();
       }
       if (config2.sslkey) {
-        config2.ssl.key = fs2.readFileSync(config2.sslkey).toString();
+        config2.ssl.key = fs3.readFileSync(config2.sslkey).toString();
       }
       if (config2.sslrootcert) {
-        config2.ssl.ca = fs2.readFileSync(config2.sslrootcert).toString();
+        config2.ssl.ca = fs3.readFileSync(config2.sslrootcert).toString();
       }
       if (options.useLibpqCompat && config2.uselibpqcompat) {
         throw new Error("Both useLibpqCompat and uselibpqcompat are set. Please use only one of them.");
@@ -57675,15 +57675,15 @@ var require_lib4 = __commonJS({
   "../../node_modules/.pnpm/pgpass@1.0.5/node_modules/pgpass/lib/index.js"(exports, module) {
     "use strict";
     var path6 = __require("path");
-    var fs2 = __require("fs");
+    var fs3 = __require("fs");
     var helper = require_helper();
     module.exports = function(connInfo, cb) {
       var file2 = helper.getFileName();
-      fs2.stat(file2, function(err, stat) {
+      fs3.stat(file2, function(err, stat) {
         if (err || !helper.usePgPass(stat, file2)) {
           return cb(void 0);
         }
-        var st = fs2.createReadStream(file2);
+        var st = fs3.createReadStream(file2);
         helper.getPassword(connInfo, st, cb);
       });
     };
@@ -59480,12 +59480,12 @@ var require_migration_file = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.loadMigrationFile = void 0;
     var util_1 = __require("util");
-    var fs2 = __require("fs");
+    var fs3 = __require("fs");
     var path6 = __require("path");
     var crypto5 = __require("crypto");
     var load_sql_from_js_1 = require_load_sql_from_js();
     var file_name_parser_1 = require_file_name_parser();
-    var readFile = util_1.promisify(fs2.readFile);
+    var readFile = util_1.promisify(fs3.readFile);
     var getFileName = (filePath) => path6.basename(filePath);
     var getFileContents = async (filePath) => readFile(filePath, "utf8");
     var hashString = (s) => crypto5.createHash("sha1").update(s, "utf8").digest("hex");
@@ -59560,12 +59560,12 @@ var require_files_loader = __commonJS({
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.loadMigrationFiles = void 0;
-    var fs2 = __require("fs");
+    var fs3 = __require("fs");
     var path6 = __require("path");
     var util_1 = __require("util");
     var migration_file_1 = require_migration_file();
     var validation_1 = require_validation2();
-    var readDir = util_1.promisify(fs2.readdir);
+    var readDir = util_1.promisify(fs3.readdir);
     var isValidFile = (fileName) => /\.(sql|js)$/gi.test(fileName);
     var loadMigrationFiles = async (directory, log = () => {
     }) => {
@@ -64312,7 +64312,7 @@ var require_make_middleware = __commonJS({
 // ../../node_modules/.pnpm/multer@2.2.0/node_modules/multer/storage/disk.js
 var require_disk = __commonJS({
   "../../node_modules/.pnpm/multer@2.2.0/node_modules/multer/storage/disk.js"(exports, module) {
-    var fs2 = __require("fs");
+    var fs3 = __require("fs");
     var os2 = __require("os");
     var path6 = __require("path");
     var crypto5 = __require("crypto");
@@ -64327,7 +64327,7 @@ var require_disk = __commonJS({
     function DiskStorage(opts) {
       this.getFilename = opts.filename || getFilename;
       if (typeof opts.destination === "string") {
-        fs2.mkdirSync(opts.destination, { recursive: true });
+        fs3.mkdirSync(opts.destination, { recursive: true });
         this.getDestination = function($0, $1, cb) {
           cb(null, opts.destination);
         };
@@ -64343,7 +64343,7 @@ var require_disk = __commonJS({
           if (err2) return cb(err2);
           var finalPath = path6.join(destination, filename);
           if (file2.stream.destroyed) return;
-          var outStream = fs2.createWriteStream(finalPath);
+          var outStream = fs3.createWriteStream(finalPath);
           file2.path = finalPath;
           file2.stream.pipe(outStream);
           outStream.on("error", cb);
@@ -64363,7 +64363,7 @@ var require_disk = __commonJS({
       delete file2.destination;
       delete file2.filename;
       delete file2.path;
-      fs2.unlink(path7, cb);
+      fs3.unlink(path7, cb);
     };
     module.exports = function(opts) {
       return new DiskStorage(opts);
@@ -73871,6 +73871,7 @@ function drizzle(...params) {
 // ../../lib/db/src/index.ts
 import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 
 // ../../lib/db/src/schema/index.ts
 var schema_exports = {};
@@ -85642,6 +85643,10 @@ var userStampsTable = sqliteTable("user_stamps", {
 
 // ../../lib/db/src/index.ts
 var dbPath = process.env.DATABASE_URL || path.join(process.cwd(), "lib/db/local_db.sqlite");
+var dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
 var sqlite = new Database(dbPath);
 sqlite.pragma("journal_mode = WAL");
 sqlite.pragma("busy_timeout = 5000");
@@ -96409,7 +96414,7 @@ var StripeContext = class _StripeContext {
 
 // ../../node_modules/.pnpm/stripe@22.4.0_@types+node@25.9.5/node_modules/stripe/esm/platform/NodePlatformFunctions.js
 import * as crypto4 from "crypto";
-import * as fs from "fs";
+import * as fs2 from "fs";
 import * as os from "os";
 import * as path2 from "path";
 import { EventEmitter } from "events";
@@ -96867,7 +96872,7 @@ var NodePlatformFunctions = class extends PlatformFunctions {
       return null;
     }
     try {
-      const content = fs.readFileSync(filePath, "utf8").trim();
+      const content = fs2.readFileSync(filePath, "utf8").trim();
       if (content) {
         this._telemetryId = content;
         return content;
@@ -96876,8 +96881,8 @@ var NodePlatformFunctions = class extends PlatformFunctions {
     }
     const newId = crypto4.randomBytes(16).toString("hex");
     try {
-      fs.mkdirSync(path2.dirname(filePath), { recursive: true });
-      fs.writeFileSync(filePath, newId, "utf8");
+      fs2.mkdirSync(path2.dirname(filePath), { recursive: true });
+      fs2.writeFileSync(filePath, newId, "utf8");
     } catch {
       this._telemetryId = null;
       return null;

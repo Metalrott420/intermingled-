@@ -1,5 +1,6 @@
 # compiled output
 dist
+**/dist
 tmp
 out-tsc
 *.tsbuildinfo
@@ -10,18 +11,13 @@ out-tsc
 node_modules
 **/node_modules
 
-# sub-projects excluded from mobile build archive
-artifacts/speed-date
-artifacts/api-server
-attached_assets
-lib/object-storage-web
-lib/api-spec
-
 # databases and logs
 *.sqlite
 *.log
 *.aab
 *.apk
+*.zip
+*.tar.gz
 
 # IDEs and editors
 /.idea

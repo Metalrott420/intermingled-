@@ -85642,16 +85642,23 @@ var userStampsTable = sqliteTable("user_stamps", {
 ]);
 
 // ../../lib/db/src/index.ts
-var envDb = process.env.DATABASE_URL;
-var dbPath = envDb && !envDb.startsWith("postgres") ? envDb : path.join(process.cwd(), "lib/db/local_db.sqlite");
-var dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+var dbInstance;
+try {
+  const envDb = process.env.DATABASE_URL;
+  const dbPath = envDb && !envDb.startsWith("postgres") ? envDb : path.join(process.cwd(), "lib/db/local_db.sqlite");
+  const dbDir = path.dirname(dbPath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+  const sqlite = new Database(dbPath);
+  sqlite.pragma("journal_mode = WAL");
+  sqlite.pragma("busy_timeout = 5000");
+  dbInstance = drizzle(sqlite, { schema: schema_exports });
+} catch (err) {
+  console.error("FATAL DATABASE INITIALIZATION ERROR:", err);
+  throw err;
 }
-var sqlite = new Database(dbPath);
-sqlite.pragma("journal_mode = WAL");
-sqlite.pragma("busy_timeout = 5000");
-var db = drizzle(sqlite, { schema: schema_exports });
+var db = dbInstance;
 
 // src/lib/logger.ts
 var import_pino = __toESM(require_pino(), 1);
@@ -92206,8 +92213,8 @@ async function resolveDbUserId(token) {
     return null;
   }
 }
-function initSocket(httpServer2) {
-  io2 = new Server(httpServer2, {
+function initSocket(httpServer) {
+  io2 = new Server(httpServer, {
     path: "/ws/socket.io",
     cors: { origin: "*" }
   });
@@ -114486,13 +114493,20 @@ var app_default = app;
 var rawPort = process.env["PORT"] || "8080";
 var port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
+  console.error(`Invalid PORT value: "${rawPort}"`);
+  process.exit(1);
 }
-var httpServer = createServer(app_default);
-initSocket(httpServer);
-httpServer.listen(port, "0.0.0.0", () => {
-  logger.info({ port }, "Server listening on 0.0.0.0");
-});
+try {
+  const httpServer = createServer(app_default);
+  initSocket(httpServer);
+  httpServer.listen(port, "0.0.0.0", () => {
+    console.log(`Server listening on port ${port} (0.0.0.0)`);
+    logger.info({ port }, "Server listening on 0.0.0.0");
+  });
+} catch (err) {
+  console.error("FATAL STARTUP CRASH:", err);
+  process.exit(1);
+}
 /*! Bundled license information:
 
 depd/index.js:

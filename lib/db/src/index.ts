@@ -4,17 +4,25 @@ import path from "path";
 import fs from "fs";
 import * as schema from "./schema";
 
-const envDb = process.env.DATABASE_URL;
-const dbPath = (envDb && !envDb.startsWith("postgres")) ? envDb : path.join(process.cwd(), "lib/db/local_db.sqlite");
-const dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+let dbInstance: any;
+try {
+  const envDb = process.env.DATABASE_URL;
+  const dbPath = (envDb && !envDb.startsWith("postgres")) ? envDb : path.join(process.cwd(), "lib/db/local_db.sqlite");
+  const dbDir = path.dirname(dbPath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+
+  const sqlite = new Database(dbPath);
+  sqlite.pragma("journal_mode = WAL");
+  sqlite.pragma("busy_timeout = 5000");
+
+  dbInstance = drizzle(sqlite, { schema });
+} catch (err) {
+  console.error("FATAL DATABASE INITIALIZATION ERROR:", err);
+  throw err;
 }
 
-const sqlite = new Database(dbPath);
-sqlite.pragma("journal_mode = WAL");
-sqlite.pragma("busy_timeout = 5000");
-
-export const db = drizzle(sqlite, { schema });
+export const db = dbInstance;
 
 export * from "./schema";

@@ -82,6 +82,8 @@ function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [ageVerified, setAgeVerified] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const logoClicks = useRef(0);
@@ -98,10 +100,14 @@ function SignInPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    if (isSignUp && (!ageVerified || !termsAccepted)) {
+      setError("You must confirm you are 18+ and accept the Terms & Privacy Policy.");
+      return;
+    }
     setLoading(true);
     try {
       if (isSignUp) {
-        await signUp(email, password, name);
+        await signUp(email, password, name, ageVerified, termsAccepted);
         await signIn(email, password);
       } else {
         await signIn(email, password);
@@ -143,14 +149,36 @@ function SignInPage() {
             )}
 
             {isSignUp && (
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-muted-foreground focus:outline-none focus:border-primary text-sm"
-              />
+              <div className="space-y-3 text-left pt-2">
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-muted-foreground focus:outline-none focus:border-primary text-sm"
+                />
+                <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={ageVerified}
+                    onChange={(e) => setAgeVerified(e.target.checked)}
+                    required
+                    className="rounded border-white/20 bg-black text-primary focus:ring-0"
+                  />
+                  <span>I am 18 years of age or older</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                    required
+                    className="rounded border-white/20 bg-black text-primary focus:ring-0"
+                  />
+                  <span>I accept the Terms of Service & Privacy Policy</span>
+                </label>
+              </div>
             )}
 
             <input

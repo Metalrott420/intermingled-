@@ -4,7 +4,8 @@ import path from "path";
 import fs from "fs";
 import * as schema from "./schema";
 
-const dbPath = process.env.DATABASE_URL || path.join(process.cwd(), "lib/db/local_db.sqlite");
+const envDb = process.env.DATABASE_URL;
+const dbPath = (envDb && !envDb.startsWith("postgres")) ? envDb : path.join(process.cwd(), "lib/db/local_db.sqlite");
 const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });

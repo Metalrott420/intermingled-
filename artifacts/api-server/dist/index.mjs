@@ -85642,7 +85642,8 @@ var userStampsTable = sqliteTable("user_stamps", {
 ]);
 
 // ../../lib/db/src/index.ts
-var dbPath = process.env.DATABASE_URL || path.join(process.cwd(), "lib/db/local_db.sqlite");
+var envDb = process.env.DATABASE_URL;
+var dbPath = envDb && !envDb.startsWith("postgres") ? envDb : path.join(process.cwd(), "lib/db/local_db.sqlite");
 var dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });

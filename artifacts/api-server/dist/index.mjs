@@ -42109,7 +42109,7 @@ var require_websocket2 = __commonJS({
     var http2 = __require("http");
     var net = __require("net");
     var tls = __require("tls");
-    var { randomBytes: randomBytes13, createHash: createHash2 } = __require("crypto");
+    var { randomBytes: randomBytes14, createHash: createHash2 } = __require("crypto");
     var { Duplex, Readable: Readable3 } = __require("stream");
     var { URL: URL2 } = __require("url");
     var PerMessageDeflate = require_permessage_deflate();
@@ -42647,7 +42647,7 @@ var require_websocket2 = __commonJS({
         }
       }
       const defaultPort = isSecure ? 443 : 80;
-      const key = randomBytes13(16).toString("base64");
+      const key = randomBytes14(16).toString("base64");
       const request = isSecure ? https2.request : http2.request;
       const protocolSet = /* @__PURE__ */ new Set();
       let perMessageDeflate;
@@ -50566,12 +50566,12 @@ var require_jwa = __commonJS({
       };
     }
     var bufferEqual;
-    var timingSafeEqual3 = "timingSafeEqual" in crypto5 ? function timingSafeEqual4(a, b) {
+    var timingSafeEqual4 = "timingSafeEqual" in crypto5 ? function timingSafeEqual5(a, b) {
       if (a.byteLength !== b.byteLength) {
         return false;
       }
       return crypto5.timingSafeEqual(a, b);
-    } : function timingSafeEqual4(a, b) {
+    } : function timingSafeEqual5(a, b) {
       if (!bufferEqual) {
         bufferEqual = require_buffer_equal_constant_time();
       }
@@ -50580,7 +50580,7 @@ var require_jwa = __commonJS({
     function createHmacVerifier(bits) {
       return function verify(thing, signature, secret) {
         var computedSig = createHmacSigner(bits)(thing, secret);
-        return timingSafeEqual3(Buffer2.from(signature), Buffer2.from(computedSig));
+        return timingSafeEqual4(Buffer2.from(signature), Buffer2.from(computedSig));
       };
     }
     function createKeySigner(bits) {
@@ -55238,7 +55238,7 @@ var require_utils5 = __commonJS({
     var nodeCrypto = __require("crypto");
     module.exports = {
       postgresMd5PasswordHash,
-      randomBytes: randomBytes13,
+      randomBytes: randomBytes14,
       deriveKey,
       sha256,
       hashByName,
@@ -55248,7 +55248,7 @@ var require_utils5 = __commonJS({
     var webCrypto = nodeCrypto.webcrypto || globalThis.crypto;
     var subtleCrypto = webCrypto.subtle;
     var textEncoder = new TextEncoder();
-    function randomBytes13(length) {
+    function randomBytes14(length) {
       return webCrypto.getRandomValues(Buffer.alloc(length));
     }
     async function md5(string4) {
@@ -114316,6 +114316,7 @@ router19.use(dev_default);
 var routes_default = router19;
 
 // src/app.ts
+import { scryptSync as scryptSync2, randomBytes as randomBytes13, timingSafeEqual as timingSafeEqual3 } from "node:crypto";
 var __filename3 = fileURLToPath3(import.meta.url);
 var __dirname4 = path4.dirname(__filename3);
 var app = (0, import_express21.default)();
@@ -114384,6 +114385,77 @@ app.use(
 );
 app.use(import_express21.default.json({ limit: "10mb" }));
 app.use(import_express21.default.urlencoded({ extended: true, limit: "10mb" }));
+function hashPassword2(password) {
+  const salt = randomBytes13(16).toString("hex");
+  const derivedKey = scryptSync2(password, salt, 64);
+  return `${salt}:${derivedKey.toString("hex")}`;
+}
+function verifyPassword2(password, hash) {
+  const [salt, key] = hash.split(":");
+  const keyBuffer = Buffer.from(key, "hex");
+  const derivedKey = scryptSync2(password, salt, 64);
+  return timingSafeEqual3(keyBuffer, derivedKey);
+}
+app.post("/api/auth/register", async (req, res) => {
+  const { email: email3, password, name, ageVerified, termsAccepted } = req.body;
+  if (!email3 || !password || !name) {
+    return res.status(400).json({ error: "Email, password, and name are required" });
+  }
+  if (ageVerified !== true || termsAccepted !== true) {
+    return res.status(400).json({ error: "You must be 18 or older and accept the Terms of Service and Privacy Policy to register." });
+  }
+  try {
+    const existing = await db.query.usersTable.findFirst({
+      where: eq(usersTable.email, email3.toLowerCase())
+    });
+    if (existing) {
+      return res.status(400).json({ error: "Email already registered" });
+    }
+    const userId = "u_" + randomBytes13(8).toString("hex");
+    await db.insert(usersTable).values({
+      id: userId,
+      email: email3.toLowerCase(),
+      name,
+      passwordHash: hashPassword2(password),
+      status: "looking",
+      ageVerified: true,
+      termsAccepted: true,
+      privacyAccepted: true,
+      consentTimestamp: /* @__PURE__ */ new Date()
+    });
+    res.status(201).json({
+      message: "User registered successfully",
+      user: { id: userId, email: email3, name }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+});
+app.post("/api/auth/login", async (req, res) => {
+  const { email: email3, password } = req.body;
+  if (!email3 || !password) {
+    return res.status(400).json({ error: "Email and password required" });
+  }
+  try {
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.email, email3.toLowerCase())
+    });
+    if (!user || !user.passwordHash || !verifyPassword2(password, user.passwordHash)) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+    res.json({
+      token: user.id,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role || "chooser"
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+});
 app.use("/api", routes_default);
 var webDistPath = path4.join(__dirname4, "dist");
 app.use(import_express21.default.static(webDistPath));

@@ -91,6 +91,86 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// ── Direct Auth Fallback Handlers ──────────────────────────────────────────
+import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
+import { db, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+
+function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const derivedKey = scryptSync(password, salt, 64);
+  return `${salt}:${derivedKey.toString("hex")}`;
+}
+
+function verifyPassword(password: string, hash: string): boolean {
+  const [salt, key] = hash.split(":");
+  const keyBuffer = Buffer.from(key, "hex");
+  const derivedKey = scryptSync(password, salt, 64);
+  return timingSafeEqual(keyBuffer, derivedKey);
+}
+
+app.post("/api/auth/register", async (req: any, res: any) => {
+  const { email, password, name, ageVerified, termsAccepted } = req.body;
+  if (!email || !password || !name) {
+    return res.status(400).json({ error: "Email, password, and name are required" });
+  }
+  if (ageVerified !== true || termsAccepted !== true) {
+    return res.status(400).json({ error: "You must be 18 or older and accept the Terms of Service and Privacy Policy to register." });
+  }
+  try {
+    const existing = await db.query.usersTable.findFirst({
+      where: eq(usersTable.email, email.toLowerCase()),
+    });
+    if (existing) {
+      return res.status(400).json({ error: "Email already registered" });
+    }
+    const userId = "u_" + randomBytes(8).toString("hex");
+    await db.insert(usersTable).values({
+      id: userId,
+      email: email.toLowerCase(),
+      name,
+      passwordHash: hashPassword(password),
+      status: "looking",
+      ageVerified: true,
+      termsAccepted: true,
+      privacyAccepted: true,
+      consentTimestamp: new Date(),
+    });
+    res.status(201).json({
+      message: "User registered successfully",
+      user: { id: userId, email, name }
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+});
+
+app.post("/api/auth/login", async (req: any, res: any) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password required" });
+  }
+  try {
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.email, email.toLowerCase()),
+    });
+    if (!user || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+    res.json({
+      token: user.id,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role || "chooser",
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+});
+
 // ── API Router ───────────────────────────────────────────────────────────────
 app.use("/api", router);
 

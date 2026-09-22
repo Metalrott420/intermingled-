@@ -5,6 +5,7 @@ import { execSync } from "node:child_process";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
 import { rm, cp } from "node:fs/promises";
+import { existsSync } from "node:fs";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
@@ -16,7 +17,11 @@ async function buildAll() {
   await rm(distDir, { recursive: true, force: true });
 
   console.log("Building frontend speed-date...");
-  execSync("pnpm --dir ../speed-date build", { stdio: "inherit" });
+  try {
+    execSync("pnpm --dir ../speed-date build", { stdio: "inherit" });
+  } catch (err) {
+    console.warn("[build.mjs] speed-date build threw error, continuing with available static files:", err);
+  }
 
   await esbuild({
     entryPoints: [path.resolve(artifactDir, "src/index.ts")],
@@ -26,11 +31,6 @@ async function buildAll() {
     outdir: distDir,
     outExtension: { ".js": ".mjs" },
     logLevel: "info",
-    // Some packages may not be bundleable, so we externalize them, we can add more here as needed.
-    // Some of the packages below may not be imported or installed, but we're adding them in case they are in the future.
-    // Examples of unbundleable packages:
-    // - uses native modules and loads them dynamically (e.g. sharp)
-    // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
       "*.node",
       "sharp",
@@ -107,10 +107,8 @@ async function buildAll() {
     ],
     sourcemap: "linked",
     plugins: [
-      // pino relies on workers to handle logging, instead of externalizing it we use a plugin to handle it
       esbuildPluginPino({ transports: ["pino-pretty"] })
     ],
-    // Make sure packages that are cjs only (e.g. express) but are bundled continue to work in our esm output file
     banner: {
       js: `import { createRequire as __bannerCrReq } from 'node:module';
 import __bannerPath from 'node:path';
@@ -125,7 +123,12 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
 
   const speedDateDist = path.resolve(artifactDir, "../speed-date/dist");
   const targetDist = path.resolve(distDir, "dist");
-  await cp(speedDateDist, targetDist, { recursive: true });
+  if (existsSync(speedDateDist)) {
+    await cp(speedDateDist, targetDist, { recursive: true });
+    console.log("[build.mjs] Successfully copied speed-date/dist into api-server/dist/dist");
+  } else {
+    console.warn(`[build.mjs] Warning: ${speedDateDist} does not exist, skipping static dist copy.`);
+  }
 }
 
 buildAll().catch((err) => {

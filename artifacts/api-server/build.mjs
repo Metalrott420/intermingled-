@@ -32,7 +32,6 @@ async function buildAll() {
     // - uses native modules and loads them dynamically (e.g. sharp)
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
-      "@clerk/*",
       "*.node",
       "sharp",
       "better-sqlite3",

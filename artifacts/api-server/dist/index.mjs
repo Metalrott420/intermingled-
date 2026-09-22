@@ -59,7 +59,7 @@ var require_ms = __commonJS({
       options = options || {};
       var type = typeof val;
       if (type === "string" && val.length > 0) {
-        return parse3(val);
+        return parse4(val);
       } else if (type === "number" && isFinite(val)) {
         return options.long ? fmtLong(val) : fmtShort(val);
       }
@@ -67,19 +67,19 @@ var require_ms = __commonJS({
         "val is not a non-empty string or a valid number. val=" + JSON.stringify(val)
       );
     };
-    function parse3(str) {
+    function parse4(str) {
       str = String(str);
       if (str.length > 100) {
         return;
       }
-      var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
+      var match2 = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
         str
       );
-      if (!match) {
+      if (!match2) {
         return;
       }
-      var n = parseFloat(match[1]);
-      var type = (match[2] || "ms").toLowerCase();
+      var n = parseFloat(match2[1]);
+      var type = (match2[2] || "ms").toLowerCase();
       switch (type) {
         case "years":
         case "year":
@@ -210,19 +210,19 @@ var require_common = __commonJS({
             args.unshift("%O");
           }
           let index = 0;
-          args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format) => {
-            if (match === "%%") {
+          args[0] = args[0].replace(/%([a-zA-Z%])/g, (match2, format) => {
+            if (match2 === "%%") {
               return "%";
             }
             index++;
             const formatter = createDebug.formatters[format];
             if (typeof formatter === "function") {
               const val = args[index];
-              match = formatter.call(self2, val);
+              match2 = formatter.call(self2, val);
               args.splice(index, 1);
               index--;
             }
-            return match;
+            return match2;
           });
           createDebug.formatArgs.call(self2, args);
           const logFn = self2.log || createDebug.log;
@@ -457,12 +457,12 @@ var require_browser = __commonJS({
       args.splice(1, 0, c, "color: inherit");
       let index = 0;
       let lastC = 0;
-      args[0].replace(/%[a-zA-Z%]/g, (match) => {
-        if (match === "%%") {
+      args[0].replace(/%[a-zA-Z%]/g, (match2) => {
+        if (match2 === "%%") {
           return;
         }
         index++;
-        if (match === "%c") {
+        if (match2 === "%c") {
           lastC = index;
         }
       });
@@ -1506,7 +1506,7 @@ var require_bytes = __commonJS({
     "use strict";
     module.exports = bytes;
     module.exports.format = format;
-    module.exports.parse = parse3;
+    module.exports.parse = parse4;
     var formatThousandsRegExp = /\B(?=(\d{3})+(?!\d))/g;
     var formatDecimalsRegExp = /(?:\.0*|(\.[^0]+)0+)$/;
     var map2 = {
@@ -1520,7 +1520,7 @@ var require_bytes = __commonJS({
     var parseRegExp = /^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i;
     function bytes(value, options) {
       if (typeof value === "string") {
-        return parse3(value);
+        return parse4(value);
       }
       if (typeof value === "number") {
         return format(value, options);
@@ -1564,7 +1564,7 @@ var require_bytes = __commonJS({
       }
       return str + unitSeparator + unit;
     }
-    function parse3(val) {
+    function parse4(val) {
       if (typeof val === "number" && !isNaN(val)) {
         return val;
       }
@@ -5770,7 +5770,7 @@ var require_dist = __commonJS({
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.format = format;
-    exports.parse = parse3;
+    exports.parse = parse4;
     var TEXT_REGEXP = /^[\u0009\u0020-\u007e\u0080-\u00ff]*$/;
     var TOKEN_REGEXP = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
     var QUOTE_REGEXP = /[\\"]/g;
@@ -5797,7 +5797,7 @@ var require_dist = __commonJS({
       }
       return result;
     }
-    function parse3(header, options) {
+    function parse4(header, options) {
       const len = header.length;
       let index = skipOWS(header, 0, len);
       const valueStart = index;
@@ -15316,12 +15316,12 @@ var require_mime_types = __commonJS({
       if (!type || typeof type !== "string") {
         return false;
       }
-      var match = EXTRACT_TYPE_REGEXP.exec(type);
-      var mime = match && db2[match[1].toLowerCase()];
+      var match2 = EXTRACT_TYPE_REGEXP.exec(type);
+      var mime = match2 && db2[match2[1].toLowerCase()];
       if (mime && mime.charset) {
         return mime.charset;
       }
-      if (match && TEXT_TYPE_REGEXP.test(match[1])) {
+      if (match2 && TEXT_TYPE_REGEXP.test(match2[1])) {
         return "UTF-8";
       }
       return false;
@@ -15344,8 +15344,8 @@ var require_mime_types = __commonJS({
       if (!type || typeof type !== "string") {
         return false;
       }
-      var match = EXTRACT_TYPE_REGEXP.exec(type);
-      var exts = match && exports.extensions[match[1].toLowerCase()];
+      var match2 = EXTRACT_TYPE_REGEXP.exec(type);
+      var exts = match2 && exports.extensions[match2[1].toLowerCase()];
       if (!exts || !exts.length) {
         return false;
       }
@@ -15408,7 +15408,7 @@ var require_media_typer = __commonJS({
     var TYPE_NAME_REGEXP = /^[A-Za-z0-9][A-Za-z0-9!#$&^_-]{0,126}$/;
     var TYPE_REGEXP = /^ *([A-Za-z0-9][A-Za-z0-9!#$&^_-]{0,126})\/([A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}) *$/;
     exports.format = format;
-    exports.parse = parse3;
+    exports.parse = parse4;
     exports.test = test;
     function format(obj) {
       if (!obj || typeof obj !== "object") {
@@ -15438,16 +15438,16 @@ var require_media_typer = __commonJS({
       }
       return TYPE_REGEXP.test(string4.toLowerCase());
     }
-    function parse3(string4) {
+    function parse4(string4) {
       if (typeof string4 !== "string") {
         throw new TypeError("argument string is required to be a string");
       }
-      var match = TYPE_REGEXP.exec(string4.toLowerCase());
-      if (!match) {
+      var match2 = TYPE_REGEXP.exec(string4.toLowerCase());
+      if (!match2) {
         throw new TypeError("invalid media type");
       }
-      var type = match[1];
-      var subtype = match[2];
+      var type = match2[1];
+      var subtype = match2[2];
       var suffix;
       var index = subtype.lastIndexOf("+");
       if (index !== -1) {
@@ -15619,7 +15619,7 @@ var require_read = __commonJS({
     var hasBody = require_type_is().hasBody;
     var { getCharset } = require_utils();
     module.exports = read;
-    function read(req, res, next, parse3, debug, options) {
+    function read(req, res, next, parse4, debug, options) {
       if (onFinished.isFinished(req)) {
         debug("body already parsed");
         next();
@@ -15707,7 +15707,7 @@ var require_read = __commonJS({
         try {
           debug("parse body");
           str = typeof body !== "string" && encoding !== null ? iconv.decode(body, encoding) : body;
-          req.body = parse3(str, encoding);
+          req.body = parse4(str, encoding);
         } catch (err) {
           next(createError(400, err, {
             body: str,
@@ -15778,21 +15778,21 @@ var require_json = __commonJS({
     var JSON_SYNTAX_REGEXP = /#+/g;
     function json2(options) {
       const normalizedOptions = normalizeOptions(options, "application/json");
-      const parse3 = createJsonParser(options);
+      const parse4 = createJsonParser(options);
       const readOptions = {
         ...normalizedOptions,
         // assert charset per RFC 7159 sec 8.1
         isValidCharset: (charset) => charset.slice(0, 4) === "utf-"
       };
       return function jsonParser(req, res, next) {
-        read(req, res, next, parse3, debug, readOptions);
+        read(req, res, next, parse4, debug, readOptions);
       };
     }
     function createJsonParser(options) {
       const reviver = options?.reviver;
       const strict = options?.strict !== false;
       if (strict) {
-        return function parse3(body) {
+        return function parse4(body) {
           if (body.length === 0) {
             return {};
           }
@@ -15812,7 +15812,7 @@ var require_json = __commonJS({
           }
         };
       }
-      return function parse3(body) {
+      return function parse4(body) {
         if (body.length === 0) {
           return {};
         }
@@ -15846,8 +15846,8 @@ var require_json = __commonJS({
       }
     }
     function firstchar(str) {
-      const match = FIRST_CHAR_REGEXP.exec(str);
-      return match ? match[1] : void 0;
+      const match2 = FIRST_CHAR_REGEXP.exec(str);
+      return match2 ? match2[1] : void 0;
     }
     function normalizeJsonSyntaxError(error40, obj) {
       const keys = Object.getOwnPropertyNames(error40);
@@ -17245,8 +17245,8 @@ var require_get_intrinsic = __commonJS({
         throw new $SyntaxError("invalid intrinsic syntax, expected opening `%`");
       }
       var result = [];
-      $replace(string4, rePropName, function(match, number4, quote, subString) {
-        result[result.length] = quote ? $replace(subString, reEscapeChar, "$1") : number4 || match;
+      $replace(string4, rePropName, function(match2, number4, quote, subString) {
+        result[result.length] = quote ? $replace(subString, reEscapeChar, "$1") : number4 || match2;
       });
       return result;
     };
@@ -17912,7 +17912,7 @@ var require_stringify = __commonJS({
       return typeof v === "string" || typeof v === "number" || typeof v === "boolean" || typeof v === "symbol" || typeof v === "bigint";
     };
     var sentinel = {};
-    var stringify = function stringify2(object2, prefix, generateArrayPrefix, commaRoundTrip, allowEmptyArrays, strictNullHandling, skipNulls, encodeDotInKeys, encoder, filter, sort, allowDots, serializeDate, format, formatter, encodeValuesOnly, charset, sideChannel) {
+    var stringify2 = function stringify3(object2, prefix, generateArrayPrefix, commaRoundTrip, allowEmptyArrays, strictNullHandling, skipNulls, encodeDotInKeys, encoder, filter, sort, allowDots, serializeDate, format, formatter, encodeValuesOnly, charset, sideChannel) {
       var obj = object2;
       var tmpSc = sideChannel;
       var step = 0;
@@ -17990,7 +17990,7 @@ var require_stringify = __commonJS({
         sideChannel.set(object2, step);
         var valueSideChannel = getSideChannel();
         valueSideChannel.set(sentinel, sideChannel);
-        pushToArray(values, stringify2(
+        pushToArray(values, stringify3(
           value,
           keyPrefix,
           generateArrayPrefix,
@@ -18110,7 +18110,7 @@ var require_stringify = __commonJS({
         if (options.skipNulls && value === null) {
           continue;
         }
-        pushToArray(keys, stringify(
+        pushToArray(keys, stringify2(
           value,
           key,
           generateArrayPrefix,
@@ -18478,13 +18478,13 @@ var require_parse = __commonJS({
 var require_lib2 = __commonJS({
   "../../node_modules/.pnpm/qs@6.15.3/node_modules/qs/lib/index.js"(exports, module) {
     "use strict";
-    var stringify = require_stringify();
-    var parse3 = require_parse();
+    var stringify2 = require_stringify();
+    var parse4 = require_parse();
     var formats = require_formats();
     module.exports = {
       formats,
-      parse: parse3,
-      stringify
+      parse: parse4,
+      stringify: stringify2
     };
   }
 });
@@ -18504,14 +18504,14 @@ var require_urlencoded = __commonJS({
       if (normalizedOptions.defaultCharset !== "utf-8" && normalizedOptions.defaultCharset !== "iso-8859-1") {
         throw new TypeError("option defaultCharset must be either utf-8 or iso-8859-1");
       }
-      const parse3 = createQueryParser(options);
+      const parse4 = createQueryParser(options);
       const readOptions = {
         ...normalizedOptions,
         // assert charset
         isValidCharset: (charset) => charset === "utf-8" || charset === "iso-8859-1"
       };
       return function urlencodedParser(req, res, next) {
-        read(req, res, next, parse3, debug, readOptions);
+        read(req, res, next, parse4, debug, readOptions);
       };
     }
     function createQueryParser(options) {
@@ -18529,7 +18529,7 @@ var require_urlencoded = __commonJS({
       if (isFinite(parameterLimit)) {
         parameterLimit = parameterLimit | 0;
       }
-      return function parse3(body, encoding) {
+      return function parse4(body, encoding) {
         if (!body.length) return {};
         const paramCount = parameterCount(body, parameterLimit);
         if (paramCount === void 0) {
@@ -18636,15 +18636,15 @@ var require_escape_html = __commonJS({
     module.exports = escapeHtml;
     function escapeHtml(string4) {
       var str = "" + string4;
-      var match = matchHtmlRegExp.exec(str);
-      if (!match) {
+      var match2 = matchHtmlRegExp.exec(str);
+      if (!match2) {
         return str;
       }
       var escape2;
       var html = "";
       var index = 0;
       var lastIndex = 0;
-      for (index = match.index; index < str.length; index++) {
+      for (index = match2.index; index < str.length; index++) {
         switch (str.charCodeAt(index)) {
           case 34:
             escape2 = "&quot;";
@@ -18680,7 +18680,7 @@ var require_parseurl = __commonJS({
   "../../node_modules/.pnpm/parseurl@1.3.3/node_modules/parseurl/index.js"(exports, module) {
     "use strict";
     var url2 = __require("url");
-    var parse3 = url2.parse;
+    var parse4 = url2.parse;
     var Url = url2.Url;
     module.exports = parseurl;
     module.exports.original = originalurl;
@@ -18712,7 +18712,7 @@ var require_parseurl = __commonJS({
     }
     function fastparse(str) {
       if (typeof str !== "string" || str.charCodeAt(0) !== 47) {
-        return parse3(str);
+        return parse4(str);
       }
       var pathname = str;
       var query = null;
@@ -18740,7 +18740,7 @@ var require_parseurl = __commonJS({
           /* #  */
           case 160:
           case 65279:
-            return parse3(str);
+            return parse4(str);
         }
       }
       var url3 = Url !== void 0 ? new Url() : {};
@@ -18991,7 +18991,7 @@ var require_content_type = __commonJS({
     var QUOTE_REGEXP = /([\\"])/g;
     var TYPE_REGEXP = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+\/[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
     exports.format = format;
-    exports.parse = parse3;
+    exports.parse = parse4;
     function format(obj) {
       if (!obj || typeof obj !== "object") {
         throw new TypeError("argument obj is required");
@@ -19015,7 +19015,7 @@ var require_content_type = __commonJS({
       }
       return string4;
     }
-    function parse3(string4) {
+    function parse4(string4) {
       if (!string4) {
         throw new TypeError("argument string is required");
       }
@@ -19031,16 +19031,16 @@ var require_content_type = __commonJS({
       var obj = new ContentType(type.toLowerCase());
       if (index !== -1) {
         var key;
-        var match;
+        var match2;
         var value;
         PARAM_REGEXP.lastIndex = index;
-        while (match = PARAM_REGEXP.exec(header)) {
-          if (match.index !== index) {
+        while (match2 = PARAM_REGEXP.exec(header)) {
+          if (match2.index !== index) {
             throw new TypeError("invalid parameter format");
           }
-          index += match[0].length;
-          key = match[1].toLowerCase();
-          value = match[2];
+          index += match2[0].length;
+          key = match2[1].toLowerCase();
+          value = match2[2];
           if (value.charCodeAt(0) === 34) {
             value = value.slice(1, -1);
             if (value.indexOf("\\") !== -1) {
@@ -19135,7 +19135,7 @@ var require_forwarded = __commonJS({
       if (!req) {
         throw new TypeError("argument req is required");
       }
-      var proxyAddrs = parse3(req.headers["x-forwarded-for"] || "");
+      var proxyAddrs = parse4(req.headers["x-forwarded-for"] || "");
       var socketAddr = getSocketAddr(req);
       var addrs = [socketAddr].concat(proxyAddrs);
       return addrs;
@@ -19143,7 +19143,7 @@ var require_forwarded = __commonJS({
     function getSocketAddr(req) {
       return req.socket ? req.socket.remoteAddress : req.connection.remoteAddress;
     }
-    function parse3(header) {
+    function parse4(header) {
       var end = header.length;
       var list = [];
       var start = header.length;
@@ -19317,7 +19317,7 @@ var require_ipaddr = __commonJS({
         longValue: new RegExp("^" + ipv4Part + "$", "i")
       };
       ipaddr.IPv4.parser = function(string4) {
-        var match, parseIntAuto, part, shift, value;
+        var match2, parseIntAuto, part, shift, value;
         parseIntAuto = function(string5) {
           if (string5[0] === "0" && string5[1] !== "x") {
             return parseInt(string5, 8);
@@ -19325,10 +19325,10 @@ var require_ipaddr = __commonJS({
             return parseInt(string5);
           }
         };
-        if (match = string4.match(ipv4Regexes.fourOctet)) {
+        if (match2 = string4.match(ipv4Regexes.fourOctet)) {
           return (function() {
             var k, len, ref, results;
-            ref = match.slice(1, 6);
+            ref = match2.slice(1, 6);
             results = [];
             for (k = 0, len = ref.length; k < len; k++) {
               part = ref[k];
@@ -19336,8 +19336,8 @@ var require_ipaddr = __commonJS({
             }
             return results;
           })();
-        } else if (match = string4.match(ipv4Regexes.longValue)) {
-          value = parseIntAuto(match[1]);
+        } else if (match2 = string4.match(ipv4Regexes.longValue)) {
+          value = parseIntAuto(match2[1]);
           if (value > 4294967295 || value < 0) {
             throw new Error("ipaddr: address outside defined range");
           }
@@ -19384,15 +19384,15 @@ var require_ipaddr = __commonJS({
           return this.toNormalizedString().replace(/((^|:)(0(:|$))+)/, "::");
         };
         IPv6.prototype.toRFC5952String = function() {
-          var bestMatchIndex, bestMatchLength, match, regex, string4;
+          var bestMatchIndex, bestMatchLength, match2, regex, string4;
           regex = /((^|:)(0(:|$)){2,})/g;
           string4 = this.toNormalizedString();
           bestMatchIndex = 0;
           bestMatchLength = -1;
-          while (match = regex.exec(string4)) {
-            if (match[0].length > bestMatchLength) {
-              bestMatchIndex = match.index;
-              bestMatchLength = match[0].length;
+          while (match2 = regex.exec(string4)) {
+            if (match2[0].length > bestMatchLength) {
+              bestMatchIndex = match2.index;
+              bestMatchLength = match2[0].length;
             }
           }
           if (bestMatchLength < 0) {
@@ -19585,14 +19585,14 @@ var require_ipaddr = __commonJS({
         };
       };
       ipaddr.IPv6.parser = function(string4) {
-        var addr, k, len, match, octet, octets, zoneId;
+        var addr, k, len, match2, octet, octets, zoneId;
         if (ipv6Regexes["native"].test(string4)) {
           return expandIPv6(string4, 8);
-        } else if (match = string4.match(ipv6Regexes["transitional"])) {
-          zoneId = match[6] || "";
-          addr = expandIPv6(match[1].slice(0, -1) + zoneId, 6);
+        } else if (match2 = string4.match(ipv6Regexes["transitional"])) {
+          zoneId = match2[6] || "";
+          addr = expandIPv6(match2[1].slice(0, -1) + zoneId, 6);
           if (addr.parts) {
-            octets = [parseInt(match[2]), parseInt(match[3]), parseInt(match[4]), parseInt(match[5])];
+            octets = [parseInt(match2[2]), parseInt(match2[3]), parseInt(match2[4]), parseInt(match2[5])];
             for (k = 0, len = octets.length; k < len; k++) {
               octet = octets[k];
               if (!(0 <= octet && octet <= 255)) {
@@ -19660,11 +19660,11 @@ var require_ipaddr = __commonJS({
         return new this(addr.parts, addr.zoneId);
       };
       ipaddr.IPv4.parseCIDR = function(string4) {
-        var maskLength, match, parsed;
-        if (match = string4.match(/^(.+)\/(\d+)$/)) {
-          maskLength = parseInt(match[2]);
+        var maskLength, match2, parsed;
+        if (match2 = string4.match(/^(.+)\/(\d+)$/)) {
+          maskLength = parseInt(match2[2]);
           if (maskLength >= 0 && maskLength <= 32) {
-            parsed = [this.parse(match[1]), maskLength];
+            parsed = [this.parse(match2[1]), maskLength];
             Object.defineProperty(parsed, "toString", {
               value: function() {
                 return this.join("/");
@@ -19730,11 +19730,11 @@ var require_ipaddr = __commonJS({
         }
       };
       ipaddr.IPv6.parseCIDR = function(string4) {
-        var maskLength, match, parsed;
-        if (match = string4.match(/^(.+)\/(\d+)$/)) {
-          maskLength = parseInt(match[2]);
+        var maskLength, match2, parsed;
+        if (match2 = string4.match(/^(.+)\/(\d+)$/)) {
+          maskLength = parseInt(match2[2]);
           if (maskLength >= 0 && maskLength <= 128) {
-            parsed = [this.parse(match[1]), maskLength];
+            parsed = [this.parse(match2[1]), maskLength];
             Object.defineProperty(parsed, "toString", {
               value: function() {
                 return this.join("/");
@@ -20172,11 +20172,11 @@ var require_dist2 = __commonJS({
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.PathError = exports.TokenData = void 0;
-    exports.parse = parse3;
+    exports.parse = parse4;
     exports.compile = compile;
-    exports.match = match;
-    exports.pathToRegexp = pathToRegexp;
-    exports.stringify = stringify;
+    exports.match = match2;
+    exports.pathToRegexp = pathToRegexp2;
+    exports.stringify = stringify2;
     var DEFAULT_DELIMITER = "/";
     var NOOP_VALUE = (value) => value;
     var ID_START = /^[$_\p{ID_Start}]$/u;
@@ -20206,7 +20206,7 @@ var require_dist2 = __commonJS({
       }
     };
     exports.PathError = PathError;
-    function parse3(str, options = {}) {
+    function parse4(str, options = {}) {
       const { encodePath = NOOP_VALUE } = options;
       const chars = [...str];
       let index = 0;
@@ -20288,7 +20288,7 @@ var require_dist2 = __commonJS({
     }
     function compile(path6, options = {}) {
       const { encode = encodeURIComponent, delimiter = DEFAULT_DELIMITER } = options;
-      const data = typeof path6 === "object" ? path6 : parse3(path6, options);
+      const data = typeof path6 === "object" ? path6 : parse4(path6, options);
       const fn = tokensToFunction(data.tokens, delimiter, encode);
       return function path7(params = {}) {
         const missing = [];
@@ -20358,9 +20358,9 @@ var require_dist2 = __commonJS({
         return encodeValue(value);
       };
     }
-    function match(path6, options = {}) {
+    function match2(path6, options = {}) {
       const { decode = decodeURIComponent, delimiter = DEFAULT_DELIMITER } = options;
-      const { regexp, keys } = pathToRegexp(path6, options);
+      const { regexp, keys } = pathToRegexp2(path6, options);
       const decoders = keys.map((key) => {
         if (decode === false)
           return NOOP_VALUE;
@@ -20368,7 +20368,7 @@ var require_dist2 = __commonJS({
           return decode;
         return (value) => value.split(delimiter).map(decode);
       });
-      return function match2(input) {
+      return function match3(input) {
         const m = regexp.exec(input);
         if (!m)
           return false;
@@ -20384,7 +20384,7 @@ var require_dist2 = __commonJS({
         return { path: path7, params };
       };
     }
-    function pathToRegexp(path6, options = {}) {
+    function pathToRegexp2(path6, options = {}) {
       const { delimiter = DEFAULT_DELIMITER, end = true, sensitive = false, trailing = true } = options;
       const keys = [];
       let source = "";
@@ -20395,7 +20395,7 @@ var require_dist2 = __commonJS({
             process2(p);
           return;
         }
-        const data = typeof path7 === "object" ? path7 : parse3(path7, options);
+        const data = typeof path7 === "object" ? path7 : parse4(path7, options);
         flatten(data.tokens, 0, [], (tokens) => {
           if (combinations >= 256) {
             throw new PathError("Too many path combinations", data.originalPath);
@@ -20521,7 +20521,7 @@ var require_dist2 = __commonJS({
       }
       return value;
     }
-    function stringify(data) {
+    function stringify2(data) {
       return stringifyTokens(data.tokens, 0);
     }
     function stringifyName(name, next) {
@@ -20570,22 +20570,22 @@ var require_layer = __commonJS({
             });
           }
           return function regexpMatcher(p) {
-            const match = _path.exec(p);
-            if (!match) {
+            const match2 = _path.exec(p);
+            if (!match2) {
               return false;
             }
             const params = {};
-            for (let i = 1; i < match.length; i++) {
+            for (let i = 1; i < match2.length; i++) {
               const key = keys[i - 1];
               const prop = key.name;
-              const val = decodeParam(match[i]);
+              const val = decodeParam(match2[i]);
               if (val !== void 0) {
                 params[prop] = val;
               }
             }
             return {
               params,
-              path: match[0]
+              path: match2[0]
             };
           };
         }
@@ -20636,8 +20636,8 @@ var require_layer = __commonJS({
         next(err);
       }
     };
-    Layer.prototype.match = function match(path6) {
-      let match2;
+    Layer.prototype.match = function match2(path6) {
+      let match3;
       if (path6 != null) {
         if (this.slash) {
           this.params = {};
@@ -20645,19 +20645,19 @@ var require_layer = __commonJS({
           return true;
         }
         let i = 0;
-        while (!match2 && i < this.matchers.length) {
-          match2 = this.matchers[i](path6);
+        while (!match3 && i < this.matchers.length) {
+          match3 = this.matchers[i](path6);
           i++;
         }
       }
-      if (!match2) {
+      if (!match3) {
         this.params = void 0;
         this.path = void 0;
         return false;
       }
-      this.params = match2.params;
-      this.path = match2.path;
-      this.keys = Object.keys(match2.params);
+      this.params = match3.params;
+      this.path = match3.path;
+      this.keys = Object.keys(match3.params);
       return true;
     };
     function decodeParam(val) {
@@ -20749,12 +20749,12 @@ var require_route = __commonJS({
           return setImmediate(next, err);
         }
         let layer;
-        let match;
-        while (match !== true && idx < stack.length) {
+        let match2;
+        while (match2 !== true && idx < stack.length) {
           layer = stack[idx++];
-          match = !layer.method || layer.method === method;
+          match2 = !layer.method || layer.method === method;
         }
-        if (match !== true) {
+        if (match2 !== true) {
           return done(err);
         }
         if (err) {
@@ -20911,23 +20911,23 @@ var require_router = __commonJS({
           return done(layerError);
         }
         let layer;
-        let match;
+        let match2;
         let route;
-        while (match !== true && idx < stack.length) {
+        while (match2 !== true && idx < stack.length) {
           layer = stack[idx++];
-          match = matchLayer(layer, path6);
+          match2 = matchLayer(layer, path6);
           route = layer.route;
-          if (typeof match !== "boolean") {
-            layerError = layerError || match;
+          if (typeof match2 !== "boolean") {
+            layerError = layerError || match2;
           }
-          if (match !== true) {
+          if (match2 !== true) {
             continue;
           }
           if (!route) {
             continue;
           }
           if (layerError) {
-            match = false;
+            match2 = false;
             continue;
           }
           const method = req.method;
@@ -20936,10 +20936,10 @@ var require_router = __commonJS({
             methods2.push.apply(methods2, route._methods());
           }
           if (!hasMethod && method !== "HEAD") {
-            match = false;
+            match2 = false;
           }
         }
-        if (match !== true) {
+        if (match2 !== true) {
           return done(layerError);
         }
         if (route) {
@@ -21483,12 +21483,12 @@ var require_charset = __commonJS({
       return accepts;
     }
     function parseCharset(str, i) {
-      var match = simpleCharsetRegExp.exec(str);
-      if (!match) return null;
-      var charset = match[1];
+      var match2 = simpleCharsetRegExp.exec(str);
+      if (!match2) return null;
+      var charset = match2[1];
       var q = 1;
-      if (match[2]) {
-        var params = match[2].split(";");
+      if (match2[2]) {
+        var params = match2[2].split(";");
         for (var j = 0; j < params.length; j++) {
           var p = params[j].trim().split("=");
           if (p[0] === "q") {
@@ -21581,12 +21581,12 @@ var require_encoding = __commonJS({
       return accepts;
     }
     function parseEncoding(str, i) {
-      var match = simpleEncodingRegExp.exec(str);
-      if (!match) return null;
-      var encoding = match[1];
+      var match2 = simpleEncodingRegExp.exec(str);
+      if (!match2) return null;
+      var encoding = match2[1];
       var q = 1;
-      if (match[2]) {
-        var params = match[2].split(";");
+      if (match2[2]) {
+        var params = match2[2].split(";");
         for (var j = 0; j < params.length; j++) {
           var p = params[j].trim().split("=");
           if (p[0] === "q") {
@@ -21683,15 +21683,15 @@ var require_language = __commonJS({
       return accepts;
     }
     function parseLanguage(str, i) {
-      var match = simpleLanguageRegExp.exec(str);
-      if (!match) return null;
-      var prefix = match[1];
-      var suffix = match[2];
+      var match2 = simpleLanguageRegExp.exec(str);
+      if (!match2) return null;
+      var prefix = match2[1];
+      var suffix = match2[2];
       var full = prefix;
       if (suffix) full += "-" + suffix;
       var q = 1;
-      if (match[3]) {
-        var params = match[3].split(";");
+      if (match2[3]) {
+        var params = match2[3].split(";");
         for (var j = 0; j < params.length; j++) {
           var p = params[j].split("=");
           if (p[0] === "q") q = parseFloat(p[1]);
@@ -21778,14 +21778,14 @@ var require_mediaType = __commonJS({
       return accepts;
     }
     function parseMediaType(str, i) {
-      var match = simpleMediaTypeRegExp.exec(str);
-      if (!match) return null;
+      var match2 = simpleMediaTypeRegExp.exec(str);
+      if (!match2) return null;
       var params = /* @__PURE__ */ Object.create(null);
       var q = 1;
-      var subtype = match[2];
-      var type = match[1];
-      if (match[3]) {
-        var kvps = splitParameters(match[3]).map(splitKeyValuePair);
+      var subtype = match2[2];
+      var type = match2[1];
+      if (match2[3]) {
+        var kvps = splitParameters(match2[3]).map(splitKeyValuePair);
         for (var j = 0; j < kvps.length; j++) {
           var pair = kvps[j];
           var key = pair[0].toLowerCase();
@@ -22084,8 +22084,8 @@ var require_fresh = __commonJS({
         }
         var matches = parseTokenList(noneMatch);
         for (var i = 0; i < matches.length; i++) {
-          var match = matches[i];
-          if (match === etag || match === "W/" + etag || "W/" + match === etag) {
+          var match2 = matches[i];
+          if (match2 === etag || match2 === "W/" + etag || "W/" + match2 === etag) {
             return true;
           }
         }
@@ -22233,7 +22233,7 @@ var require_request = __commonJS({
     var http2 = __require("node:http");
     var fresh = require_fresh();
     var parseRange = require_range_parser();
-    var parse3 = require_parseurl();
+    var parse4 = require_parseurl();
     var proxyaddr = require_proxy_addr();
     var req = Object.create(http2.IncomingMessage.prototype);
     module.exports = req;
@@ -22278,7 +22278,7 @@ var require_request = __commonJS({
       if (!queryparse) {
         return /* @__PURE__ */ Object.create(null);
       }
-      var querystring = parse3(this).query;
+      var querystring = parse4(this).query;
       return queryparse(querystring);
     });
     req.is = function is2(types2) {
@@ -22322,7 +22322,7 @@ var require_request = __commonJS({
       return subdomains2.slice(offset);
     });
     defineGetter(req, "path", function path6() {
-      return parse3(this).pathname;
+      return parse4(this).pathname;
     });
     defineGetter(req, "host", function host() {
       var trust = this.app.get("trust proxy fn");
@@ -22376,7 +22376,7 @@ var require_content_disposition = __commonJS({
   "../../node_modules/.pnpm/content-disposition@1.1.0/node_modules/content-disposition/index.js"(exports, module) {
     "use strict";
     module.exports = contentDisposition;
-    module.exports.parse = parse3;
+    module.exports.parse = parse4;
     var utf8Decoder = new TextDecoder("utf-8");
     var ENCODE_URL_ATTR_CHAR_REGEXP = /[\x00-\x20"'()*,/:;<=>?@[\\\]{}\x7f]/g;
     var NON_LATIN1_REGEXP = /[^\x20-\x7e\xa0-\xff]/g;
@@ -22441,12 +22441,12 @@ var require_content_disposition = __commonJS({
       return string4;
     }
     function decodefield(str) {
-      const match = EXT_VALUE_REGEXP.exec(str);
-      if (!match) {
+      const match2 = EXT_VALUE_REGEXP.exec(str);
+      if (!match2) {
         throw new TypeError("invalid extended field value");
       }
-      const charset = match[1].toLowerCase();
-      const encoded = match[2];
+      const charset = match2[1].toLowerCase();
+      const encoded = match2[2];
       switch (charset) {
         case "iso-8859-1": {
           const binary = decodeHexEscapes(encoded);
@@ -22471,28 +22471,28 @@ var require_content_disposition = __commonJS({
     function getlatin1(val) {
       return String(val).replace(NON_LATIN1_REGEXP, "?");
     }
-    function parse3(string4) {
+    function parse4(string4) {
       if (!string4 || typeof string4 !== "string") {
         throw new TypeError("argument string is required");
       }
-      var match = DISPOSITION_TYPE_REGEXP.exec(string4);
-      if (!match) {
+      var match2 = DISPOSITION_TYPE_REGEXP.exec(string4);
+      if (!match2) {
         throw new TypeError("invalid type format");
       }
-      var index = match[0].length;
-      var type = match[1].toLowerCase();
+      var index = match2[0].length;
+      var type = match2[1].toLowerCase();
       var key;
       var names = [];
       var params = {};
       var value;
-      index = PARAM_REGEXP.lastIndex = match[0].slice(-1) === ";" ? index - 1 : index;
-      while (match = PARAM_REGEXP.exec(string4)) {
-        if (match.index !== index) {
+      index = PARAM_REGEXP.lastIndex = match2[0].slice(-1) === ";" ? index - 1 : index;
+      while (match2 = PARAM_REGEXP.exec(string4)) {
+        if (match2.index !== index) {
           throw new TypeError("invalid parameter format");
         }
-        index += match[0].length;
-        key = match[1].toLowerCase();
-        value = match[2];
+        index += match2[0].length;
+        key = match2[1].toLowerCase();
+        value = match2[2];
         if (names.indexOf(key) !== -1) {
           throw new TypeError("invalid duplicate parameter");
         }
@@ -22602,7 +22602,7 @@ var require_cookie_signature = __commonJS({
 var require_cookie = __commonJS({
   "../../node_modules/.pnpm/cookie@0.7.2/node_modules/cookie/index.js"(exports) {
     "use strict";
-    exports.parse = parse3;
+    exports.parse = parse4;
     exports.serialize = serialize;
     var __toString = Object.prototype.toString;
     var __hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -22610,7 +22610,7 @@ var require_cookie = __commonJS({
     var cookieValueRegExp = /^("?)[\u0021\u0023-\u002B\u002D-\u003A\u003C-\u005B\u005D-\u007E]*\1$/;
     var domainValueRegExp = /^([.]?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
     var pathValueRegExp = /^[\u0020-\u003A\u003D-\u007E]*$/;
-    function parse3(str, opt) {
+    function parse4(str, opt) {
       if (typeof str !== "string") {
         throw new TypeError("argument str must be a string");
       }
@@ -22845,11 +22845,11 @@ var require_send = __commonJS({
     SendStream.prototype.isPreconditionFailure = function isPreconditionFailure() {
       var req = this.req;
       var res = this.res;
-      var match = req.headers["if-match"];
-      if (match) {
+      var match2 = req.headers["if-match"];
+      if (match2) {
         var etag2 = res.getHeader("ETag");
-        return !etag2 || match !== "*" && parseTokenList(match).every(function(match2) {
-          return match2 !== etag2 && match2 !== "W/" + etag2 && "W/" + match2 !== etag2;
+        return !etag2 || match2 !== "*" && parseTokenList(match2).every(function(match3) {
+          return match3 !== etag2 && match3 !== "W/" + etag2 && "W/" + match3 !== etag2;
         });
       }
       var unmodifiedSince = parseHttpDate(req.headers["if-unmodified-since"]);
@@ -23261,7 +23261,7 @@ var require_vary = __commonJS({
       if (!field) {
         throw new TypeError("field argument is required");
       }
-      var fields = !Array.isArray(field) ? parse3(String(field)) : field;
+      var fields = !Array.isArray(field) ? parse4(String(field)) : field;
       for (var j = 0; j < fields.length; j++) {
         if (!FIELD_NAME_REGEXP.test(fields[j])) {
           throw new TypeError("field argument contains an invalid header name");
@@ -23271,7 +23271,7 @@ var require_vary = __commonJS({
         return header;
       }
       var val = header;
-      var vals = parse3(header.toLowerCase());
+      var vals = parse4(header.toLowerCase());
       if (fields.indexOf("*") !== -1 || vals.indexOf("*") !== -1) {
         return "*";
       }
@@ -23284,7 +23284,7 @@ var require_vary = __commonJS({
       }
       return val;
     }
-    function parse3(header) {
+    function parse4(header) {
       var end = 0;
       var list = [];
       var start = 0;
@@ -23449,7 +23449,7 @@ var require_response = __commonJS({
       var escape2 = app2.get("json escape");
       var replacer = app2.get("json replacer");
       var spaces = app2.get("json spaces");
-      var body = stringify(obj, replacer, spaces, escape2);
+      var body = stringify2(obj, replacer, spaces, escape2);
       if (!this.get("Content-Type")) {
         this.set("Content-Type", "application/json");
       }
@@ -23460,7 +23460,7 @@ var require_response = __commonJS({
       var escape2 = app2.get("json escape");
       var replacer = app2.get("json replacer");
       var spaces = app2.get("json spaces");
-      var body = stringify(obj, replacer, spaces, escape2);
+      var body = stringify2(obj, replacer, spaces, escape2);
       var callback = this.req.query[app2.get("jsonp callback name")];
       if (!this.get("Content-Type")) {
         this.set("X-Content-Type-Options", "nosniff");
@@ -23768,7 +23768,7 @@ var require_response = __commonJS({
       }
       file2.pipe(res2);
     }
-    function stringify(value, replacer, spaces, escape2) {
+    function stringify2(value, replacer, spaces, escape2) {
       var json2 = replacer || spaces ? JSON.stringify(value, replacer, spaces) : JSON.stringify(value);
       if (escape2 && typeof json2 === "string") {
         json2 = json2.replace(/[<>&]/g, function(c) {
@@ -25361,7 +25361,7 @@ var require_atomic_sleep = __commonJS({
   "../../node_modules/.pnpm/atomic-sleep@1.0.0/node_modules/atomic-sleep/index.js"(exports, module) {
     "use strict";
     if (typeof SharedArrayBuffer !== "undefined" && typeof Atomics !== "undefined") {
-      let sleep = function(ms) {
+      let sleep2 = function(ms) {
         const valid = ms > 0 && ms < Infinity;
         if (valid === false) {
           if (typeof ms !== "number" && typeof ms !== "bigint") {
@@ -25372,9 +25372,9 @@ var require_atomic_sleep = __commonJS({
         Atomics.wait(nil, 0, 0, Number(ms));
       };
       const nil = new Int32Array(new SharedArrayBuffer(4));
-      module.exports = sleep;
+      module.exports = sleep2;
     } else {
-      let sleep = function(ms) {
+      let sleep2 = function(ms) {
         const valid = ms > 0 && ms < Infinity;
         if (valid === false) {
           if (typeof ms !== "number" && typeof ms !== "bigint") {
@@ -25386,7 +25386,7 @@ var require_atomic_sleep = __commonJS({
         while (target > Date.now()) {
         }
       };
-      module.exports = sleep;
+      module.exports = sleep2;
     }
   }
 });
@@ -25399,7 +25399,7 @@ var require_sonic_boom = __commonJS({
     var EventEmitter2 = __require("events");
     var inherits = __require("util").inherits;
     var path6 = __require("path");
-    var sleep = require_atomic_sleep();
+    var sleep2 = require_atomic_sleep();
     var assert2 = __require("assert");
     var BUSY_WRITE_TIMEOUT = 100;
     var kEmptyBuffer = Buffer.allocUnsafe(0);
@@ -25545,7 +25545,7 @@ var require_sonic_boom = __commonJS({
           if ((err.code === "EAGAIN" || err.code === "EBUSY") && this.retryEAGAIN(err, this._writingBuf.length, this._len - this._writingBuf.length)) {
             if (this.sync) {
               try {
-                sleep(BUSY_WRITE_TIMEOUT);
+                sleep2(BUSY_WRITE_TIMEOUT);
                 this.release(void 0, 0);
               } catch (err2) {
                 this.release(err2);
@@ -25858,7 +25858,7 @@ var require_sonic_boom = __commonJS({
           if (shouldRetry && !this.retryEAGAIN(err, buf.length, this._len - buf.length)) {
             throw err;
           }
-          sleep(BUSY_WRITE_TIMEOUT);
+          sleep2(BUSY_WRITE_TIMEOUT);
         }
       }
       try {
@@ -25895,7 +25895,7 @@ var require_sonic_boom = __commonJS({
           if (shouldRetry && !this.retryEAGAIN(err, buf.length, this._len - buf.length)) {
             throw err;
           }
-          sleep(BUSY_WRITE_TIMEOUT);
+          sleep2(BUSY_WRITE_TIMEOUT);
         }
       }
     }
@@ -26636,7 +26636,7 @@ var require_transport = __commonJS({
     var { createRequire } = __require("module");
     var getCallers = require_caller();
     var { join: join2, isAbsolute, sep } = __require("node:path");
-    var sleep = require_atomic_sleep();
+    var sleep2 = require_atomic_sleep();
     var onExit = require_on_exit_leak_free();
     var ThreadStream = require_thread_stream();
     function setupOnExit(stream) {
@@ -26670,7 +26670,7 @@ var require_transport = __commonJS({
           return;
         }
         stream.flushSync();
-        sleep(100);
+        sleep2(100);
         stream.end();
       }
       return stream;
@@ -26869,7 +26869,7 @@ var require_tools = __commonJS({
       return asJsonChan.traceSync(_asJson, store, this, obj, msg, num, time3);
     }
     function _asJson(obj, msg, num, time3) {
-      const stringify2 = this[stringifySym];
+      const stringify3 = this[stringifySym];
       const stringifySafe = this[stringifySafeSym];
       const stringifiers = this[stringifiersSym];
       const end = this[endSym];
@@ -26911,7 +26911,7 @@ var require_tools = __commonJS({
               value = (stringifier || asString2)(value);
               break;
             default:
-              value = (stringifier || stringify2)(value, stringifySafe);
+              value = (stringifier || stringify3)(value, stringifySafe);
           }
           if (value === void 0) continue;
           const strKey = asString2(key);
@@ -26939,7 +26939,7 @@ var require_tools = __commonJS({
             msgStr = ',"' + messageKey + '":' + value;
             break;
           default:
-            value = (stringifier || stringify2)(value, stringifySafe);
+            value = (stringifier || stringify3)(value, stringifySafe);
             msgStr = ',"' + messageKey + '":' + value;
         }
       }
@@ -26952,7 +26952,7 @@ var require_tools = __commonJS({
     function asChindings(instance, bindings) {
       let value;
       let data = instance[chindingsSym];
-      const stringify2 = instance[stringifySym];
+      const stringify3 = instance[stringifySym];
       const stringifySafe = instance[stringifySafeSym];
       const stringifiers = instance[stringifiersSym];
       const wildcardStringifier = stringifiers[wildcardFirstSym];
@@ -26964,7 +26964,7 @@ var require_tools = __commonJS({
         const valid = (key.length < 5 || key !== "level" && key !== "serializers" && key !== "formatters" && key !== "customLevels") && bindings.hasOwnProperty(key) && value !== void 0;
         if (valid === true) {
           value = serializers[key] ? serializers[key](value) : value;
-          value = (stringifiers[key] || wildcardStringifier || stringify2)(value, stringifySafe);
+          value = (stringifiers[key] || wildcardStringifier || stringify3)(value, stringifySafe);
           if (value === void 0) continue;
           data += ',"' + key + '":' + value;
         }
@@ -27009,7 +27009,7 @@ var require_tools = __commonJS({
         stream.flushSync();
       }
     }
-    function createArgsNormalizer(defaultOptions) {
+    function createArgsNormalizer(defaultOptions2) {
       return function normalizeArgs(instance, caller, opts = {}, stream) {
         if (typeof opts === "string") {
           stream = buildSafeSonicBoom({ dest: opts });
@@ -27035,9 +27035,9 @@ var require_tools = __commonJS({
           }
           stream = transport({ caller, ...opts.transport, levels: customLevels });
         }
-        opts = Object.assign({}, defaultOptions, opts);
-        opts.serializers = Object.assign({}, defaultOptions.serializers, opts.serializers);
-        opts.formatters = Object.assign({}, defaultOptions.formatters, opts.formatters);
+        opts = Object.assign({}, defaultOptions2, opts);
+        opts.serializers = Object.assign({}, defaultOptions2.serializers, opts.serializers);
+        opts.formatters = Object.assign({}, defaultOptions2.formatters, opts.formatters);
         if (opts.prettyPrint) {
           throw new Error("prettyPrint option is no longer supported, see the pino-pretty package (https://github.com/pinojs/pino-pretty)");
         }
@@ -27054,13 +27054,13 @@ var require_tools = __commonJS({
         return { opts, stream };
       };
     }
-    function stringify(obj, stringifySafeFn) {
+    function stringify2(obj, stringifySafeFn) {
       try {
         return JSON.stringify(obj);
       } catch (_) {
         try {
-          const stringify2 = stringifySafeFn || this[stringifySafeSym];
-          return stringify2(obj);
+          const stringify3 = stringifySafeFn || this[stringifySafeSym];
+          return stringify3(obj);
         } catch (_2) {
           return '"[unable to serialize, circular reference is too complex to analyze]"';
         }
@@ -27090,7 +27090,7 @@ var require_tools = __commonJS({
       asJson,
       genLog,
       createArgsNormalizer,
-      stringify,
+      stringify: stringify2,
       buildFormatters,
       normalizeDestFileDescriptor
     };
@@ -27365,7 +27365,7 @@ var require_proto = __commonJS({
       asChindings,
       asJson,
       buildFormatters,
-      stringify,
+      stringify: stringify2,
       noop
     } = require_tools();
     var {
@@ -27473,9 +27473,9 @@ var require_proto = __commonJS({
       }
       if (typeof options.redact === "object" && options.redact !== null || Array.isArray(options.redact)) {
         instance.redact = options.redact;
-        const stringifiers = redaction(instance.redact, stringify);
+        const stringifiers = redaction(instance.redact, stringify2);
         const formatOpts = { stringify: stringifiers[redactFmtSym] };
-        instance[stringifySym] = stringify;
+        instance[stringifySym] = stringify2;
         instance[stringifiersSym] = stringifiers;
         instance[formatOptsSym] = formatOpts;
       }
@@ -27556,13 +27556,13 @@ var require_safe_stable_stringify = __commonJS({
   "../../node_modules/.pnpm/safe-stable-stringify@2.5.0/node_modules/safe-stable-stringify/index.js"(exports, module) {
     "use strict";
     var { hasOwnProperty } = Object.prototype;
-    var stringify = configure();
-    stringify.configure = configure;
-    stringify.stringify = stringify;
-    stringify.default = stringify;
-    exports.stringify = stringify;
+    var stringify2 = configure();
+    stringify2.configure = configure;
+    stringify2.stringify = stringify2;
+    stringify2.default = stringify2;
+    exports.stringify = stringify2;
     exports.configure = configure;
-    module.exports = stringify;
+    module.exports = stringify2;
     var strEscapeSequencesRegExp = /[\u0000-\u001f\u0022\u005c\ud800-\udfff]/;
     function strEscape(str) {
       if (str.length < 5e3 && !strEscapeSequencesRegExp.test(str)) {
@@ -28120,7 +28120,7 @@ ${originalIndentation}`;
             return fail ? fail(value) : void 0;
         }
       }
-      function stringify2(value, replacer, space) {
+      function stringify3(value, replacer, space) {
         if (arguments.length > 1) {
           let spacer = "";
           if (typeof space === "number") {
@@ -28142,7 +28142,7 @@ ${originalIndentation}`;
         }
         return stringifySimple("", value, []);
       }
-      return stringify2;
+      return stringify3;
     }
   }
 });
@@ -28344,7 +28344,7 @@ var require_pino = __commonJS({
       asChindings,
       buildSafeSonicBoom,
       buildFormatters,
-      stringify,
+      stringify: stringify2,
       normalizeDestFileDescriptor,
       noop
     } = require_tools();
@@ -28378,7 +28378,7 @@ var require_pino = __commonJS({
     var { pid } = process;
     var hostname2 = os2.hostname();
     var defaultErrorSerializer = stdSerializers.err;
-    var defaultOptions = {
+    var defaultOptions2 = {
       level: "info",
       levelComparison: SORTING_ORDER.ASC,
       levels: DEFAULT_LEVELS,
@@ -28410,7 +28410,7 @@ var require_pino = __commonJS({
       depthLimit: 5,
       edgeLimit: 100
     };
-    var normalize = createArgsNormalizer(defaultOptions);
+    var normalize = createArgsNormalizer(defaultOptions2);
     var serializers = Object.assign(/* @__PURE__ */ Object.create(null), stdSerializers);
     function pino2(...args) {
       const instance = {};
@@ -28448,7 +28448,7 @@ var require_pino = __commonJS({
         formatters.bindings,
         formatters.log
       );
-      const stringifyFn = stringify.bind({
+      const stringifyFn = stringify2.bind({
         [stringifySafeSym]: stringifySafe
       });
       const stringifiers = redact ? redaction(redact, stringifyFn) : {};
@@ -28458,7 +28458,7 @@ var require_pino = __commonJS({
         [chindingsSym]: "",
         [serializersSym]: serializers2,
         [stringifiersSym]: stringifiers,
-        [stringifySym]: stringify,
+        [stringifySym]: stringify2,
         [stringifySafeSym]: stringifySafe,
         [formattersSym]: allFormatters
       });
@@ -28489,7 +28489,7 @@ var require_pino = __commonJS({
         [streamSym]: stream,
         [timeSym]: time4,
         [timeSliceIndexSym]: timeSliceIndex,
-        [stringifySym]: stringify,
+        [stringifySym]: stringify2,
         [stringifySafeSym]: stringifySafe,
         [stringifiersSym]: stringifiers,
         [endSym]: end,
@@ -28625,18 +28625,18 @@ var require_logger = __commonJS({
       delete opts.customErroredMessage;
       const quietReqLogger = !!opts.quietReqLogger;
       const quietResLogger = !!opts.quietResLogger;
-      const logger2 = wrapChild(opts, theStream);
-      const validLogLevels = Object.keys(logger2.levels.values).concat("silent");
+      const logger3 = wrapChild(opts, theStream);
+      const validLogLevels = Object.keys(logger3.levels.values).concat("silent");
       const useLevel = getValidLogLevel(opts.useLevel);
       delete opts.useLevel;
       const genReqId = reqIdGenFactory(opts.genReqId);
       const result = (req, res, next) => {
-        return loggingMiddleware(logger2, req, res, next);
+        return loggingMiddleware(logger3, req, res, next);
       };
-      result.logger = logger2;
+      result.logger = logger3;
       return result;
-      function onResFinished(res, logger3, err) {
-        let log = logger3;
+      function onResFinished(res, logger4, err) {
+        let log = logger4;
         const responseTime = Date.now() - res[startTime];
         const req = res[reqObject];
         const level = getLogLevelFromCustomLogLevel(customLogLevel, useLevel, res, err, req);
@@ -28645,10 +28645,10 @@ var require_logger = __commonJS({
         }
         const customPropBindings = typeof customProps === "function" ? customProps(req, res) : customProps;
         if (customPropBindings) {
-          const customPropBindingStr = logger3[stringifySym](customPropBindings).replace(/[{}]/g, "");
-          const customPropBindingsStr = logger3[chindingsSym];
+          const customPropBindingStr = logger4[stringifySym](customPropBindings).replace(/[{}]/g, "");
+          const customPropBindingsStr = logger4[chindingsSym];
           if (!customPropBindingsStr.includes(customPropBindingStr)) {
-            log = logger3.child(customPropBindings);
+            log = logger4.child(customPropBindings);
           }
         }
         if (err || res.err || res.statusCode >= 500) {
@@ -28671,10 +28671,10 @@ var require_logger = __commonJS({
           successMessage(req, res, responseTime)
         );
       }
-      function loggingMiddleware(logger3, req, res, next) {
+      function loggingMiddleware(logger4, req, res, next) {
         let shouldLogSuccess = true;
         req.id = req.id || genReqId(req, res);
-        const log = quietReqLogger ? logger3.child({ [requestIdKey]: req.id }) : logger3;
+        const log = quietReqLogger ? logger4.child({ [requestIdKey]: req.id }) : logger4;
         let fullReqLogger = log.child({ [reqKey]: req });
         const customPropBindings = typeof customProps === "function" ? customProps(req, res) : customProps;
         if (customPropBindings) {
@@ -28730,20 +28730,20 @@ var require_logger = __commonJS({
     function wrapChild(opts, stream) {
       const prevLogger = opts.logger;
       const prevGenReqId = opts.genReqId;
-      let logger2 = null;
+      let logger3 = null;
       if (prevLogger) {
         opts.logger = void 0;
         opts.genReqId = void 0;
-        logger2 = prevLogger.child({}, opts);
+        logger3 = prevLogger.child({}, opts);
         opts.logger = prevLogger;
         opts.genReqId = prevGenReqId;
       } else {
         if (opts.transport && !opts.transport.caller) {
           opts.transport.caller = getCallerFile();
         }
-        logger2 = pino2(opts, stream);
+        logger3 = pino2(opts, stream);
       }
-      return logger2;
+      return logger3;
     }
     function reqIdGenFactory(func) {
       if (typeof func === "function") return func;
@@ -28802,12 +28802,12 @@ var require_charset2 = __commonJS({
       return accepts;
     }
     function parseCharset(str, i) {
-      var match = simpleCharsetRegExp.exec(str);
-      if (!match) return null;
-      var charset = match[1];
+      var match2 = simpleCharsetRegExp.exec(str);
+      if (!match2) return null;
+      var charset = match2[1];
       var q = 1;
-      if (match[2]) {
-        var params = match[2].split(";");
+      if (match2[2]) {
+        var params = match2[2].split(";");
         for (var j = 0; j < params.length; j++) {
           var p = params[j].trim().split("=");
           if (p[0] === "q") {
@@ -28900,12 +28900,12 @@ var require_encoding2 = __commonJS({
       return accepts;
     }
     function parseEncoding(str, i) {
-      var match = simpleEncodingRegExp.exec(str);
-      if (!match) return null;
-      var encoding = match[1];
+      var match2 = simpleEncodingRegExp.exec(str);
+      if (!match2) return null;
+      var encoding = match2[1];
       var q = 1;
-      if (match[2]) {
-        var params = match[2].split(";");
+      if (match2[2]) {
+        var params = match2[2].split(";");
         for (var j = 0; j < params.length; j++) {
           var p = params[j].trim().split("=");
           if (p[0] === "q") {
@@ -28987,15 +28987,15 @@ var require_language2 = __commonJS({
       return accepts;
     }
     function parseLanguage(str, i) {
-      var match = simpleLanguageRegExp.exec(str);
-      if (!match) return null;
-      var prefix = match[1];
-      var suffix = match[2];
+      var match2 = simpleLanguageRegExp.exec(str);
+      if (!match2) return null;
+      var prefix = match2[1];
+      var suffix = match2[2];
       var full = prefix;
       if (suffix) full += "-" + suffix;
       var q = 1;
-      if (match[3]) {
-        var params = match[3].split(";");
+      if (match2[3]) {
+        var params = match2[3].split(";");
         for (var j = 0; j < params.length; j++) {
           var p = params[j].split("=");
           if (p[0] === "q") q = parseFloat(p[1]);
@@ -29082,14 +29082,14 @@ var require_mediaType2 = __commonJS({
       return accepts;
     }
     function parseMediaType(str, i) {
-      var match = simpleMediaTypeRegExp.exec(str);
-      if (!match) return null;
+      var match2 = simpleMediaTypeRegExp.exec(str);
+      if (!match2) return null;
       var params = /* @__PURE__ */ Object.create(null);
       var q = 1;
-      var subtype = match[2];
-      var type = match[1];
-      if (match[3]) {
-        var kvps = splitParameters(match[3]).map(splitKeyValuePair);
+      var subtype = match2[2];
+      var type = match2[1];
+      if (match2[3]) {
+        var kvps = splitParameters(match2[3]).map(splitKeyValuePair);
         for (var j = 0; j < kvps.length; j++) {
           var pair = kvps[j];
           var key = pair[0].toLowerCase();
@@ -37832,12 +37832,12 @@ var require_mime_types2 = __commonJS({
       if (!type || typeof type !== "string") {
         return false;
       }
-      var match = EXTRACT_TYPE_REGEXP.exec(type);
-      var mime = match && db2[match[1].toLowerCase()];
+      var match2 = EXTRACT_TYPE_REGEXP.exec(type);
+      var mime = match2 && db2[match2[1].toLowerCase()];
       if (mime && mime.charset) {
         return mime.charset;
       }
-      if (match && TEXT_TYPE_REGEXP.test(match[1])) {
+      if (match2 && TEXT_TYPE_REGEXP.test(match2[1])) {
         return "UTF-8";
       }
       return false;
@@ -37860,8 +37860,8 @@ var require_mime_types2 = __commonJS({
       if (!type || typeof type !== "string") {
         return false;
       }
-      var match = EXTRACT_TYPE_REGEXP.exec(type);
-      var exts = match && exports.extensions[match[1].toLowerCase()];
+      var match2 = EXTRACT_TYPE_REGEXP.exec(type);
+      var exts = match2 && exports.extensions[match2[1].toLowerCase()];
       if (!exts || !exts.length) {
         return false;
       }
@@ -38181,7 +38181,7 @@ var require_cjs = __commonJS({
       return decodePacket_js_1.decodePacket;
     } });
     var commons_js_1 = require_commons();
-    var SEPARATOR = String.fromCharCode(30);
+    var SEPARATOR2 = String.fromCharCode(30);
     var encodePayload = (packets, callback) => {
       const length = packets.length;
       const encodedPackets = new Array(length);
@@ -38190,14 +38190,14 @@ var require_cjs = __commonJS({
         (0, encodePacket_js_1.encodePacket)(packet, false, (encodedPacket) => {
           encodedPackets[i] = encodedPacket;
           if (++count2 === length) {
-            callback(encodedPackets.join(SEPARATOR));
+            callback(encodedPackets.join(SEPARATOR2));
           }
         });
       });
     };
     exports.encodePayload = encodePayload;
     var decodePayload = (encodedPayload, binaryType) => {
-      const encodedPackets = encodedPayload.split(SEPARATOR);
+      const encodedPackets = encodedPayload.split(SEPARATOR2);
       const packets = [];
       for (let i = 0; i < encodedPackets.length; i++) {
         const decodedPacket = (0, decodePacket_js_1.decodePacket)(encodedPackets[i], binaryType);
@@ -39237,8 +39237,8 @@ var require_polling_jsonp = __commonJS({
       onData(data) {
         data = qs.parse(data).d;
         if ("string" === typeof data) {
-          data = data.replace(rSlashes, function(match, slashes) {
-            return slashes ? match : "\n";
+          data = data.replace(rSlashes, function(match2, slashes) {
+            return slashes ? match2 : "\n";
           });
           super.onData(data.replace(rDoubleSlashes, "\\n"));
         }
@@ -41956,7 +41956,7 @@ var require_extension = __commonJS({
       if (dest[name] === void 0) dest[name] = [elem];
       else dest[name].push(elem);
     }
-    function parse3(header) {
+    function parse4(header) {
       const offers = /* @__PURE__ */ Object.create(null);
       let params = /* @__PURE__ */ Object.create(null);
       let mustUnescape = false;
@@ -42096,7 +42096,7 @@ var require_extension = __commonJS({
         }).join(", ");
       }).join(", ");
     }
-    module.exports = { format, parse: parse3 };
+    module.exports = { format, parse: parse4 };
   }
 });
 
@@ -42130,7 +42130,7 @@ var require_websocket2 = __commonJS({
     var {
       EventTarget: { addEventListener, removeEventListener }
     } = require_event_target();
-    var { format, parse: parse3 } = require_extension();
+    var { format, parse: parse4 } = require_extension();
     var { toBuffer } = require_buffer_util();
     var kAborted = /* @__PURE__ */ Symbol("kAborted");
     var protocolVersions = [8, 13];
@@ -42807,7 +42807,7 @@ var require_websocket2 = __commonJS({
           }
           let extensions;
           try {
-            extensions = parse3(secWebSocketExtensions);
+            extensions = parse4(secWebSocketExtensions);
           } catch (err) {
             const message = "Invalid Sec-WebSocket-Extensions header";
             abortHandshake(websocket, socket, message);
@@ -43099,7 +43099,7 @@ var require_subprotocol = __commonJS({
   "../../node_modules/.pnpm/ws@8.21.2/node_modules/ws/lib/subprotocol.js"(exports, module) {
     "use strict";
     var { tokenChars } = require_validation();
-    function parse3(header) {
+    function parse4(header) {
       const protocols = /* @__PURE__ */ new Set();
       let start = -1;
       let end = -1;
@@ -43135,7 +43135,7 @@ var require_subprotocol = __commonJS({
       protocols.add(protocol);
       return protocols;
     }
-    module.exports = { parse: parse3 };
+    module.exports = { parse: parse4 };
   }
 });
 
@@ -49195,7 +49195,7 @@ var require_uws = __commonJS({
     var fs_1 = __require("fs");
     var debug_1 = __importDefault(require_src());
     var debug = (0, debug_1.default)("socket.io:adapter-uws");
-    var SEPARATOR = "";
+    var SEPARATOR2 = "";
     var { addAll, del, broadcast } = socket_io_adapter_1.Adapter.prototype;
     function patchAdapter(app2) {
       socket_io_adapter_1.Adapter.prototype.addAll = function(id, rooms) {
@@ -49224,7 +49224,7 @@ var require_uws = __commonJS({
         if (socket && socket.conn.transport.name === "websocket") {
           const sessionId = socket.conn.id;
           const websocket = socket.conn.transport.socket;
-          const topic = `${this.nsp.name}${SEPARATOR}${room}`;
+          const topic = `${this.nsp.name}${SEPARATOR2}${room}`;
           debug("unsubscribe connection %s from topic %s", sessionId, topic);
           websocket.unsubscribe(topic);
         }
@@ -49243,7 +49243,7 @@ var require_uws = __commonJS({
         };
         packet.nsp = this.nsp.name;
         const encodedPackets = this.encoder.encode(packet);
-        const topic = opts.rooms.size === 0 ? this.nsp.name : `${this.nsp.name}${SEPARATOR}${opts.rooms.keys().next().value}`;
+        const topic = opts.rooms.size === 0 ? this.nsp.name : `${this.nsp.name}${SEPARATOR2}${opts.rooms.keys().next().value}`;
         debug("fast publish to %s", topic);
         encodedPackets.forEach((encodedPacket) => {
           const isBinary = typeof encodedPacket !== "string";
@@ -49264,7 +49264,7 @@ var require_uws = __commonJS({
         websocket.subscribe(namespaceName);
       }
       rooms.forEach((room) => {
-        const topic = `${namespaceName}${SEPARATOR}${room}`;
+        const topic = `${namespaceName}${SEPARATOR2}${room}`;
         debug("subscribe connection %s to topic %s", sessionId, topic);
         websocket.subscribe(topic);
       });
@@ -50533,15 +50533,15 @@ var require_jwa = __commonJS({
     function fromBase64(base643) {
       return base643.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
     }
-    function toBase64(base64url3) {
-      base64url3 = base64url3.toString();
-      var padding = 4 - base64url3.length % 4;
+    function toBase64(base64url4) {
+      base64url4 = base64url4.toString();
+      var padding = 4 - base64url4.length % 4;
       if (padding !== 4) {
         for (var i = 0; i < padding; ++i) {
-          base64url3 += "=";
+          base64url4 += "=";
         }
       }
-      return base64url3.replace(/\-/g, "+").replace(/_/g, "/");
+      return base64url4.replace(/\-/g, "+").replace(/_/g, "/");
     }
     function typeError(template) {
       var args = [].slice.call(arguments, 1);
@@ -50670,11 +50670,11 @@ var require_jwa = __commonJS({
         es: createECDSAVerifer,
         none: createNoneVerifier
       };
-      var match = algorithm.match(/^(RS|PS|ES|HS)(256|384|512)$|^(none)$/);
-      if (!match)
+      var match2 = algorithm.match(/^(RS|PS|ES|HS)(256|384|512)$|^(none)$/);
+      if (!match2)
         throw typeError(MSG_INVALID_ALGORITHM, algorithm);
-      var algo = (match[1] || match[3]).toLowerCase();
-      var bits = match[2];
+      var algo = (match2[1] || match2[3]).toLowerCase();
+      var bits = match2[2];
       return {
         sign: signerFactories[algo](bits),
         verify: verifierFactories[algo](bits)
@@ -50706,13 +50706,13 @@ var require_sign_stream = __commonJS({
     var Stream = __require("stream");
     var toString = require_tostring();
     var util2 = __require("util");
-    function base64url3(string4, encoding) {
+    function base64url4(string4, encoding) {
       return Buffer2.from(string4, encoding).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
     }
     function jwsSecuredInput(header, payload, encoding) {
       encoding = encoding || "utf8";
-      var encodedHeader = base64url3(toString(header), "binary");
-      var encodedPayload = base64url3(toString(payload), encoding);
+      var encodedHeader = base64url4(toString(header), "binary");
+      var encodedPayload = base64url4(toString(payload), encoding);
       return util2.format("%s.%s", encodedHeader, encodedPayload);
     }
     function jwsSign(opts) {
@@ -51376,8 +51376,8 @@ var require_semver = __commonJS({
             throw new Error("invalid increment argument: identifier is empty");
           }
           if (identifier) {
-            const match = `-${identifier}`.match(this.options.loose ? re[t.PRERELEASELOOSE] : re[t.PRERELEASE]);
-            if (!match || match[1] !== identifier) {
+            const match2 = `-${identifier}`.match(this.options.loose ? re[t.PRERELEASELOOSE] : re[t.PRERELEASE]);
+            if (!match2 || match2[1] !== identifier) {
               throw new Error(`invalid identifier: ${identifier}`);
             }
           }
@@ -51492,7 +51492,7 @@ var require_parse2 = __commonJS({
   "../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/functions/parse.js"(exports, module) {
     "use strict";
     var SemVer = require_semver();
-    var parse3 = (version3, options, throwErrors = false) => {
+    var parse4 = (version3, options, throwErrors = false) => {
       if (version3 instanceof SemVer) {
         return version3;
       }
@@ -51505,7 +51505,7 @@ var require_parse2 = __commonJS({
         throw er;
       }
     };
-    module.exports = parse3;
+    module.exports = parse4;
   }
 });
 
@@ -51513,9 +51513,9 @@ var require_parse2 = __commonJS({
 var require_valid = __commonJS({
   "../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/functions/valid.js"(exports, module) {
     "use strict";
-    var parse3 = require_parse2();
+    var parse4 = require_parse2();
     var valid = (version3, options) => {
-      const v = parse3(version3, options);
+      const v = parse4(version3, options);
       return v ? v.version : null;
     };
     module.exports = valid;
@@ -51526,9 +51526,9 @@ var require_valid = __commonJS({
 var require_clean = __commonJS({
   "../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/functions/clean.js"(exports, module) {
     "use strict";
-    var parse3 = require_parse2();
+    var parse4 = require_parse2();
     var clean = (version3, options) => {
-      const s = parse3(version3.trim().replace(/^[=v]+/, ""), options);
+      const s = parse4(version3.trim().replace(/^[=v]+/, ""), options);
       return s ? s.version : null;
     };
     module.exports = clean;
@@ -51563,10 +51563,10 @@ var require_inc = __commonJS({
 var require_diff = __commonJS({
   "../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/functions/diff.js"(exports, module) {
     "use strict";
-    var parse3 = require_parse2();
+    var parse4 = require_parse2();
     var diff = (version1, version22) => {
-      const v1 = parse3(version1, null, true);
-      const v2 = parse3(version22, null, true);
+      const v1 = parse4(version1, null, true);
+      const v2 = parse4(version22, null, true);
       const comparison = v1.compare(v2);
       if (comparison === 0) {
         return null;
@@ -51637,9 +51637,9 @@ var require_patch = __commonJS({
 var require_prerelease = __commonJS({
   "../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/functions/prerelease.js"(exports, module) {
     "use strict";
-    var parse3 = require_parse2();
+    var parse4 = require_parse2();
     var prerelease = (version3, options) => {
-      const parsed = parse3(version3, options);
+      const parsed = parse4(version3, options);
       return parsed && parsed.prerelease.length ? parsed.prerelease : null;
     };
     module.exports = prerelease;
@@ -51825,7 +51825,7 @@ var require_coerce = __commonJS({
   "../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/functions/coerce.js"(exports, module) {
     "use strict";
     var SemVer = require_semver();
-    var parse3 = require_parse2();
+    var parse4 = require_parse2();
     var { safeRe: re, t } = require_re();
     var coerce2 = (version3, options) => {
       if (version3 instanceof SemVer) {
@@ -51838,29 +51838,29 @@ var require_coerce = __commonJS({
         return null;
       }
       options = options || {};
-      let match = null;
+      let match2 = null;
       if (!options.rtl) {
-        match = version3.match(options.includePrerelease ? re[t.COERCEFULL] : re[t.COERCE]);
+        match2 = version3.match(options.includePrerelease ? re[t.COERCEFULL] : re[t.COERCE]);
       } else {
         const coerceRtlRegex = options.includePrerelease ? re[t.COERCERTLFULL] : re[t.COERCERTL];
         let next;
-        while ((next = coerceRtlRegex.exec(version3)) && (!match || match.index + match[0].length !== version3.length)) {
-          if (!match || next.index + next[0].length !== match.index + match[0].length) {
-            match = next;
+        while ((next = coerceRtlRegex.exec(version3)) && (!match2 || match2.index + match2[0].length !== version3.length)) {
+          if (!match2 || next.index + next[0].length !== match2.index + match2[0].length) {
+            match2 = next;
           }
           coerceRtlRegex.lastIndex = next.index + next[1].length + next[2].length;
         }
         coerceRtlRegex.lastIndex = -1;
       }
-      if (match === null) {
+      if (match2 === null) {
         return null;
       }
-      const major = match[2];
-      const minor = match[3] || "0";
-      const patch = match[4] || "0";
-      const prerelease = options.includePrerelease && match[5] ? `-${match[5]}` : "";
-      const build = options.includePrerelease && match[6] ? `+${match[6]}` : "";
-      return parse3(`${major}.${minor}.${patch}${prerelease}${build}`, options);
+      const major = match2[2];
+      const minor = match2[3] || "0";
+      const patch = match2[4] || "0";
+      const prerelease = options.includePrerelease && match2[5] ? `-${match2[5]}` : "";
+      const build = options.includePrerelease && match2[6] ? `+${match2[6]}` : "";
+      return parse4(`${major}.${minor}.${patch}${prerelease}${build}`, options);
     };
     module.exports = coerce2;
   }
@@ -51870,7 +51870,7 @@ var require_coerce = __commonJS({
 var require_truncate = __commonJS({
   "../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/functions/truncate.js"(exports, module) {
     "use strict";
-    var parse3 = require_parse2();
+    var parse4 = require_parse2();
     var constants = require_constants3();
     var SemVer = require_semver();
     var truncate = (version3, truncation, options) => {
@@ -51882,7 +51882,7 @@ var require_truncate = __commonJS({
     };
     var cloneInputVersion = (version3, options) => {
       const versionStringToParse = version3 instanceof SemVer ? version3.version : version3;
-      return parse3(versionStringToParse, options);
+      return parse4(versionStringToParse, options);
     };
     var doTruncation = (version3, truncation) => {
       if (isPrerelease(truncation)) {
@@ -52926,7 +52926,7 @@ var require_semver2 = __commonJS({
     var constants = require_constants3();
     var SemVer = require_semver();
     var identifiers = require_identifiers();
-    var parse3 = require_parse2();
+    var parse4 = require_parse2();
     var valid = require_valid();
     var clean = require_clean();
     var inc = require_inc();
@@ -52965,7 +52965,7 @@ var require_semver2 = __commonJS({
     var simplifyRange = require_simplify();
     var subset = require_subset();
     module.exports = {
-      parse: parse3,
+      parse: parse4,
       valid,
       clean,
       inc,
@@ -53251,12 +53251,12 @@ var require_verify = __commonJS({
         if (options.audience) {
           const audiences = Array.isArray(options.audience) ? options.audience : [options.audience];
           const target = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-          const match = target.some(function(targetAudience) {
+          const match2 = target.some(function(targetAudience) {
             return audiences.some(function(audience) {
               return audience instanceof RegExp ? audience.test(targetAudience) : audience === targetAudience;
             });
           });
-          if (!match) {
+          if (!match2) {
             return done(new JsonWebTokenError("jwt audience invalid. expected: " + audiences.join(" or ")));
           }
         }
@@ -54309,7 +54309,7 @@ var require_postgres_interval = __commonJS({
       if (!(this instanceof PostgresInterval)) {
         return new PostgresInterval(raw);
       }
-      extend2(this, parse3(raw));
+      extend2(this, parse4(raw));
     }
     var properties = ["seconds", "minutes", "hours", "days", "months", "years"];
     PostgresInterval.prototype.toPostgres = function() {
@@ -54370,7 +54370,7 @@ var require_postgres_interval = __commonJS({
       var microseconds = fraction + "000000".slice(fraction.length);
       return parseInt(microseconds, 10) / 1e3;
     }
-    function parse3(interval) {
+    function parse4(interval) {
       if (!interval) return {};
       var matches = INTERVAL.exec(interval);
       var isNegative = matches[8] === "-";
@@ -54857,13 +54857,13 @@ var require_binaryParsers = __commonJS({
           console.log("ERROR: ElementType not implemented: " + elementType2);
         }
       };
-      var parse3 = function(dimension, elementType2) {
+      var parse4 = function(dimension, elementType2) {
         var array2 = [];
         var i2;
         if (dimension.length > 1) {
           var count2 = dimension.shift();
           for (i2 = 0; i2 < count2; i2++) {
-            array2[i2] = parse3(dimension, elementType2);
+            array2[i2] = parse4(dimension, elementType2);
           }
           dimension.unshift(count2);
         } else {
@@ -54873,7 +54873,7 @@ var require_binaryParsers = __commonJS({
         }
         return array2;
       };
-      return parse3(dims, elementType);
+      return parse4(dims, elementType);
     };
     var parseText = function(value) {
       return value.toString("utf8");
@@ -55620,7 +55620,7 @@ var require_type_overrides = __commonJS({
 var require_pg_connection_string = __commonJS({
   "../../node_modules/.pnpm/pg-connection-string@2.14.0/node_modules/pg-connection-string/index.js"(exports, module) {
     "use strict";
-    function parse3(str, options = {}) {
+    function parse4(str, options = {}) {
       if (str.charAt(0) === "/") {
         const config3 = str.split(" ");
         return { host: config3[0], database: config3[1] };
@@ -55782,7 +55782,7 @@ var require_pg_connection_string = __commonJS({
       return poolConfig;
     }
     function parseIntoClientConfig(str) {
-      return toClientConfig(parse3(str));
+      return toClientConfig(parse4(str));
     }
     function deprecatedSslModeWarning(sslmode) {
       if (!deprecatedSslModeWarning.warned && typeof process !== "undefined" && process.emitWarning) {
@@ -55797,10 +55797,10 @@ To prepare for this change:
 See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.`);
       }
     }
-    module.exports = parse3;
-    parse3.parse = parse3;
-    parse3.toClientConfig = toClientConfig;
-    parse3.parseIntoClientConfig = parseIntoClientConfig;
+    module.exports = parse4;
+    parse4.parse = parse4;
+    parse4.toClientConfig = toClientConfig;
+    parse4.parseIntoClientConfig = parseIntoClientConfig;
   }
 });
 
@@ -55810,7 +55810,7 @@ var require_connection_parameters = __commonJS({
     "use strict";
     var dns = __require("dns");
     var defaults2 = require_defaults();
-    var parse3 = require_pg_connection_string().parse;
+    var parse4 = require_pg_connection_string().parse;
     var val = function(key, config2, envVar) {
       if (config2[key]) {
         return config2[key];
@@ -55848,9 +55848,9 @@ var require_connection_parameters = __commonJS({
     };
     var ConnectionParameters = class {
       constructor(config2) {
-        config2 = typeof config2 === "string" ? parse3(config2) : config2 || {};
+        config2 = typeof config2 === "string" ? parse4(config2) : config2 || {};
         if (config2.connectionString) {
-          config2 = Object.assign({}, config2, parse3(config2.connectionString));
+          config2 = Object.assign({}, config2, parse4(config2.connectionString));
         }
         this.user = val("user", config2);
         this.database = val("database", config2);
@@ -55979,19 +55979,19 @@ var require_result = __commonJS({
       }
       // adds a command complete message
       addCommandComplete(msg) {
-        let match;
+        let match2;
         if (msg.text) {
-          match = matchRegexp.exec(msg.text);
+          match2 = matchRegexp.exec(msg.text);
         } else {
-          match = matchRegexp.exec(msg.command);
+          match2 = matchRegexp.exec(msg.command);
         }
-        if (match) {
-          this.command = match[1];
-          if (match[3]) {
-            this.oid = parseInt(match[2], 10);
-            this.rowCount = parseInt(match[3], 10);
-          } else if (match[2]) {
-            this.rowCount = parseInt(match[2], 10);
+        if (match2) {
+          this.command = match2[1];
+          if (match2[3]) {
+            this.oid = parseInt(match2[2], 10);
+            this.rowCount = parseInt(match2[3], 10);
+          } else if (match2[2]) {
+            this.rowCount = parseInt(match2[2], 10);
           }
         }
       }
@@ -56564,7 +56564,7 @@ var require_serializer = __commonJS({
       );
     };
     var emptyArray = [];
-    var parse3 = (query2) => {
+    var parse4 = (query2) => {
       const name = query2.name || "";
       if (name.length > 63) {
         console.error("Warning! Postgres only supports 63 characters for query names.");
@@ -56719,7 +56719,7 @@ var require_serializer = __commonJS({
       sendSASLInitialResponseMessage,
       sendSCRAMClientFinalMessage,
       query,
-      parse: parse3,
+      parse: parse4,
       bind,
       execute,
       describe,
@@ -57103,12 +57103,12 @@ var require_parser = __commonJS({
 });
 
 // ../../node_modules/.pnpm/pg-protocol@1.15.0/node_modules/pg-protocol/dist/index.js
-var require_dist5 = __commonJS({
+var require_dist6 = __commonJS({
   "../../node_modules/.pnpm/pg-protocol@1.15.0/node_modules/pg-protocol/dist/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.DatabaseError = exports.serialize = void 0;
-    exports.parse = parse3;
+    exports.parse = parse4;
     var messages_1 = require_messages();
     Object.defineProperty(exports, "DatabaseError", { enumerable: true, get: function() {
       return messages_1.DatabaseError;
@@ -57118,7 +57118,7 @@ var require_dist5 = __commonJS({
       return serializer_1.serialize;
     } });
     var parser_1 = require_parser();
-    function parse3(stream, callback) {
+    function parse4(stream, callback) {
       const parser = new parser_1.Parser();
       stream.on("data", (buffer) => parser.parse(buffer, callback));
       return new Promise((resolve) => stream.on("end", () => resolve()));
@@ -57206,7 +57206,7 @@ var require_connection = __commonJS({
   "../../node_modules/.pnpm/pg@8.22.0/node_modules/pg/lib/connection.js"(exports, module) {
     "use strict";
     var EventEmitter2 = __require("events").EventEmitter;
-    var { parse: parse3, serialize } = require_dist5();
+    var { parse: parse4, serialize } = require_dist6();
     var stream = require_stream2();
     var { getStream } = stream;
     var flushBuffer = serialize.flush();
@@ -57306,7 +57306,7 @@ var require_connection = __commonJS({
         self2.emit("sslconnect");
       }
       attachListeners(stream2) {
-        parse3(stream2, (msg) => {
+        parse4(stream2, (msg) => {
           const eventName = msg.name === "error" ? "errorMessage" : msg.name;
           if (this._emitMessage) {
             this.emit("message", msg);
@@ -59178,7 +59178,7 @@ var require_lib5 = __commonJS({
     var utils = require_utils4();
     var Pool2 = require_pg_pool();
     var TypeOverrides2 = require_type_overrides();
-    var { DatabaseError: DatabaseError2 } = require_dist5();
+    var { DatabaseError: DatabaseError2 } = require_dist6();
     var { escapeIdentifier: escapeIdentifier2, escapeLiteral: escapeLiteral2 } = require_utils4();
     var poolFactory = (Client4) => {
       return class BoundPool extends Pool2 {
@@ -59817,7 +59817,7 @@ var require_types = __commonJS({
 });
 
 // ../../node_modules/.pnpm/pg-node-migrations@0.0.8/node_modules/pg-node-migrations/dist/index.js
-var require_dist6 = __commonJS({
+var require_dist7 = __commonJS({
   "../../node_modules/.pnpm/pg-node-migrations@0.0.8/node_modules/pg-node-migrations/dist/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -59853,7 +59853,7 @@ var require_media_typer2 = __commonJS({
     var typeNameRegExp = /^[A-Za-z0-9][A-Za-z0-9!#$&^_-]{0,126}$/;
     var typeRegExp = /^ *([A-Za-z0-9][A-Za-z0-9!#$&^_-]{0,126})\/([A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}) *$/;
     exports.format = format;
-    exports.parse = parse3;
+    exports.parse = parse4;
     function format(obj) {
       if (!obj || typeof obj !== "object") {
         throw new TypeError("argument obj is required");
@@ -59888,7 +59888,7 @@ var require_media_typer2 = __commonJS({
       }
       return string4;
     }
-    function parse3(string4) {
+    function parse4(string4) {
       if (!string4) {
         throw new TypeError("argument string is required");
       }
@@ -59901,18 +59901,18 @@ var require_media_typer2 = __commonJS({
       var index = string4.indexOf(";");
       var type = index !== -1 ? string4.substr(0, index) : string4;
       var key;
-      var match;
+      var match2;
       var obj = splitType(type);
       var params = {};
       var value;
       paramRegExp.lastIndex = index;
-      while (match = paramRegExp.exec(string4)) {
-        if (match.index !== index) {
+      while (match2 = paramRegExp.exec(string4)) {
+        if (match2.index !== index) {
           throw new TypeError("invalid parameter format");
         }
-        index += match[0].length;
-        key = match[1].toLowerCase();
-        value = match[2];
+        index += match2[0].length;
+        key = match2[1].toLowerCase();
+        value = match2[2];
         if (value[0] === '"') {
           value = value.substr(1, value.length - 2).replace(qescRegExp, "$1");
         }
@@ -59943,12 +59943,12 @@ var require_media_typer2 = __commonJS({
       return '"' + str.replace(quoteRegExp, "\\$1") + '"';
     }
     function splitType(string4) {
-      var match = typeRegExp.exec(string4.toLowerCase());
-      if (!match) {
+      var match2 = typeRegExp.exec(string4.toLowerCase());
+      if (!match2) {
         throw new TypeError("invalid media type");
       }
-      var type = match[1];
-      var subtype = match[2];
+      var type = match2[1];
+      var subtype = match2[2];
       var suffix;
       var index = subtype.lastIndexOf("+");
       if (index !== -1) {
@@ -73760,10 +73760,10 @@ var BetterSQLiteTransaction = class _BetterSQLiteTransaction extends SQLiteTrans
   }
 };
 var PreparedQuery = class extends SQLitePreparedQuery {
-  constructor(stmt, query, logger2, cache, queryMetadata, cacheConfig, fields, executeMethod, _isResponseInArrayMode, customResultMapper) {
+  constructor(stmt, query, logger3, cache, queryMetadata, cacheConfig, fields, executeMethod, _isResponseInArrayMode, customResultMapper) {
     super("sync", executeMethod, query, cache, queryMetadata, cacheConfig);
     this.stmt = stmt;
-    this.logger = logger2;
+    this.logger = logger3;
     this.fields = fields;
     this._isResponseInArrayMode = _isResponseInArrayMode;
     this.customResultMapper = customResultMapper;
@@ -73775,10 +73775,10 @@ var PreparedQuery = class extends SQLitePreparedQuery {
     return this.stmt.run(...params);
   }
   all(placeholderValues) {
-    const { fields, joinsNotNullableMap, query, logger: logger2, stmt, customResultMapper } = this;
+    const { fields, joinsNotNullableMap, query, logger: logger3, stmt, customResultMapper } = this;
     if (!fields && !customResultMapper) {
       const params = fillPlaceholders(query.params, placeholderValues ?? {});
-      logger2.logQuery(query.sql, params);
+      logger3.logQuery(query.sql, params);
       return stmt.all(...params);
     }
     const rows = this.values(placeholderValues);
@@ -73820,11 +73820,11 @@ var BetterSQLite3Database = class extends BaseSQLiteDatabase {
 };
 function construct(client, config2 = {}) {
   const dialect = new SQLiteSyncDialect({ casing: config2.casing });
-  let logger2;
+  let logger3;
   if (config2.logger === true) {
-    logger2 = new DefaultLogger();
+    logger3 = new DefaultLogger();
   } else if (config2.logger !== false) {
-    logger2 = config2.logger;
+    logger3 = config2.logger;
   }
   let schema;
   if (config2.schema) {
@@ -73838,7 +73838,7 @@ function construct(client, config2 = {}) {
       tableNamesMap: tablesConfig.tableNamesMap
     };
   }
-  const session = new BetterSQLiteSession(client, dialect, schema, { logger: logger2 });
+  const session = new BetterSQLiteSession(client, dialect, schema, { logger: logger3 });
   const db2 = new BetterSQLite3Database("sync", dialect, session, schema);
   db2.$client = client;
   return db2;
@@ -92137,8 +92137,1477 @@ import { randomBytes as randomBytes3 } from "crypto";
 var import_dist = __toESM(require_dist4(), 1);
 var { Server, Namespace, Socket } = import_dist.default;
 
-// src/socket.ts
-import { verifyToken } from "@clerk/backend";
+// ../../node_modules/@clerk/backend/node_modules/@clerk/shared/dist/constants.mjs
+var DEV_OR_STAGING_SUFFIXES = [
+  ".lcl.dev",
+  ".stg.dev",
+  ".lclstage.dev",
+  ".stgstage.dev",
+  ".dev.lclclerk.com",
+  ".stg.lclclerk.com",
+  ".accounts.lclclerk.com",
+  "accountsstage.dev",
+  "accounts.dev"
+];
+
+// ../../node_modules/@clerk/backend/node_modules/@clerk/shared/dist/isomorphicAtob.mjs
+var isomorphicAtob = (data) => {
+  if (typeof atob !== "undefined" && typeof atob === "function") return atob(data);
+  else if (typeof globalThis.Buffer !== "undefined") return globalThis.Buffer.from(data, "base64").toString();
+  return data;
+};
+
+// ../../node_modules/@clerk/backend/node_modules/@clerk/shared/dist/keys.mjs
+function createDevOrStagingUrlCache() {
+  const devOrStagingUrlCache = /* @__PURE__ */ new Map();
+  return {
+    /**
+    * Checks if a URL is a development or staging environment.
+    *
+    * @param url - The URL to check (string or URL object).
+    * @returns `true` if the URL is a development or staging environment, `false` otherwise.
+    */
+    isDevOrStagingUrl: (url2) => {
+      if (!url2) return false;
+      const hostname2 = typeof url2 === "string" ? url2 : url2.hostname;
+      let res = devOrStagingUrlCache.get(hostname2);
+      if (res === void 0) {
+        res = DEV_OR_STAGING_SUFFIXES.some((s) => hostname2.endsWith(s));
+        devOrStagingUrlCache.set(hostname2, res);
+      }
+      return res;
+    }
+  };
+}
+
+// ../../node_modules/@clerk/backend/node_modules/@clerk/shared/dist/retry.mjs
+var defaultOptions = {
+  initialDelay: 125,
+  maxDelayBetweenRetries: 0,
+  factor: 2,
+  shouldRetry: (_, iteration) => iteration < 5,
+  retryImmediately: false,
+  jitter: true
+};
+var RETRY_IMMEDIATELY_DELAY = 100;
+var sleep = async (ms) => new Promise((s) => setTimeout(s, ms));
+var applyJitter = (delay, jitter) => {
+  return jitter ? delay * (1 + Math.random()) : delay;
+};
+var createExponentialDelayAsyncFn = (opts) => {
+  let timesCalled = 0;
+  const calculateDelayInMs = () => {
+    const constant = opts.initialDelay;
+    const base = opts.factor;
+    let delay = constant * Math.pow(base, timesCalled);
+    delay = applyJitter(delay, opts.jitter);
+    return Math.min(opts.maxDelayBetweenRetries || delay, delay);
+  };
+  return async () => {
+    await sleep(calculateDelayInMs());
+    timesCalled++;
+  };
+};
+var retry = async (callback, options = {}) => {
+  let iterations = 0;
+  const { shouldRetry, initialDelay, maxDelayBetweenRetries, factor, retryImmediately, jitter, onBeforeRetry } = {
+    ...defaultOptions,
+    ...options
+  };
+  const delay = createExponentialDelayAsyncFn({
+    initialDelay,
+    maxDelayBetweenRetries,
+    factor,
+    jitter
+  });
+  while (true) try {
+    return await callback();
+  } catch (e) {
+    iterations++;
+    if (!shouldRetry(e, iterations)) throw e;
+    if (onBeforeRetry) await onBeforeRetry(iterations);
+    if (retryImmediately && iterations === 1) await sleep(applyJitter(RETRY_IMMEDIATELY_DELAY, jitter));
+    else await delay();
+  }
+};
+
+// ../../node_modules/@clerk/backend/node_modules/@clerk/shared/dist/_chunks/clerkRuntimeError-DlesLWqO.mjs
+function createErrorTypeGuard(ErrorClass) {
+  function typeGuard(error40) {
+    const target = error40 ?? this;
+    if (!target) throw new TypeError(`${ErrorClass.kind || ErrorClass.name} type guard requires an error object`);
+    if (ErrorClass.kind && typeof target === "object" && target !== null && "constructor" in target) {
+      if (target.constructor?.kind === ErrorClass.kind) return true;
+    }
+    return target instanceof ErrorClass;
+  }
+  return typeGuard;
+}
+var ClerkError = class ClerkError2 extends Error {
+  static kind = "ClerkError";
+  clerkError = true;
+  code;
+  longMessage;
+  docsUrl;
+  cause;
+  get name() {
+    return this.constructor.name;
+  }
+  constructor(opts) {
+    super(new.target.formatMessage(new.target.kind, opts.message, opts.code, opts.docsUrl), { cause: opts.cause });
+    Object.setPrototypeOf(this, ClerkError2.prototype);
+    this.code = opts.code;
+    this.docsUrl = opts.docsUrl;
+    this.longMessage = opts.longMessage;
+    this.cause = opts.cause;
+  }
+  toString() {
+    return `[${this.name}]
+Message:${this.message}`;
+  }
+  static formatMessage(name, msg, code, docsUrl) {
+    const prefix = "Clerk:";
+    const regex = new RegExp(prefix.replace(" ", "\\s*"), "i");
+    msg = msg.replace(regex, "");
+    msg = `${prefix} ${msg.trim()}
+
+(code="${code}")
+
+`;
+    if (docsUrl) msg += `
+
+Docs: ${docsUrl}`;
+    return msg;
+  }
+};
+var ClerkRuntimeError = class ClerkRuntimeError2 extends ClerkError {
+  static kind = "ClerkRuntimeError";
+  /**
+  * @deprecated Use `clerkError` property instead. This property is maintained for backward compatibility.
+  */
+  clerkRuntimeError = true;
+  constructor(message, options) {
+    super({
+      ...options,
+      message
+    });
+    Object.setPrototypeOf(this, ClerkRuntimeError2.prototype);
+  }
+};
+var isClerkRuntimeError = createErrorTypeGuard(ClerkRuntimeError);
+
+// ../../node_modules/@clerk/backend/node_modules/@clerk/shared/dist/_chunks/error-CYyD2kei.mjs
+var ClerkAPIError = class {
+  static kind = "ClerkAPIError";
+  code;
+  message;
+  longMessage;
+  meta;
+  constructor(json2) {
+    const parsedError = {
+      code: json2.code,
+      message: json2.message,
+      longMessage: json2.long_message,
+      meta: {
+        paramName: json2.meta?.param_name,
+        sessionId: json2.meta?.session_id,
+        emailAddresses: json2.meta?.email_addresses,
+        identifiers: json2.meta?.identifiers,
+        zxcvbn: json2.meta?.zxcvbn,
+        plan: json2.meta?.plan,
+        isPlanUpgradePossible: json2.meta?.is_plan_upgrade_possible,
+        seatsQuantityToAdd: json2.meta?.seats_quantity_to_add,
+        seatsQuantity: json2.meta?.seats_quantity
+      }
+    };
+    this.code = parsedError.code;
+    this.message = parsedError.message;
+    this.longMessage = parsedError.longMessage;
+    this.meta = parsedError.meta;
+  }
+};
+var isClerkAPIError = createErrorTypeGuard(ClerkAPIError);
+var ClerkAPIResponseError = class ClerkAPIResponseError2 extends ClerkError {
+  static kind = "ClerkAPIResponseError";
+  status;
+  clerkTraceId;
+  retryAfter;
+  errors;
+  constructor(message, options) {
+    const { data: errorsJson, status, clerkTraceId, retryAfter } = options;
+    super({
+      ...options,
+      message,
+      code: "api_response_error"
+    });
+    Object.setPrototypeOf(this, ClerkAPIResponseError2.prototype);
+    this.status = status;
+    this.clerkTraceId = clerkTraceId;
+    this.retryAfter = retryAfter;
+    this.errors = (errorsJson || []).map((e) => new ClerkAPIError(e));
+  }
+  toString() {
+    let message = `[${this.name}]
+Message:${this.message}
+Status:${this.status}
+Serialized errors: ${this.errors.map((e) => JSON.stringify(e))}`;
+    if (this.clerkTraceId) message += `
+Clerk Trace ID: ${this.clerkTraceId}`;
+    return message;
+  }
+  static formatMessage(name, msg, _, __) {
+    return msg;
+  }
+};
+var isClerkAPIResponseError = createErrorTypeGuard(ClerkAPIResponseError);
+var DefaultMessages = Object.freeze({
+  InvalidProxyUrlErrorMessage: `The proxyUrl passed to Clerk is invalid. The expected value for proxyUrl is an absolute URL or a relative path with a leading '/'. (key={{url}})`,
+  InvalidPublishableKeyErrorMessage: `The publishableKey passed to Clerk is invalid (key={{key}}, expected format: pk_test_... or pk_live_...). To create a Clerk application with valid keys, in your terminal run:
+
+npx clerk@latest init
+
+\`npx clerk@latest init\` creates a Clerk application and writes keys to your .env file. No Clerk account or login required and the command is non-interactive.
+
+If you have a Clerk application, run \`npx clerk@latest env pull\` to write the keys (\`--instance prod\` for production keys). Or copy its Publishable key from https://dashboard.clerk.com/last-active?path=api-keys.`,
+  MissingPublishableKeyErrorMessage: `Missing publishableKey. To set up Clerk for this project, in your terminal run:
+
+npx clerk@latest init
+
+\`npx clerk@latest init\` creates a Clerk application and writes keys to your .env file. No Clerk account or login required and the command is non-interactive.
+
+If you have a Clerk application, run \`npx clerk@latest env pull\` to write the keys. Or copy them from https://dashboard.clerk.com/last-active?path=api-keys. Deploy a production instance by running \`npx clerk@latest deploy\`, or \`npx clerk@latest env pull --instance prod\` to use an existing one.`,
+  MissingSecretKeyErrorMessage: `Missing secretKey. To set up Clerk for this project, in your terminal run:
+
+npx clerk@latest init
+
+\`npx clerk@latest init\` creates a Clerk application and writes keys to your .env file. No Clerk account or login required and the command is non-interactive.
+
+If you have a Clerk application, run \`npx clerk@latest env pull\` to write the keys. Or copy them from https://dashboard.clerk.com/last-active?path=api-keys. Deploy a production instance by running \`npx clerk@latest deploy\`, or \`npx clerk@latest env pull --instance prod\` to use an existing one.`,
+  MissingClerkProvider: `{{source}} can only be used within the <ClerkProvider /> component. Learn more: https://clerk.com/docs/components/clerk-provider`
+});
+function buildErrorThrower({ packageName, customMessages }) {
+  let pkg = packageName;
+  function buildMessage(rawMessage, replacements) {
+    if (!replacements) return `${pkg}: ${rawMessage}`;
+    let msg = rawMessage;
+    const matches = rawMessage.matchAll(/{{([a-zA-Z0-9-_]+)}}/g);
+    for (const match2 of matches) {
+      const replacement = (replacements[match2[1]] || "").toString();
+      msg = msg.replace(`{{${match2[1]}}}`, replacement);
+    }
+    return `${pkg}: ${msg}`;
+  }
+  const messages = {
+    ...DefaultMessages,
+    ...customMessages
+  };
+  return {
+    setPackageName({ packageName: packageName2 }) {
+      if (typeof packageName2 === "string") pkg = packageName2;
+      return this;
+    },
+    setMessages({ customMessages: customMessages2 }) {
+      Object.assign(messages, customMessages2 || {});
+      return this;
+    },
+    throwInvalidPublishableKeyError(params) {
+      throw new Error(buildMessage(messages.InvalidPublishableKeyErrorMessage, params));
+    },
+    throwInvalidProxyUrl(params) {
+      throw new Error(buildMessage(messages.InvalidProxyUrlErrorMessage, params));
+    },
+    throwMissingPublishableKeyError() {
+      throw new Error(buildMessage(messages.MissingPublishableKeyErrorMessage));
+    },
+    throwMissingSecretKeyError() {
+      throw new Error(buildMessage(messages.MissingSecretKeyErrorMessage));
+    },
+    throwMissingClerkProviderError(params) {
+      throw new Error(buildMessage(messages.MissingClerkProvider, params));
+    },
+    throw(message) {
+      throw new Error(buildMessage(message));
+    }
+  };
+}
+
+// ../../node_modules/@clerk/backend/dist/chunk-YBVFDYDR.mjs
+var errorThrower = buildErrorThrower({ packageName: "@clerk/backend" });
+var { isDevOrStagingUrl } = createDevOrStagingUrlCache();
+
+// ../../node_modules/@clerk/backend/dist/chunk-RZ7A7F6X.mjs
+var TokenVerificationErrorCode = {
+  InvalidSecretKey: "clerk_key_invalid"
+};
+var TokenVerificationErrorReason = {
+  TokenExpired: "token-expired",
+  TokenInvalid: "token-invalid",
+  TokenInvalidAlgorithm: "token-invalid-algorithm",
+  TokenInvalidAuthorizedParties: "token-invalid-authorized-parties",
+  TokenInvalidSignature: "token-invalid-signature",
+  TokenNotActiveYet: "token-not-active-yet",
+  TokenIatInTheFuture: "token-iat-in-the-future",
+  TokenVerificationFailed: "token-verification-failed",
+  InvalidSecretKey: "secret-key-invalid",
+  LocalJWKMissing: "jwk-local-missing",
+  RemoteJWKFailedToLoad: "jwk-remote-failed-to-load",
+  RemoteJWKInvalid: "jwk-remote-invalid",
+  RemoteJWKMissing: "jwk-remote-missing",
+  JWKFailedToResolve: "jwk-failed-to-resolve",
+  JWKKidMismatch: "jwk-kid-mismatch"
+};
+var TokenVerificationErrorAction = {
+  ContactSupport: "Contact support@clerk.com",
+  EnsureClerkJWT: "Make sure that this is a valid Clerk-generated JWT.",
+  SetClerkJWTKey: "Set the CLERK_JWT_KEY environment variable.",
+  SetClerkSecretKey: "Set the CLERK_SECRET_KEY environment variable.",
+  EnsureClockSync: "Make sure your system clock is in sync (e.g. turn off and on automatic time synchronization)."
+};
+var TokenVerificationError = class _TokenVerificationError extends Error {
+  constructor({
+    action,
+    message,
+    reason
+  }) {
+    super(message);
+    Object.setPrototypeOf(this, _TokenVerificationError.prototype);
+    this.reason = reason;
+    this.message = message;
+    this.action = action;
+  }
+  getFullMessage() {
+    return `${[this.message, this.action].filter((m) => m).join(" ")} (reason=${this.reason}, token-carrier=${this.tokenCarrier})`;
+  }
+};
+var MachineTokenVerificationErrorCode = {
+  TokenInvalid: "token-invalid",
+  InvalidSecretKey: "secret-key-invalid",
+  UnexpectedError: "unexpected-error",
+  TokenVerificationFailed: "token-verification-failed"
+};
+var _MachineTokenVerificationError = class _MachineTokenVerificationError2 extends ClerkError {
+  constructor({
+    message,
+    code,
+    status,
+    action
+  }) {
+    super({ message, code });
+    Object.setPrototypeOf(this, _MachineTokenVerificationError2.prototype);
+    this.status = status;
+    this.action = action;
+  }
+  // Keep message unformatted, matching ClerkAPIResponseError's approach
+  static formatMessage(_name, msg, _code, _docsUrl) {
+    return msg;
+  }
+  getFullMessage() {
+    return `${this.message} (code=${this.code}, status=${this.status || "n/a"})`;
+  }
+};
+_MachineTokenVerificationError.kind = "MachineTokenVerificationError";
+var MachineTokenVerificationError = _MachineTokenVerificationError;
+
+// ../../node_modules/@clerk/backend/dist/runtime/node/crypto.mjs
+import { webcrypto } from "node:crypto";
+
+// ../../node_modules/@clerk/backend/dist/chunk-QOX5XVDR.mjs
+var globalFetch = fetch.bind(globalThis);
+var runtime = {
+  crypto: webcrypto,
+  get fetch() {
+    return process.env.NODE_ENV === "test" ? fetch : globalFetch;
+  },
+  AbortController: globalThis.AbortController,
+  Blob: globalThis.Blob,
+  FormData: globalThis.FormData,
+  Headers: globalThis.Headers,
+  Request: globalThis.Request,
+  Response: globalThis.Response
+};
+var base64url3 = {
+  parse(string4, opts) {
+    return parse3(string4, base64UrlEncoding, opts);
+  },
+  stringify(data, opts) {
+    return stringify(data, base64UrlEncoding, opts);
+  }
+};
+var base64UrlEncoding = {
+  chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
+  bits: 6
+};
+function parse3(string4, encoding, opts = {}) {
+  if (!encoding.codes) {
+    encoding.codes = {};
+    for (let i = 0; i < encoding.chars.length; ++i) {
+      encoding.codes[encoding.chars[i]] = i;
+    }
+  }
+  if (!opts.loose && string4.length * encoding.bits & 7) {
+    throw new SyntaxError("Invalid padding");
+  }
+  let end = string4.length;
+  while (string4[end - 1] === "=") {
+    --end;
+    if (!opts.loose && !((string4.length - end) * encoding.bits & 7)) {
+      throw new SyntaxError("Invalid padding");
+    }
+  }
+  const out = new (opts.out ?? Uint8Array)(end * encoding.bits / 8 | 0);
+  let bits = 0;
+  let buffer = 0;
+  let written = 0;
+  for (let i = 0; i < end; ++i) {
+    const value = encoding.codes[string4[i]];
+    if (value === void 0) {
+      throw new SyntaxError("Invalid character " + string4[i]);
+    }
+    buffer = buffer << encoding.bits | value;
+    bits += encoding.bits;
+    if (bits >= 8) {
+      bits -= 8;
+      out[written++] = 255 & buffer >> bits;
+    }
+  }
+  if (bits >= encoding.bits || 255 & buffer << 8 - bits) {
+    throw new SyntaxError("Unexpected end of data");
+  }
+  return out;
+}
+function stringify(data, encoding, opts = {}) {
+  const { pad = true } = opts;
+  const mask = (1 << encoding.bits) - 1;
+  let out = "";
+  let bits = 0;
+  let buffer = 0;
+  for (let i = 0; i < data.length; ++i) {
+    buffer = buffer << 8 | 255 & data[i];
+    bits += 8;
+    while (bits > encoding.bits) {
+      bits -= encoding.bits;
+      out += encoding.chars[mask & buffer >> bits];
+    }
+  }
+  if (bits) {
+    out += encoding.chars[mask & buffer << encoding.bits - bits];
+  }
+  if (pad) {
+    while (out.length * encoding.bits & 7) {
+      out += "=";
+    }
+  }
+  return out;
+}
+var algToHash = {
+  RS256: "SHA-256",
+  RS384: "SHA-384",
+  RS512: "SHA-512"
+};
+var RSA_ALGORITHM_NAME = "RSASSA-PKCS1-v1_5";
+var jwksAlgToCryptoAlg = {
+  RS256: RSA_ALGORITHM_NAME,
+  RS384: RSA_ALGORITHM_NAME,
+  RS512: RSA_ALGORITHM_NAME
+};
+var algs = Object.keys(algToHash);
+function getCryptoAlgorithm(algorithmName) {
+  const hash = algToHash[algorithmName];
+  const name = jwksAlgToCryptoAlg[algorithmName];
+  if (!hash || !name) {
+    throw new Error(`Unsupported algorithm ${algorithmName}, expected one of ${algs.join(",")}.`);
+  }
+  return {
+    hash: { name: algToHash[algorithmName] },
+    name: jwksAlgToCryptoAlg[algorithmName]
+  };
+}
+var isArrayString = (s) => {
+  return Array.isArray(s) && s.length > 0 && s.every((a) => typeof a === "string");
+};
+var assertAudienceClaim = (aud, audience) => {
+  const audienceList = [audience].flat().filter((a) => !!a);
+  const audList = [aud].flat().filter((a) => !!a);
+  const shouldVerifyAudience = audienceList.length > 0 && audList.length > 0;
+  if (!shouldVerifyAudience) {
+    return;
+  }
+  if (typeof aud === "string") {
+    if (!audienceList.includes(aud)) {
+      throw new TokenVerificationError({
+        action: TokenVerificationErrorAction.EnsureClerkJWT,
+        reason: TokenVerificationErrorReason.TokenVerificationFailed,
+        message: `Invalid JWT audience claim (aud) ${JSON.stringify(aud)}. Is not included in "${JSON.stringify(
+          audienceList
+        )}".`
+      });
+    }
+  } else if (isArrayString(aud)) {
+    if (!aud.some((a) => audienceList.includes(a))) {
+      throw new TokenVerificationError({
+        action: TokenVerificationErrorAction.EnsureClerkJWT,
+        reason: TokenVerificationErrorReason.TokenVerificationFailed,
+        message: `Invalid JWT audience claim array (aud) ${JSON.stringify(aud)}. Is not included in "${JSON.stringify(
+          audienceList
+        )}".`
+      });
+    }
+  }
+};
+var assertHeaderType = (typ, allowedTypes) => {
+  if (typeof typ === "undefined" && typeof allowedTypes === "undefined") {
+    return;
+  }
+  const expectedTypes = allowedTypes ?? "JWT";
+  const allowed = Array.isArray(expectedTypes) ? expectedTypes : [expectedTypes];
+  if (!allowed.includes(typ)) {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.EnsureClerkJWT,
+      reason: TokenVerificationErrorReason.TokenInvalid,
+      message: `Invalid JWT type ${JSON.stringify(typ)}. Expected "${allowed.join(", ")}".`
+    });
+  }
+};
+var assertHeaderAlgorithm = (alg) => {
+  if (!algs.includes(alg)) {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.EnsureClerkJWT,
+      reason: TokenVerificationErrorReason.TokenInvalidAlgorithm,
+      message: `Invalid JWT algorithm ${JSON.stringify(alg)}. Supported: ${algs}.`
+    });
+  }
+};
+var assertSubClaim = (sub) => {
+  if (typeof sub !== "string") {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.EnsureClerkJWT,
+      reason: TokenVerificationErrorReason.TokenVerificationFailed,
+      message: `Subject claim (sub) is required and must be a string. Received ${JSON.stringify(sub)}.`
+    });
+  }
+};
+var assertAuthorizedPartiesClaim = (azp, authorizedParties) => {
+  if (!authorizedParties || authorizedParties.length === 0) {
+    return;
+  }
+  if (!azp || !authorizedParties.includes(azp)) {
+    throw new TokenVerificationError({
+      reason: TokenVerificationErrorReason.TokenInvalidAuthorizedParties,
+      message: `Invalid JWT Authorized party claim (azp) ${JSON.stringify(azp)}. Expected "${authorizedParties}".`
+    });
+  }
+};
+var assertExpirationClaim = (exp, clockSkewInMs) => {
+  if (typeof exp !== "number") {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.EnsureClerkJWT,
+      reason: TokenVerificationErrorReason.TokenVerificationFailed,
+      message: `Invalid JWT expiry date claim (exp) ${JSON.stringify(exp)}. Expected number.`
+    });
+  }
+  const currentDate = new Date(Date.now());
+  const expiryDate = /* @__PURE__ */ new Date(0);
+  expiryDate.setUTCSeconds(exp);
+  const expired = expiryDate.getTime() <= currentDate.getTime() - clockSkewInMs;
+  if (expired) {
+    throw new TokenVerificationError({
+      reason: TokenVerificationErrorReason.TokenExpired,
+      message: `JWT is expired. Expiry date: ${expiryDate.toUTCString()}, Current date: ${currentDate.toUTCString()}.`
+    });
+  }
+};
+var assertActivationClaim = (nbf, clockSkewInMs) => {
+  if (typeof nbf === "undefined") {
+    return;
+  }
+  if (typeof nbf !== "number") {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.EnsureClerkJWT,
+      reason: TokenVerificationErrorReason.TokenVerificationFailed,
+      message: `Invalid JWT not before date claim (nbf) ${JSON.stringify(nbf)}. Expected number.`
+    });
+  }
+  const currentDate = new Date(Date.now());
+  const notBeforeDate = /* @__PURE__ */ new Date(0);
+  notBeforeDate.setUTCSeconds(nbf);
+  const early = notBeforeDate.getTime() > currentDate.getTime() + clockSkewInMs;
+  if (early) {
+    throw new TokenVerificationError({
+      reason: TokenVerificationErrorReason.TokenNotActiveYet,
+      message: `JWT cannot be used prior to not before date claim (nbf). Not before date: ${notBeforeDate.toUTCString()}; Current date: ${currentDate.toUTCString()};`
+    });
+  }
+};
+var assertIssuedAtClaim = (iat, clockSkewInMs) => {
+  if (typeof iat === "undefined") {
+    return;
+  }
+  if (typeof iat !== "number") {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.EnsureClerkJWT,
+      reason: TokenVerificationErrorReason.TokenVerificationFailed,
+      message: `Invalid JWT issued at date claim (iat) ${JSON.stringify(iat)}. Expected number.`
+    });
+  }
+  const currentDate = new Date(Date.now());
+  const issuedAtDate = /* @__PURE__ */ new Date(0);
+  issuedAtDate.setUTCSeconds(iat);
+  const postIssued = issuedAtDate.getTime() > currentDate.getTime() + clockSkewInMs;
+  if (postIssued) {
+    throw new TokenVerificationError({
+      reason: TokenVerificationErrorReason.TokenIatInTheFuture,
+      message: `JWT issued at date claim (iat) is in the future. Issued at date: ${issuedAtDate.toUTCString()}; Current date: ${currentDate.toUTCString()};`
+    });
+  }
+};
+function pemToBuffer(secret) {
+  const trimmed = secret.replace(/-----BEGIN.*?-----/g, "").replace(/-----END.*?-----/g, "").replace(/\s/g, "");
+  const decoded = isomorphicAtob(trimmed);
+  const buffer = new ArrayBuffer(decoded.length);
+  const bufView = new Uint8Array(buffer);
+  for (let i = 0, strLen = decoded.length; i < strLen; i++) {
+    bufView[i] = decoded.charCodeAt(i);
+  }
+  return bufView;
+}
+function importKey(key, algorithm, keyUsage) {
+  if (typeof key === "object") {
+    return runtime.crypto.subtle.importKey("jwk", key, algorithm, false, [keyUsage]);
+  }
+  const keyData = pemToBuffer(key);
+  const format = keyUsage === "sign" ? "pkcs8" : "spki";
+  return runtime.crypto.subtle.importKey(format, keyData, algorithm, false, [keyUsage]);
+}
+var DEFAULT_CLOCK_SKEW_IN_MS = 5 * 1e3;
+async function hasValidSignature(jwt3, key) {
+  const { header, signature, raw } = jwt3;
+  const encoder = new TextEncoder();
+  const data = encoder.encode([raw.header, raw.payload].join("."));
+  const algorithm = getCryptoAlgorithm(header.alg);
+  try {
+    const cryptoKey = await importKey(key, algorithm, "verify");
+    const verified = await runtime.crypto.subtle.verify(
+      algorithm.name,
+      cryptoKey,
+      signature,
+      data
+    );
+    return { data: verified };
+  } catch (error40) {
+    return {
+      errors: [
+        new TokenVerificationError({
+          reason: TokenVerificationErrorReason.TokenInvalidSignature,
+          message: error40?.message
+        })
+      ]
+    };
+  }
+}
+function decodeJwt(token) {
+  const tokenParts = (token || "").toString().split(".");
+  if (tokenParts.length !== 3) {
+    return {
+      errors: [
+        new TokenVerificationError({
+          reason: TokenVerificationErrorReason.TokenInvalid,
+          message: `Invalid JWT form. A JWT consists of three parts separated by dots.`
+        })
+      ]
+    };
+  }
+  const [rawHeader, rawPayload, rawSignature] = tokenParts;
+  const decoder = new TextDecoder();
+  let header, payload, signature;
+  try {
+    header = JSON.parse(decoder.decode(base64url3.parse(rawHeader, { loose: true })));
+    payload = JSON.parse(decoder.decode(base64url3.parse(rawPayload, { loose: true })));
+    signature = base64url3.parse(rawSignature, { loose: true });
+  } catch {
+    return {
+      errors: [
+        new TokenVerificationError({
+          reason: TokenVerificationErrorReason.TokenInvalid,
+          message: `Invalid JWT form. The header, payload, or signature could not be decoded.`
+        })
+      ]
+    };
+  }
+  const data = {
+    header,
+    payload,
+    signature,
+    raw: {
+      header: rawHeader,
+      payload: rawPayload,
+      signature: rawSignature,
+      text: token
+    }
+  };
+  return { data };
+}
+async function verifyJwt(token, options) {
+  const { audience, authorizedParties, clockSkewInMs, key, headerType } = options;
+  const clockSkew = typeof clockSkewInMs === "number" && Number.isFinite(clockSkewInMs) ? clockSkewInMs : DEFAULT_CLOCK_SKEW_IN_MS;
+  const { data: decoded, errors } = decodeJwt(token);
+  if (errors) {
+    return { errors };
+  }
+  const { header, payload } = decoded;
+  try {
+    const { typ, alg } = header;
+    assertHeaderType(typ, headerType);
+    assertHeaderAlgorithm(alg);
+  } catch (err) {
+    return { errors: [err] };
+  }
+  const { data: signatureValid, errors: signatureErrors } = await hasValidSignature(decoded, key);
+  if (signatureErrors) {
+    return {
+      errors: [
+        new TokenVerificationError({
+          action: TokenVerificationErrorAction.EnsureClerkJWT,
+          reason: TokenVerificationErrorReason.TokenVerificationFailed,
+          message: `Error verifying JWT signature. ${signatureErrors[0]}`
+        })
+      ]
+    };
+  }
+  if (!signatureValid) {
+    return {
+      errors: [
+        new TokenVerificationError({
+          reason: TokenVerificationErrorReason.TokenInvalidSignature,
+          message: "JWT signature is invalid."
+        })
+      ]
+    };
+  }
+  try {
+    const { azp, sub, aud, iat, exp, nbf } = payload;
+    assertSubClaim(sub);
+    assertAudienceClaim(aud, audience);
+    assertAuthorizedPartiesClaim(azp, authorizedParties);
+    assertExpirationClaim(exp, clockSkew);
+    assertActivationClaim(nbf, clockSkew);
+    assertIssuedAtClaim(iat, clockSkew);
+  } catch (err) {
+    return { errors: [err] };
+  }
+  return { data: payload };
+}
+
+// ../../node_modules/@clerk/backend/dist/chunk-TOROEX6P.mjs
+var __create2 = Object.create;
+var __defProp2 = Object.defineProperty;
+var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames2 = Object.getOwnPropertyNames;
+var __getProtoOf2 = Object.getPrototypeOf;
+var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+var __typeError = (msg) => {
+  throw TypeError(msg);
+};
+var __commonJS2 = (cb, mod) => function __require2() {
+  return mod || (0, cb[__getOwnPropNames2(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __copyProps2 = (to, from, except2, desc3) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames2(from))
+      if (!__hasOwnProp2.call(to, key) && key !== except2)
+        __defProp2(to, key, { get: () => from[key], enumerable: !(desc3 = __getOwnPropDesc2(from, key)) || desc3.enumerable });
+  }
+  return to;
+};
+var __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps2(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
+var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
+
+// ../../node_modules/@clerk/backend/node_modules/@clerk/shared/dist/underscore.mjs
+function snakeToCamel(str) {
+  return str ? str.replace(/([-_][a-z])/g, (match2) => match2.toUpperCase().replace(/-|_/, "")) : "";
+}
+function camelToSnake(str) {
+  return str ? str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`) : "";
+}
+var createDeepObjectTransformer = (transform2) => {
+  const deepTransform = (obj) => {
+    if (!obj) return obj;
+    if (Array.isArray(obj)) return obj.map((el) => {
+      if (typeof el === "object" || Array.isArray(el)) return deepTransform(el);
+      return el;
+    });
+    const copy = { ...obj };
+    const keys = Object.keys(copy);
+    for (const oldName of keys) {
+      const newName = transform2(oldName.toString());
+      if (newName !== oldName) {
+        copy[newName] = copy[oldName];
+        delete copy[oldName];
+      }
+      if (typeof copy[newName] === "object") copy[newName] = deepTransform(copy[newName]);
+    }
+    return copy;
+  };
+  return deepTransform;
+};
+var deepCamelToSnake = createDeepObjectTransformer(camelToSnake);
+var deepSnakeToCamel = createDeepObjectTransformer(snakeToCamel);
+
+// ../../node_modules/@clerk/backend/dist/chunk-RTBRJPLB.mjs
+var require_dist5 = __commonJS2({
+  "../../node_modules/.pnpm/cookie@1.1.1/node_modules/cookie/dist/index.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.parseCookie = parseCookie;
+    exports.parse = parseCookie;
+    exports.stringifyCookie = stringifyCookie;
+    exports.stringifySetCookie = stringifySetCookie;
+    exports.serialize = stringifySetCookie;
+    exports.parseSetCookie = parseSetCookie;
+    exports.stringifySetCookie = stringifySetCookie;
+    exports.serialize = stringifySetCookie;
+    var cookieNameRegExp = /^[\u0021-\u003A\u003C\u003E-\u007E]+$/;
+    var cookieValueRegExp = /^[\u0021-\u003A\u003C-\u007E]*$/;
+    var domainValueRegExp = /^([.]?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
+    var pathValueRegExp = /^[\u0020-\u003A\u003D-\u007E]*$/;
+    var maxAgeRegExp = /^-?\d+$/;
+    var __toString = Object.prototype.toString;
+    var NullObject = /* @__PURE__ */ (() => {
+      const C = function() {
+      };
+      C.prototype = /* @__PURE__ */ Object.create(null);
+      return C;
+    })();
+    function parseCookie(str, options) {
+      const obj = new NullObject();
+      const len = str.length;
+      if (len < 2)
+        return obj;
+      const dec = options?.decode || decode;
+      let index = 0;
+      do {
+        const eqIdx = eqIndex(str, index, len);
+        if (eqIdx === -1)
+          break;
+        const endIdx = endIndex(str, index, len);
+        if (eqIdx > endIdx) {
+          index = str.lastIndexOf(";", eqIdx - 1) + 1;
+          continue;
+        }
+        const key = valueSlice(str, index, eqIdx);
+        if (obj[key] === void 0) {
+          obj[key] = dec(valueSlice(str, eqIdx + 1, endIdx));
+        }
+        index = endIdx + 1;
+      } while (index < len);
+      return obj;
+    }
+    function stringifyCookie(cookie, options) {
+      const enc = options?.encode || encodeURIComponent;
+      const cookieStrings = [];
+      for (const name of Object.keys(cookie)) {
+        const val = cookie[name];
+        if (val === void 0)
+          continue;
+        if (!cookieNameRegExp.test(name)) {
+          throw new TypeError(`cookie name is invalid: ${name}`);
+        }
+        const value = enc(val);
+        if (!cookieValueRegExp.test(value)) {
+          throw new TypeError(`cookie val is invalid: ${val}`);
+        }
+        cookieStrings.push(`${name}=${value}`);
+      }
+      return cookieStrings.join("; ");
+    }
+    function stringifySetCookie(_name, _val, _opts) {
+      const cookie = typeof _name === "object" ? _name : { ..._opts, name: _name, value: String(_val) };
+      const options = typeof _val === "object" ? _val : _opts;
+      const enc = options?.encode || encodeURIComponent;
+      if (!cookieNameRegExp.test(cookie.name)) {
+        throw new TypeError(`argument name is invalid: ${cookie.name}`);
+      }
+      const value = cookie.value ? enc(cookie.value) : "";
+      if (!cookieValueRegExp.test(value)) {
+        throw new TypeError(`argument val is invalid: ${cookie.value}`);
+      }
+      let str = cookie.name + "=" + value;
+      if (cookie.maxAge !== void 0) {
+        if (!Number.isInteger(cookie.maxAge)) {
+          throw new TypeError(`option maxAge is invalid: ${cookie.maxAge}`);
+        }
+        str += "; Max-Age=" + cookie.maxAge;
+      }
+      if (cookie.domain) {
+        if (!domainValueRegExp.test(cookie.domain)) {
+          throw new TypeError(`option domain is invalid: ${cookie.domain}`);
+        }
+        str += "; Domain=" + cookie.domain;
+      }
+      if (cookie.path) {
+        if (!pathValueRegExp.test(cookie.path)) {
+          throw new TypeError(`option path is invalid: ${cookie.path}`);
+        }
+        str += "; Path=" + cookie.path;
+      }
+      if (cookie.expires) {
+        if (!isDate(cookie.expires) || !Number.isFinite(cookie.expires.valueOf())) {
+          throw new TypeError(`option expires is invalid: ${cookie.expires}`);
+        }
+        str += "; Expires=" + cookie.expires.toUTCString();
+      }
+      if (cookie.httpOnly) {
+        str += "; HttpOnly";
+      }
+      if (cookie.secure) {
+        str += "; Secure";
+      }
+      if (cookie.partitioned) {
+        str += "; Partitioned";
+      }
+      if (cookie.priority) {
+        const priority = typeof cookie.priority === "string" ? cookie.priority.toLowerCase() : void 0;
+        switch (priority) {
+          case "low":
+            str += "; Priority=Low";
+            break;
+          case "medium":
+            str += "; Priority=Medium";
+            break;
+          case "high":
+            str += "; Priority=High";
+            break;
+          default:
+            throw new TypeError(`option priority is invalid: ${cookie.priority}`);
+        }
+      }
+      if (cookie.sameSite) {
+        const sameSite = typeof cookie.sameSite === "string" ? cookie.sameSite.toLowerCase() : cookie.sameSite;
+        switch (sameSite) {
+          case true:
+          case "strict":
+            str += "; SameSite=Strict";
+            break;
+          case "lax":
+            str += "; SameSite=Lax";
+            break;
+          case "none":
+            str += "; SameSite=None";
+            break;
+          default:
+            throw new TypeError(`option sameSite is invalid: ${cookie.sameSite}`);
+        }
+      }
+      return str;
+    }
+    function parseSetCookie(str, options) {
+      const dec = options?.decode || decode;
+      const len = str.length;
+      const endIdx = endIndex(str, 0, len);
+      const eqIdx = eqIndex(str, 0, endIdx);
+      const setCookie = eqIdx === -1 ? { name: "", value: dec(valueSlice(str, 0, endIdx)) } : {
+        name: valueSlice(str, 0, eqIdx),
+        value: dec(valueSlice(str, eqIdx + 1, endIdx))
+      };
+      let index = endIdx + 1;
+      while (index < len) {
+        const endIdx2 = endIndex(str, index, len);
+        const eqIdx2 = eqIndex(str, index, endIdx2);
+        const attr = eqIdx2 === -1 ? valueSlice(str, index, endIdx2) : valueSlice(str, index, eqIdx2);
+        const val = eqIdx2 === -1 ? void 0 : valueSlice(str, eqIdx2 + 1, endIdx2);
+        switch (attr.toLowerCase()) {
+          case "httponly":
+            setCookie.httpOnly = true;
+            break;
+          case "secure":
+            setCookie.secure = true;
+            break;
+          case "partitioned":
+            setCookie.partitioned = true;
+            break;
+          case "domain":
+            setCookie.domain = val;
+            break;
+          case "path":
+            setCookie.path = val;
+            break;
+          case "max-age":
+            if (val && maxAgeRegExp.test(val))
+              setCookie.maxAge = Number(val);
+            break;
+          case "expires":
+            if (!val)
+              break;
+            const date5 = new Date(val);
+            if (Number.isFinite(date5.valueOf()))
+              setCookie.expires = date5;
+            break;
+          case "priority":
+            if (!val)
+              break;
+            const priority = val.toLowerCase();
+            if (priority === "low" || priority === "medium" || priority === "high") {
+              setCookie.priority = priority;
+            }
+            break;
+          case "samesite":
+            if (!val)
+              break;
+            const sameSite = val.toLowerCase();
+            if (sameSite === "lax" || sameSite === "strict" || sameSite === "none") {
+              setCookie.sameSite = sameSite;
+            }
+            break;
+        }
+        index = endIdx2 + 1;
+      }
+      return setCookie;
+    }
+    function endIndex(str, min, len) {
+      const index = str.indexOf(";", min);
+      return index === -1 ? len : index;
+    }
+    function eqIndex(str, min, max) {
+      const index = str.indexOf("=", min);
+      return index < max ? index : -1;
+    }
+    function valueSlice(str, min, max) {
+      let start = min;
+      let end = max;
+      do {
+        const code = str.charCodeAt(start);
+        if (code !== 32 && code !== 9)
+          break;
+      } while (++start < end);
+      while (end > start) {
+        const code = str.charCodeAt(end - 1);
+        if (code !== 32 && code !== 9)
+          break;
+        end--;
+      }
+      return str.slice(start, end);
+    }
+    function decode(str) {
+      if (str.indexOf("%") === -1)
+        return str;
+      try {
+        return decodeURIComponent(str);
+      } catch (e) {
+        return str;
+      }
+    }
+    function isDate(val) {
+      return __toString.call(val) === "[object Date]";
+    }
+  }
+});
+var API_URL = "https://api.clerk.com";
+var API_VERSION = "v1";
+var USER_AGENT = `${"@clerk/backend"}@${"3.16.12"}`;
+var MAX_CACHE_LAST_UPDATED_AT_SECONDS = 5 * 60;
+var SUPPORTED_BAPI_VERSION = "2026-05-12";
+var Cookies = {
+  Session: "__session",
+  Refresh: "__refresh",
+  ClientUat: "__client_uat",
+  Handshake: "__clerk_handshake",
+  DevBrowser: "__clerk_db_jwt",
+  RedirectCount: "__clerk_redirect_count",
+  HandshakeNonce: "__clerk_handshake_nonce"
+};
+var QueryParameters = {
+  ClerkSynced: "__clerk_synced",
+  SuffixedCookies: "suffixed_cookies",
+  ClerkRedirectUrl: "__clerk_redirect_url",
+  // use the reference to Cookies to indicate that it's the same value
+  DevBrowser: Cookies.DevBrowser,
+  Handshake: Cookies.Handshake,
+  HandshakeHelp: "__clerk_help",
+  LegacyDevBrowser: "__dev_session",
+  HandshakeReason: "__clerk_hs_reason",
+  HandshakeNonce: Cookies.HandshakeNonce,
+  HandshakeFormat: "format",
+  Session: "__session"
+};
+var TokenType = {
+  SessionToken: "session_token",
+  ApiKey: "api_key",
+  M2MToken: "m2m_token",
+  OAuthToken: "oauth_token"
+};
+var SEPARATOR = "/";
+var MULTIPLE_SEPARATOR_REGEX = new RegExp("(?<!:)" + SEPARATOR + "{1,}", "g");
+var MAX_DECODES = 10;
+function isDotSegment(segment) {
+  let candidate = segment;
+  for (let i = 0; i <= MAX_DECODES; i++) {
+    if (candidate.split(/[/\\]/).some((p) => p === "." || p === "..")) {
+      return true;
+    }
+    if (i === MAX_DECODES) {
+      throw new Error(`joinPaths: too many layers of encoding in ${segment}`);
+    }
+    try {
+      const next = decodeURIComponent(candidate);
+      if (next === candidate) {
+        break;
+      }
+      candidate = next;
+    } catch {
+      break;
+    }
+  }
+  return false;
+}
+function joinPaths(...args) {
+  const result = args.filter((p) => p).join(SEPARATOR).replace(MULTIPLE_SEPARATOR_REGEX, SEPARATOR);
+  for (const segment of result.split(SEPARATOR)) {
+    if (isDotSegment(segment)) {
+      throw new Error(`joinPaths: "." and ".." path segments are not allowed (received "${result}")`);
+    }
+  }
+  return result;
+}
+var M2M_RESERVED_JWT_CLAIMS = /* @__PURE__ */ new Set(["iss", "sub", "exp", "nbf", "iat", "jti"]);
+function extractCustomClaims(payload) {
+  const claims = {};
+  for (const key of Object.keys(payload)) {
+    if (!M2M_RESERVED_JWT_CLAIMS.has(key)) {
+      claims[key] = payload[key];
+    }
+  }
+  return Object.keys(claims).length > 0 ? claims : null;
+}
+var M2MToken = class _M2MToken {
+  constructor(id, subject, scopes, claims, revoked, revocationReason, expired, expiration, createdAt, updatedAt, token) {
+    this.id = id;
+    this.subject = subject;
+    this.scopes = scopes;
+    this.claims = claims;
+    this.revoked = revoked;
+    this.revocationReason = revocationReason;
+    this.expired = expired;
+    this.expiration = expiration;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.token = token;
+  }
+  static fromJSON(data) {
+    return new _M2MToken(
+      data.id,
+      data.subject,
+      data.scopes,
+      data.claims,
+      data.revoked,
+      data.revocation_reason,
+      data.expired,
+      data.expiration,
+      data.created_at,
+      data.updated_at,
+      data.token
+    );
+  }
+  static fromJwtPayload(payload, clockSkewInMs = 5e3) {
+    return new _M2MToken(
+      payload.jti ?? "",
+      // jti should always be present in Clerk-issued M2M JWTs
+      payload.sub,
+      payload.scopes?.split(" ") ?? payload.aud ?? [],
+      extractCustomClaims(payload),
+      false,
+      null,
+      payload.exp * 1e3 <= Date.now() - clockSkewInMs,
+      payload.exp * 1e3,
+      // milliseconds — expiration, converted from JWT exp claim
+      payload.iat * 1e3,
+      // milliseconds — createdAt, converted from JWT iat claim
+      payload.iat * 1e3
+      // milliseconds — updatedAt, no JWT equivalent; defaults to iat
+    );
+  }
+};
+var JWT_CATEGORY_M2M_TOKEN = "cl_B7d4PD333AAA";
+var remoteCaches = /* @__PURE__ */ new Map();
+function getRemoteCache(scope) {
+  let cache = remoteCaches.get(scope);
+  if (!cache) {
+    for (const [key, entry] of remoteCaches) {
+      if (cacheHasExpired(entry)) {
+        remoteCaches.delete(key);
+      }
+    }
+    cache = { keys: {}, lastUpdatedAt: 0 };
+    remoteCaches.set(scope, cache);
+  }
+  return cache;
+}
+var PEM_HEADER = "-----BEGIN PUBLIC KEY-----";
+var PEM_TRAILER = "-----END PUBLIC KEY-----";
+var RSA_PREFIX = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA";
+var RSA_SUFFIX = "IDAQAB";
+function loadClerkJwkFromPem(params) {
+  const { kid, pem } = params;
+  if (!pem) {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.SetClerkJWTKey,
+      message: "Missing local JWK.",
+      reason: TokenVerificationErrorReason.LocalJWKMissing
+    });
+  }
+  const modulus = pem.replace(/\r\n|\n|\r/g, "").replace(PEM_HEADER, "").replace(PEM_TRAILER, "").replace(RSA_PREFIX, "").replace(RSA_SUFFIX, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const jwk = { kid: `local-${kid}`, kty: "RSA", alg: "RS256", n: modulus, e: "AQAB" };
+  return jwk;
+}
+async function loadClerkJWKFromRemote(params) {
+  const { secretKey, apiUrl = API_URL, apiVersion = API_VERSION, kid, skipJwksCache } = params;
+  const cache = getRemoteCache(`${apiUrl}|${apiVersion}|${secretKey ?? ""}`);
+  if (skipJwksCache || cacheHasExpired(cache) || !cache.keys[kid]) {
+    if (!secretKey) {
+      throw new TokenVerificationError({
+        action: TokenVerificationErrorAction.ContactSupport,
+        message: "Failed to load JWKS from Clerk Backend or Frontend API.",
+        reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
+      });
+    }
+    const fetcher = () => fetchJWKSFromBAPI(apiUrl, secretKey, apiVersion);
+    const { keys } = await retry(fetcher);
+    if (!keys || !keys.length) {
+      throw new TokenVerificationError({
+        action: TokenVerificationErrorAction.ContactSupport,
+        message: "The JWKS endpoint did not contain any signing keys. Contact support@clerk.com.",
+        reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
+      });
+    }
+    keys.forEach((key) => {
+      cache.keys[key.kid] = key;
+    });
+    cache.lastUpdatedAt = Date.now();
+  }
+  const jwk = cache.keys[kid];
+  if (!jwk) {
+    throw new TokenVerificationError({
+      action: `Go to your Dashboard and validate your secret and public keys are correct. ${TokenVerificationErrorAction.ContactSupport} if the issue persists.`,
+      message: `Unable to find a signing key in JWKS that matches the kid='${kid}' of the provided session token. Please make sure that the __session cookie or the HTTP authorization header contain a Clerk-generated session JWT.`,
+      reason: TokenVerificationErrorReason.JWKKidMismatch
+    });
+  }
+  return jwk;
+}
+async function fetchJWKSFromBAPI(apiUrl, key, apiVersion) {
+  if (!key) {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.SetClerkSecretKey,
+      message: "Missing Clerk Secret Key or API Key. Go to https://dashboard.clerk.com and get your key for your instance.",
+      reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
+    });
+  }
+  const url2 = new URL(apiUrl);
+  url2.pathname = joinPaths(url2.pathname, apiVersion, "/jwks");
+  const response = await runtime.fetch(url2.href, {
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Clerk-API-Version": SUPPORTED_BAPI_VERSION,
+      "Content-Type": "application/json",
+      "User-Agent": USER_AGENT
+    }
+  });
+  if (!response.ok) {
+    const json2 = await response.json();
+    const invalidSecretKeyError = getErrorObjectByCode(json2?.errors, TokenVerificationErrorCode.InvalidSecretKey);
+    if (invalidSecretKeyError) {
+      const reason = TokenVerificationErrorReason.InvalidSecretKey;
+      throw new TokenVerificationError({
+        action: TokenVerificationErrorAction.ContactSupport,
+        message: invalidSecretKeyError.message,
+        reason
+      });
+    }
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.ContactSupport,
+      message: `Error loading Clerk JWKS from ${url2.href} with code=${response.status}`,
+      reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
+    });
+  }
+  return response.json();
+}
+function cacheHasExpired(cache) {
+  const isExpired = Date.now() - cache.lastUpdatedAt >= MAX_CACHE_LAST_UPDATED_AT_SECONDS * 1e3;
+  if (isExpired) {
+    cache.keys = {};
+  }
+  return isExpired;
+}
+var getErrorObjectByCode = (errors, code) => {
+  if (!errors) {
+    return null;
+  }
+  return errors.find((err) => err.code === code);
+};
+var MACHINE_TOKEN_TYPES = /* @__PURE__ */ new Set([TokenType.ApiKey, TokenType.M2MToken, TokenType.OAuthToken]);
+async function resolveKeyAndVerifyJwt(token, kid, options, headerType) {
+  try {
+    let key;
+    if (options.jwtKey) {
+      key = loadClerkJwkFromPem({ kid, pem: options.jwtKey });
+    } else if (options.secretKey) {
+      key = await loadClerkJWKFromRemote({ ...options, kid });
+    } else {
+      return {
+        error: new MachineTokenVerificationError({
+          action: TokenVerificationErrorAction.SetClerkJWTKey,
+          message: "Failed to resolve JWK during verification.",
+          code: MachineTokenVerificationErrorCode.TokenVerificationFailed
+        })
+      };
+    }
+    const { data: payload, errors: verifyErrors } = await verifyJwt(token, {
+      ...options,
+      key,
+      ...headerType ? { headerType } : {}
+    });
+    if (verifyErrors) {
+      return {
+        error: new MachineTokenVerificationError({
+          code: MachineTokenVerificationErrorCode.TokenVerificationFailed,
+          message: verifyErrors[0].message
+        })
+      };
+    }
+    return { payload };
+  } catch (error40) {
+    return {
+      error: new MachineTokenVerificationError({
+        code: MachineTokenVerificationErrorCode.TokenVerificationFailed,
+        message: error40.message
+      })
+    };
+  }
+}
+async function verifyM2MJwt(token, decoded, options) {
+  const cat = decoded.header.cat;
+  if (cat !== void 0 && cat !== JWT_CATEGORY_M2M_TOKEN) {
+    return {
+      data: void 0,
+      tokenType: TokenType.M2MToken,
+      errors: [
+        new MachineTokenVerificationError({
+          code: MachineTokenVerificationErrorCode.TokenInvalid,
+          message: "Invalid M2M JWT category."
+        })
+      ]
+    };
+  }
+  const result = await resolveKeyAndVerifyJwt(token, decoded.header.kid, options);
+  if ("error" in result) {
+    return { data: void 0, tokenType: TokenType.M2MToken, errors: [result.error] };
+  }
+  return {
+    data: M2MToken.fromJwtPayload(result.payload, options.clockSkewInMs),
+    tokenType: TokenType.M2MToken,
+    errors: void 0
+  };
+}
+var _verifyOptions;
+var _M2MTokenApi_instances;
+var createRequestOptions_fn;
+var verifyJwtFormat_fn;
+_verifyOptions = /* @__PURE__ */ new WeakMap();
+_M2MTokenApi_instances = /* @__PURE__ */ new WeakSet();
+createRequestOptions_fn = function(options, machineSecretKey) {
+  if (machineSecretKey) {
+    return {
+      ...options,
+      headerParams: {
+        ...options.headerParams,
+        Authorization: `Bearer ${machineSecretKey}`
+      }
+    };
+  }
+  return options;
+};
+verifyJwtFormat_fn = async function(token) {
+  let decoded;
+  try {
+    const { data, errors } = decodeJwt(token);
+    if (errors) {
+      throw errors[0];
+    }
+    decoded = data;
+  } catch (e) {
+    throw new MachineTokenVerificationError({
+      code: MachineTokenVerificationErrorCode.TokenInvalid,
+      message: e.message
+    });
+  }
+  const result = await verifyM2MJwt(token, decoded, __privateGet(this, _verifyOptions));
+  if (result.errors) {
+    throw result.errors[0];
+  }
+  return result.data;
+};
+var PlainObjectConstructor = {}.constructor;
+var import_cookie = __toESM2(require_dist5());
+async function verifyToken(token, options) {
+  const { data: decodedResult, errors } = decodeJwt(token);
+  if (errors) {
+    return { errors };
+  }
+  const { header } = decodedResult;
+  const { kid } = header;
+  if (header.cat === JWT_CATEGORY_M2M_TOKEN) {
+    return {
+      errors: [
+        new TokenVerificationError({
+          action: TokenVerificationErrorAction.EnsureClerkJWT,
+          reason: TokenVerificationErrorReason.TokenInvalid,
+          message: "Invalid session token category."
+        })
+      ]
+    };
+  }
+  try {
+    let key;
+    if (options.jwtKey) {
+      key = loadClerkJwkFromPem({ kid, pem: options.jwtKey });
+    } else if (options.secretKey) {
+      key = await loadClerkJWKFromRemote({ ...options, kid });
+    } else {
+      return {
+        errors: [
+          new TokenVerificationError({
+            action: TokenVerificationErrorAction.SetClerkJWTKey,
+            message: "Failed to resolve JWK during verification.",
+            reason: TokenVerificationErrorReason.JWKFailedToResolve
+          })
+        ]
+      };
+    }
+    return await verifyJwt(token, { ...options, key });
+  } catch (error40) {
+    return { errors: [error40] };
+  }
+}
+
+// ../../node_modules/@clerk/backend/dist/chunk-P263NW7Z.mjs
+function withLegacyReturn(cb) {
+  return async (...args) => {
+    const { data, errors } = await cb(...args);
+    if (errors) {
+      throw errors[0];
+    }
+    return data;
+  };
+}
+
+// ../../node_modules/@clerk/backend/dist/index.mjs
+var verifyToken2 = withLegacyReturn(verifyToken);
 
 // src/services/analyticsService.ts
 async function trackGameplayEvent(eventName, payload = {}, context = {}) {
@@ -92196,7 +93665,7 @@ async function resolveDbUserId(token) {
   const secretKey = process.env.CLERK_SECRET_KEY;
   try {
     if (secretKey && token.startsWith("eyJ")) {
-      const payload = await verifyToken(token, { secretKey });
+      const payload = await verifyToken2(token, { secretKey });
       if (payload && payload.sub) {
         const user2 = await db.query.usersTable.findFirst({
           where: or(eq(usersTable.clerkId, payload.sub), eq(usersTable.id, payload.sub))
@@ -92280,14 +93749,14 @@ function initSocket(httpServer) {
           socket.emit("error", { message: "Authentication required for match chat" });
           return;
         }
-        const match = await db.query.matchesTable.findFirst({
+        const match2 = await db.query.matchesTable.findFirst({
           where: eq(matchesTable.id, matchId)
         });
-        if (!match) {
+        if (!match2) {
           socket.emit("error", { message: "Match not found" });
           return;
         }
-        if (match.chooserUserId !== dbUserId && match.suitorUserId !== dbUserId) {
+        if (match2.chooserUserId !== dbUserId && match2.suitorUserId !== dbUserId) {
           socket.emit("error", { message: "Forbidden" });
           return;
         }
@@ -93378,7 +94847,7 @@ async function archiveCompletedGame(roomId) {
   if (!room) return;
   const participants = await db.select().from(participantsTable).where(eq(participantsTable.roomId, roomId));
   const messages = await db.select().from(messagesTable).where(eq(messagesTable.roomId, roomId));
-  const match = await db.select().from(matchesTable).where(eq(matchesTable.roomId, roomId)).then((rows) => rows[0] ?? null);
+  const match2 = await db.select().from(matchesTable).where(eq(matchesTable.roomId, roomId)).then((rows) => rows[0] ?? null);
   const events = await db.select().from(gameplayEventsTable).where(eq(gameplayEventsTable.roomId, roomId));
   const questionTelemetrySummary = summarizeQuestionTelemetry(events);
   const eliminationRounds = /* @__PURE__ */ new Map();
@@ -93418,7 +94887,7 @@ async function archiveCompletedGame(roomId) {
     roundDurations,
     winnerId: room.winnerId,
     winnerName: room.winnerName,
-    matchStatus: match ? "matched" : "unmatched",
+    matchStatus: match2 ? "matched" : "unmatched",
     analyticsMetadata: {
       roomCode: room.code,
       maxSuitors: room.maxSuitors,
@@ -93445,7 +94914,7 @@ async function archiveCompletedGame(roomId) {
       await db.update(playerGameStatsTable).set({
         gamesPlayed: existingStats.gamesPlayed + 1,
         wins: existingStats.wins + (participant.id === room.winnerId ? 1 : 0),
-        matches: existingStats.matches + (match ? 1 : 0),
+        matches: existingStats.matches + (match2 ? 1 : 0),
         totalRoundsSurvived: existingStats.totalRoundsSurvived + roundsSurvived,
         lastPlayedAt: archivedAt,
         updatedAt: archivedAt
@@ -93456,7 +94925,7 @@ async function archiveCompletedGame(roomId) {
         userId: participant.userId,
         gamesPlayed: 1,
         wins: participant.id === room.winnerId ? 1 : 0,
-        matches: match ? 1 : 0,
+        matches: match2 ? 1 : 0,
         totalRoundsSurvived: roundsSurvived,
         lastPlayedAt: archivedAt
       });
@@ -93468,7 +94937,7 @@ async function archiveCompletedGame(roomId) {
       participantId: participant.id,
       role: participant.role,
       isWinner: participant.id === room.winnerId,
-      matchStatus: match ? "matched" : "unmatched",
+      matchStatus: match2 ? "matched" : "unmatched",
       roundsSurvived,
       eliminatedAtRound
     });
@@ -93476,7 +94945,7 @@ async function archiveCompletedGame(roomId) {
   await trackGameplayEvent("game_archived", {
     roomId,
     winnerId: room.winnerId,
-    matchStatus: match ? "matched" : "unmatched",
+    matchStatus: match2 ? "matched" : "unmatched",
     archivedAt: archivedAt.toISOString()
   }, { roomId });
 }
@@ -93943,7 +95412,7 @@ import { randomBytes as randomBytes6 } from "crypto";
 // src/lib/jwt.ts
 var import_jsonwebtoken = __toESM(require_jsonwebtoken(), 1);
 var JWT_SECRET = process.env.JWT_SECRET || "intermingled_production_jwt_secret_key_2026_super_secure";
-function verifyToken2(token) {
+function verifyToken3(token) {
   try {
     return import_jsonwebtoken.default.verify(token, JWT_SECRET);
   } catch (err) {
@@ -93960,7 +95429,7 @@ var requireAuth2 = async (req, res, next) => {
     token = authHeader.substring(7);
   }
   if (token) {
-    const payload = verifyToken2(token);
+    const payload = verifyToken3(token);
     if (payload?.userId) {
       req.clerkUserId = payload.userId;
       const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, payload.userId) });
@@ -94304,8 +95773,8 @@ router5.delete("/users/me", requireAuth2, async (req, res) => {
     const userMatches = await db.query.matchesTable.findMany({
       where: or(eq(matchesTable.chooserUserId, user.id), eq(matchesTable.suitorUserId, user.id))
     });
-    for (const match of userMatches) {
-      await db.delete(directMessagesTable).where(eq(directMessagesTable.matchId, match.id));
+    for (const match2 of userMatches) {
+      await db.delete(directMessagesTable).where(eq(directMessagesTable.matchId, match2.id));
     }
     await db.delete(matchesTable).where(or(eq(matchesTable.chooserUserId, user.id), eq(matchesTable.suitorUserId, user.id)));
     await db.delete(usersTable).where(eq(usersTable.id, user.id));
@@ -95894,16 +97363,16 @@ var Decimal = {
     if (trimmed === "") {
       throw new Error("Cannot parse empty string as Decimal");
     }
-    const match = /^([+-]?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(trimmed);
-    if (!match) {
+    const match2 = /^([+-]?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(trimmed);
+    if (!match2) {
       throw new Error(`Invalid decimal string: ${value}`);
     }
-    const sign = match[1] === "-" ? -1n : 1n;
-    const integerPart = match[2] ?? "";
-    const fractionalPart = match[3] ?? "";
-    const exponentPart = match[4] ? Number(match[4]) : 0;
+    const sign = match2[1] === "-" ? -1n : 1n;
+    const integerPart = match2[2] ?? "";
+    const fractionalPart = match2[3] ?? "";
+    const exponentPart = match2[4] ? Number(match2[4]) : 0;
     if (!Number.isSafeInteger(exponentPart) || exponentPart > MAX_EXPONENT || exponentPart < -MAX_EXPONENT) {
-      throw new Error(`Exponent out of range: ${String(match[4])} exceeds safe integer bounds`);
+      throw new Error(`Exponent out of range: ${String(match2[4])} exceeds safe integer bounds`);
     }
     const coefficientStr = integerPart + fractionalPart;
     const coefficient = sign * BigInt(coefficientStr);
@@ -111839,7 +113308,7 @@ var defaults = import_lib.default.defaults;
 
 // ../../node_modules/.pnpm/stripe-replit-sync@1.0.0_stripe@22.4.0_@types+node@25.9.5_/node_modules/stripe-replit-sync/dist/index.js
 var import_yesql2 = __toESM(require_yesql(), 1);
-var import_pg_node_migrations = __toESM(require_dist6(), 1);
+var import_pg_node_migrations = __toESM(require_dist7(), 1);
 import path3 from "path";
 import { fileURLToPath } from "url";
 var __filename2 = fileURLToPath(import.meta.url);
@@ -112641,26 +114110,26 @@ router9.get("/rooms/:roomId/match", requireAuth2, async (req, res) => {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-    const match = await db.query.matchesTable.findFirst({
+    const match2 = await db.query.matchesTable.findFirst({
       where: eq(matchesTable.roomId, req.params.roomId)
     });
-    if (!match) {
+    if (!match2) {
       res.json({ match: null });
       return;
     }
-    if (match.chooserUserId !== user.id && match.suitorUserId !== user.id) {
+    if (match2.chooserUserId !== user.id && match2.suitorUserId !== user.id) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
     res.json({
       match: {
-        id: match.id,
-        roomId: match.roomId,
-        chooserUserId: match.chooserUserId,
-        suitorUserId: match.suitorUserId,
-        chooserName: match.chooserName,
-        suitorName: match.suitorName,
-        createdAt: match.createdAt.toISOString()
+        id: match2.id,
+        roomId: match2.roomId,
+        chooserUserId: match2.chooserUserId,
+        suitorUserId: match2.suitorUserId,
+        chooserName: match2.chooserName,
+        suitorName: match2.suitorName,
+        createdAt: match2.createdAt.toISOString()
       }
     });
   } catch (err) {
@@ -112681,16 +114150,16 @@ router9.get("/matches", requireAuth2, async (req, res) => {
       orderBy: (m, { desc: desc3 }) => [desc3(m.createdAt)]
     });
     const enriched = await Promise.all(
-      matches.map(async (match) => {
+      matches.map(async (match2) => {
         const lastMsg = await db.query.directMessagesTable.findFirst({
-          where: eq(directMessagesTable.matchId, match.id),
+          where: eq(directMessagesTable.matchId, match2.id),
           orderBy: (m, { desc: desc3 }) => [desc3(m.createdAt)]
         });
-        const otherId = match.chooserUserId === user.id ? match.suitorUserId : match.chooserUserId;
-        const otherName = match.chooserUserId === user.id ? match.suitorName : match.chooserName;
+        const otherId = match2.chooserUserId === user.id ? match2.suitorUserId : match2.chooserUserId;
+        const otherName = match2.chooserUserId === user.id ? match2.suitorName : match2.chooserName;
         const otherUser = await db.query.usersTable.findFirst({ where: eq(usersTable.id, otherId) });
         return {
-          ...match,
+          ...match2,
           otherUserId: otherId,
           otherName,
           otherPhotos: otherUser?.photos ?? [],
@@ -112710,17 +114179,17 @@ router9.get("/matches/:matchId/messages", requireAuth2, async (req, res) => {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const match = await db.query.matchesTable.findFirst({ where: eq(matchesTable.id, req.params.matchId) });
-    if (!match) {
+    const match2 = await db.query.matchesTable.findFirst({ where: eq(matchesTable.id, req.params.matchId) });
+    if (!match2) {
       res.status(404).json({ error: "Match not found" });
       return;
     }
-    if (match.chooserUserId !== user.id && match.suitorUserId !== user.id) {
+    if (match2.chooserUserId !== user.id && match2.suitorUserId !== user.id) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
     const messages = await db.query.directMessagesTable.findMany({
-      where: eq(directMessagesTable.matchId, match.id),
+      where: eq(directMessagesTable.matchId, match2.id),
       orderBy: (m, { asc: asc2 }) => [asc2(m.createdAt)]
     });
     res.json({ messages: messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() })) });
@@ -112740,8 +114209,8 @@ router9.post("/matches/:matchId/messages", requireAuth2, async (req, res) => {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const match = await db.query.matchesTable.findFirst({ where: eq(matchesTable.id, req.params.matchId) });
-    if (!match || match.chooserUserId !== user.id && match.suitorUserId !== user.id) {
+    const match2 = await db.query.matchesTable.findFirst({ where: eq(matchesTable.id, req.params.matchId) });
+    if (!match2 || match2.chooserUserId !== user.id && match2.suitorUserId !== user.id) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
@@ -112750,7 +114219,7 @@ router9.post("/matches/:matchId/messages", requireAuth2, async (req, res) => {
     const { type, attachmentUrl, metadata } = req.body;
     const [msg] = await db.insert(directMessagesTable).values({
       id,
-      matchId: match.id,
+      matchId: match2.id,
       senderId: user.id,
       senderName: user.name,
       content: content.trim(),
@@ -112760,7 +114229,7 @@ router9.post("/matches/:matchId/messages", requireAuth2, async (req, res) => {
       createdAt: now
     }).returning();
     try {
-      getIo().to(`match_${match.id}`).emit("dm_received", { ...msg, createdAt: now.toISOString() });
+      getIo().to(`match_${match2.id}`).emit("dm_received", { ...msg, createdAt: now.toISOString() });
     } catch {
     }
     res.status(201).json({ ...msg, createdAt: now.toISOString() });

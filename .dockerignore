@@ -2,8 +2,6 @@ node_modules
 **/node_modules
 .git
 .cache
-dist
-**/dist
 *.log
 *.sqlite
 *.sqlite-shm

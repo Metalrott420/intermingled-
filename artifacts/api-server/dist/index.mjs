@@ -99535,7 +99535,8 @@ var userStampsTable = sqliteTable("user_stamps", {
 var dbInstance;
 try {
   const envDb = process.env.DATABASE_URL;
-  const dbPath = envDb && !envDb.startsWith("postgres") ? envDb : path.join(process.cwd(), "lib/db/local_db.sqlite");
+  const fallbackPath = path.resolve(__dirname, "../../../lib/db/local_db.sqlite");
+  const dbPath = envDb && !envDb.startsWith("postgres") ? envDb : fallbackPath;
   const dbDir = path.dirname(dbPath);
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });

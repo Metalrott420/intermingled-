@@ -141402,7 +141402,7 @@ process.on("uncaughtException", (err) => {
 process.on("unhandledRejection", (reason, promise2) => {
   console.error("FATAL UNHANDLED REJECTION:", reason);
 });
-var port = process.env.PORT ? Number(process.env.PORT) : 8080;
+var port = 8080;
 try {
   const httpServer = createServer(app_default);
   initSocket(httpServer);

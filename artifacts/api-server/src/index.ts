@@ -1,9 +1,17 @@
+process.on("uncaughtException", (err) => {
+  console.error("FATAL UNCAUGHT EXCEPTION:", err);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("FATAL UNHANDLED REJECTION:", reason);
+});
+
 import { createServer } from "http";
 import app from "./app";
 import { initSocket } from "./socket";
 import { logger } from "./lib/logger";
 
-const port = process.env.PORT ? Number(process.env.PORT) : 8080;
+const port = 8080;
 
 try {
   const httpServer = createServer(app);

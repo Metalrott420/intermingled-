@@ -99537,14 +99537,19 @@ try {
   const envPath = process.env.SQLITE_DB_PATH || process.env.DATABASE_PATH;
   const envDb = process.env.DATABASE_URL;
   const fallbackPath = path.resolve(__dirname, "../../../lib/db/local_db.sqlite");
-  const dbPath = envPath || (envDb && !envDb.startsWith("postgres") ? envDb : fallbackPath);
-  const dbDir = path.dirname(dbPath);
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-    console.log(`[DB] Created missing database parent directory: ${dbDir}`);
+  let dbPath = envPath || (envDb && !envDb.startsWith("postgres") ? envDb : fallbackPath);
+  let sqlite;
+  try {
+    const dbDir = path.dirname(dbPath);
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+    sqlite = new Database(dbPath);
+  } catch (openErr) {
+    console.warn(`[DB] Cannot open ${dbPath}, falling back to /tmp/local_db.sqlite:`, openErr);
+    dbPath = "/tmp/local_db.sqlite";
+    sqlite = new Database(dbPath);
   }
-  console.log(`[DB] Initializing SQLite database at: ${dbPath}`);
-  const sqlite = new Database(dbPath);
   try {
     sqlite.pragma("journal_mode = WAL");
     sqlite.pragma("busy_timeout = 5000");
@@ -99552,7 +99557,7 @@ try {
     console.warn("[DB] Warning: Could not set WAL mode pragma:", pErr);
   }
   dbInstance = drizzle(sqlite, { schema: schema_exports });
-  console.log(`[DB] SQLite database initialized successfully.`);
+  console.log(`[DB] SQLite database initialized successfully at: ${dbPath}`);
 } catch (err) {
   console.error("FATAL DATABASE INITIALIZATION ERROR:", err);
   throw err;

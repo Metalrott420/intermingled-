@@ -99545,8 +99545,12 @@ try {
   }
   console.log(`[DB] Initializing SQLite database at: ${dbPath}`);
   const sqlite = new Database(dbPath);
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("busy_timeout = 5000");
+  try {
+    sqlite.pragma("journal_mode = WAL");
+    sqlite.pragma("busy_timeout = 5000");
+  } catch (pErr) {
+    console.warn("[DB] Warning: Could not set WAL mode pragma:", pErr);
+  }
   dbInstance = drizzle(sqlite, { schema: schema_exports });
   console.log(`[DB] SQLite database initialized successfully.`);
 } catch (err) {

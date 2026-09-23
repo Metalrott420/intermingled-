@@ -24,6 +24,21 @@ app.use(
   })
 );
 
+// ── Priority Static Asset Serving ─────────────────────────────────────────────
+const webDistPath = path.join(__dirname, "dist");
+app.use(
+  express.static(webDistPath, {
+    maxAge: isProduction ? "1y" : 0,
+    immutable: isProduction,
+    index: false, // Don't serve index.html automatically for / so SPA fallback can control headers
+  })
+);
+
+// Handle favicon.ico requests instantly to prevent 15s gateway timeouts or SPA fallthrough
+app.get("/favicon.ico", (_req, res) => {
+  res.status(204).end();
+});
+
 // ── Structured Pino HTTP Logging ──────────────────────────────────────────────
 app.use(
   pinoHttp({
@@ -40,8 +55,8 @@ app.use(
 );
 
 // ── Rate Limiting ────────────────────────────────────────────────────────────
-const generalLimiter = (req: any, res: any, next: any) => next();
-const authLimiter = (req: any, res: any, next: any) => next();
+const generalLimiter = (_req: any, _res: any, next: any) => next();
+const authLimiter = (_req: any, _res: any, next: any) => next();
 
 app.use("/api/auth/", authLimiter);
 app.use("/api/", generalLimiter);
@@ -174,16 +189,12 @@ app.post("/api/auth/login", async (req: any, res: any) => {
 // ── API Router ───────────────────────────────────────────────────────────────
 app.use("/api", router);
 
-// Serve static files from the web project's build directory
-const webDistPath = path.join(__dirname, "dist");
-app.use(express.static(webDistPath));
-
 // Serve chat attachments
 const chatAssetsPath = path.resolve(__dirname, "../../attached_assets/chat");
 app.use("/api/chat/assets", express.static(chatAssetsPath));
 
 // ── Android App Links (.well-known/assetlinks.json) ─────────────────────────
-app.get("/.well-known/assetlinks.json", (req, res) => {
+app.get("/.well-known/assetlinks.json", (_req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.sendFile(path.join(webDistPath, "assetlinks.json"));
 });

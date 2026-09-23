@@ -141259,6 +141259,18 @@ app.use(
     hsts: isProduction ? { maxAge: 31536e3, includeSubDomains: true, preload: true } : false
   })
 );
+var webDistPath = path5.join(__dirname3, "dist");
+app.use(
+  import_express21.default.static(webDistPath, {
+    maxAge: isProduction ? "1y" : 0,
+    immutable: isProduction,
+    index: false
+    // Don't serve index.html automatically for / so SPA fallback can control headers
+  })
+);
+app.get("/favicon.ico", (_req, res) => {
+  res.status(204).end();
+});
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -141272,8 +141284,8 @@ app.use(
     }
   })
 );
-var generalLimiter = (req, res, next) => next();
-var authLimiter = (req, res, next) => next();
+var generalLimiter = (_req, _res, next) => next();
+var authLimiter = (_req, _res, next) => next();
 app.use("/api/auth/", authLimiter);
 app.use("/api/", generalLimiter);
 app.post(
@@ -141387,11 +141399,9 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 app.use("/api", routes_default);
-var webDistPath = path5.join(__dirname3, "dist");
-app.use(import_express21.default.static(webDistPath));
 var chatAssetsPath = path5.resolve(__dirname3, "../../attached_assets/chat");
 app.use("/api/chat/assets", import_express21.default.static(chatAssetsPath));
-app.get("/.well-known/assetlinks.json", (req, res) => {
+app.get("/.well-known/assetlinks.json", (_req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.sendFile(path5.join(webDistPath, "assetlinks.json"));
 });

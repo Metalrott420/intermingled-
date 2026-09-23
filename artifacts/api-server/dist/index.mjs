@@ -99534,17 +99534,21 @@ var userStampsTable = sqliteTable("user_stamps", {
 // ../../lib/db/src/index.ts
 var dbInstance;
 try {
+  const envPath = process.env.SQLITE_DB_PATH || process.env.DATABASE_PATH;
   const envDb = process.env.DATABASE_URL;
   const fallbackPath = path.resolve(__dirname, "../../../lib/db/local_db.sqlite");
-  const dbPath = envDb && !envDb.startsWith("postgres") ? envDb : fallbackPath;
+  const dbPath = envPath || (envDb && !envDb.startsWith("postgres") ? envDb : fallbackPath);
   const dbDir = path.dirname(dbPath);
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
+    console.log(`[DB] Created missing database parent directory: ${dbDir}`);
   }
+  console.log(`[DB] Initializing SQLite database at: ${dbPath}`);
   const sqlite = new Database(dbPath);
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("busy_timeout = 5000");
   dbInstance = drizzle(sqlite, { schema: schema_exports });
+  console.log(`[DB] SQLite database initialized successfully.`);
 } catch (err) {
   console.error("FATAL DATABASE INITIALIZATION ERROR:", err);
   throw err;
@@ -141392,6 +141396,12 @@ app.get("*path", (req, res, next) => {
 var app_default = app;
 
 // src/index.ts
+process.on("uncaughtException", (err) => {
+  console.error("FATAL UNCAUGHT EXCEPTION:", err);
+});
+process.on("unhandledRejection", (reason, promise2) => {
+  console.error("FATAL UNHANDLED REJECTION:", reason);
+});
 var port = process.env.PORT ? Number(process.env.PORT) : 8080;
 try {
   const httpServer = createServer(app_default);

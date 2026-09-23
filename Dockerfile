@@ -19,4 +19,4 @@ RUN cd artifacts/api-server && node build.mjs
 
 EXPOSE 8080
 
-CMD ["node", "-e", "const fs = require('fs'); const p = fs.existsSync('./dist/index.mjs') ? './dist/index.mjs' : './artifacts/api-server/dist/index.mjs'; import(p);"]
+CMD ["node", "start.mjs"]

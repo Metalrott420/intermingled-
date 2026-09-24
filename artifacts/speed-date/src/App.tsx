@@ -85,6 +85,7 @@ function SignInPage() {
   const [ageVerified, setAgeVerified] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const logoClicks = useRef(0);
 
@@ -100,6 +101,7 @@ function SignInPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
     if (isSignUp && (!ageVerified || !termsAccepted)) {
       setError("You must confirm you are 18+ and accept the Terms & Privacy Policy.");
       return;
@@ -108,11 +110,12 @@ function SignInPage() {
     try {
       if (isSignUp) {
         await signUp(email, password, name, ageVerified, termsAccepted);
-        await signIn(email, password);
+        setSuccessMessage("Account created! Please check your email to activate your account, then sign in.");
+        setIsSignUp(false);
       } else {
         await signIn(email, password);
+        window.location.href = "/";
       }
-      window.location.href = "/";
     } catch (err: any) {
       setError(err.message || "Authentication failed");
     } finally {
@@ -145,6 +148,12 @@ function SignInPage() {
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-xl font-medium">
                 {error}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs p-3 rounded-xl font-medium">
+                {successMessage}
               </div>
             )}
 

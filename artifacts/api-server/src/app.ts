@@ -110,6 +110,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { sendConfirmationEmail } from "./lib/emailService";
 
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -140,6 +141,9 @@ app.post("/api/auth/register", async (req: any, res: any) => {
       return res.status(400).json({ error: "Email already registered" });
     }
     const userId = "u_" + randomBytes(8).toString("hex");
+    const verificationToken = randomBytes(24).toString("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
     await db.insert(usersTable).values({
       id: userId,
       email: email.toLowerCase(),
@@ -150,9 +154,16 @@ app.post("/api/auth/register", async (req: any, res: any) => {
       termsAccepted: true,
       privacyAccepted: true,
       consentTimestamp: new Date(),
+      isVerified: false,
+      verificationToken,
+      verificationTokenExpiresAt: expiresAt,
     });
+
+    await sendConfirmationEmail(email.toLowerCase(), name, verificationToken);
+
     res.status(201).json({
-      message: "User registered successfully",
+      message: "Account created! Please check your email to confirm your account.",
+      requiresConfirmation: true,
       user: { id: userId, email, name }
     });
   } catch (err: any) {

@@ -144,6 +144,9 @@ app.post("/api/auth/register", async (req: any, res: any) => {
     const verificationToken = randomBytes(24).toString("hex");
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+    const hasEmailProvider = Boolean(process.env.RESEND_API_KEY || process.env.SMTP_PASS || process.env.SMTP_PASSWORD);
+    const isVerified = !hasEmailProvider;
+
     await db.insert(usersTable).values({
       id: userId,
       email: email.toLowerCase(),
@@ -154,17 +157,23 @@ app.post("/api/auth/register", async (req: any, res: any) => {
       termsAccepted: true,
       privacyAccepted: true,
       consentTimestamp: new Date(),
-      isVerified: false,
-      verificationToken,
-      verificationTokenExpiresAt: expiresAt,
+      isVerified,
+      verificationToken: isVerified ? null : verificationToken,
+      verificationTokenExpiresAt: isVerified ? null : expiresAt,
     });
 
-    await sendConfirmationEmail(email.toLowerCase(), name, verificationToken);
+    if (hasEmailProvider) {
+      sendConfirmationEmail(email.toLowerCase(), name, verificationToken).catch((err) => {
+        logger.error({ err, recipient: email }, "Background email dispatch error");
+      });
+    }
 
     res.status(201).json({
-      message: "Account created! Please check your email to confirm your account.",
-      requiresConfirmation: true,
-      user: { id: userId, email, name }
+      message: isVerified
+        ? "Account created successfully!"
+        : "Account created! Please check your email to confirm your account.",
+      requiresConfirmation: !isVerified,
+      user: { id: userId, email, name, isVerified }
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || "Internal server error" });

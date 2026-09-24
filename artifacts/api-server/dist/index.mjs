@@ -110770,11 +110770,12 @@ var import_nodemailer = __toESM(require_nodemailer(), 1);
 async function sendConfirmationEmail(email3, name, verificationToken) {
   const domain2 = process.env.CANONICAL_URL || "https://www.intermingledapp.com";
   const verifyUrl = `${domain2}/api/auth/verify-email?token=${verificationToken}`;
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const pass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
+  const user = process.env.SMTP_USER || process.env.EMAIL_FROM_ADDRESS || "metal_rott@intermingledapp.com";
+  const from = process.env.EMAIL_FROM || `"Intermingled" <${user}>`;
   const host = process.env.SMTP_HOST || "smtp.ionos.com";
   const port2 = Number(process.env.SMTP_PORT || "587");
-  const user = process.env.SMTP_USER || process.env.EMAIL_FROM_ADDRESS || "metal_rott@intermingledapp.com";
-  const pass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
-  const from = process.env.EMAIL_FROM || `"Intermingled" <${user}>`;
   const subject = "Confirm your Intermingled Account \u{1F339}";
   const text2 = `Hi ${name},
 
@@ -110797,30 +110798,55 @@ The Intermingled Team`;
       <p style="font-size: 12px; color: #666;">Or copy and paste this URL into your browser:<br/><a href="${verifyUrl}" style="color: #d4af37;">${verifyUrl}</a></p>
     </div>
   `;
-  if (!pass) {
-    logger.warn({ email: email3, verifyUrl }, "SMTP_PASS not provided \u2014 logged confirmation URL for verification");
-    console.log(`[EMAIL CONFIRMATION LINK] ${email3} -> ${verifyUrl}`);
-    return true;
+  if (resendApiKey) {
+    try {
+      const resp = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          from: from.includes("<") ? from : `"Intermingled" <${from}>`,
+          to: [email3],
+          subject,
+          html,
+          text: text2
+        }),
+        signal: AbortSignal.timeout(8e3)
+      });
+      if (resp.ok) {
+        logger.info({ email: email3 }, "Confirmation email sent via Resend API");
+        return true;
+      }
+      const errText = await resp.text();
+      logger.error({ status: resp.status, errText }, "Resend API returned error");
+    } catch (err) {
+      logger.error({ err }, "Resend API send failed");
+    }
   }
-  const transporter = import_nodemailer.default.createTransport({
-    host,
-    port: port2,
-    secure: port2 === 465,
-    auth: { user, pass },
-    connectionTimeout: 8e3
-  });
-  try {
-    const info = await Promise.race([
-      transporter.sendMail({ from, to: email3, subject, text: text2, html }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("Email send timeout")), 8e3))
-    ]);
-    logger.info({ messageId: info.messageId, recipient: email3 }, "Confirmation email sent successfully");
-    return true;
-  } catch (err) {
-    logger.error({ err, recipient: email3 }, "Failed to send confirmation email via SMTP");
-    console.log(`[FALLBACK CONFIRMATION LINK] ${email3} -> ${verifyUrl}`);
-    return false;
+  if (pass) {
+    try {
+      const transporter = import_nodemailer.default.createTransport({
+        host,
+        port: port2,
+        secure: port2 === 465,
+        auth: { user, pass },
+        connectionTimeout: 8e3
+      });
+      const info = await Promise.race([
+        transporter.sendMail({ from, to: email3, subject, text: text2, html }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Email send timeout")), 8e3))
+      ]);
+      logger.info({ messageId: info.messageId, recipient: email3 }, "Confirmation email sent via SMTP");
+      return true;
+    } catch (err) {
+      logger.error({ err, recipient: email3 }, "Failed to send confirmation email via SMTP");
+    }
   }
+  logger.warn({ email: email3, verifyUrl }, "No email provider password configured \u2014 logged confirmation URL");
+  console.log(`[EMAIL CONFIRMATION LINK] ${email3} -> ${verifyUrl}`);
+  return false;
 }
 
 // src/routes/auth.ts
@@ -110854,6 +110880,8 @@ router.post("/auth/register", async (req, res) => {
     const userId = "u_" + randomBytes(8).toString("hex");
     const verificationToken = randomBytes(24).toString("hex");
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1e3);
+    const hasEmailProvider = Boolean(process.env.RESEND_API_KEY || process.env.SMTP_PASS || process.env.SMTP_PASSWORD);
+    const isVerified = !hasEmailProvider;
     await db.insert(usersTable).values({
       id: userId,
       email: email3.toLowerCase(),
@@ -110864,15 +110892,19 @@ router.post("/auth/register", async (req, res) => {
       termsAccepted: true,
       privacyAccepted: true,
       consentTimestamp: /* @__PURE__ */ new Date(),
-      isVerified: false,
-      verificationToken,
-      verificationTokenExpiresAt: expiresAt
+      isVerified,
+      verificationToken: isVerified ? null : verificationToken,
+      verificationTokenExpiresAt: isVerified ? null : expiresAt
     });
-    await sendConfirmationEmail(email3.toLowerCase(), name, verificationToken);
+    if (hasEmailProvider) {
+      sendConfirmationEmail(email3.toLowerCase(), name, verificationToken).catch((err) => {
+        logger.error({ err, recipient: email3 }, "Background email dispatch error");
+      });
+    }
     res.status(201).json({
-      message: "Account created! Please check your email to confirm your account.",
-      requiresConfirmation: true,
-      user: { id: userId, email: email3, name }
+      message: isVerified ? "Account created successfully!" : "Account created! Please check your email to confirm your account.",
+      requiresConfirmation: !isVerified,
+      user: { id: userId, email: email3, name, isVerified }
     });
   } catch (err) {
     logger.error({ err }, "Register error");
@@ -152653,6 +152685,8 @@ app.post("/api/auth/register", async (req, res) => {
     const userId = "u_" + randomBytes13(8).toString("hex");
     const verificationToken = randomBytes13(24).toString("hex");
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1e3);
+    const hasEmailProvider = Boolean(process.env.RESEND_API_KEY || process.env.SMTP_PASS || process.env.SMTP_PASSWORD);
+    const isVerified = !hasEmailProvider;
     await db.insert(usersTable).values({
       id: userId,
       email: email3.toLowerCase(),
@@ -152663,15 +152697,19 @@ app.post("/api/auth/register", async (req, res) => {
       termsAccepted: true,
       privacyAccepted: true,
       consentTimestamp: /* @__PURE__ */ new Date(),
-      isVerified: false,
-      verificationToken,
-      verificationTokenExpiresAt: expiresAt
+      isVerified,
+      verificationToken: isVerified ? null : verificationToken,
+      verificationTokenExpiresAt: isVerified ? null : expiresAt
     });
-    await sendConfirmationEmail(email3.toLowerCase(), name, verificationToken);
+    if (hasEmailProvider) {
+      sendConfirmationEmail(email3.toLowerCase(), name, verificationToken).catch((err) => {
+        logger.error({ err, recipient: email3 }, "Background email dispatch error");
+      });
+    }
     res.status(201).json({
-      message: "Account created! Please check your email to confirm your account.",
-      requiresConfirmation: true,
-      user: { id: userId, email: email3, name }
+      message: isVerified ? "Account created successfully!" : "Account created! Please check your email to confirm your account.",
+      requiresConfirmation: !isVerified,
+      user: { id: userId, email: email3, name, isVerified }
     });
   } catch (err) {
     res.status(500).json({ error: err.message || "Internal server error" });

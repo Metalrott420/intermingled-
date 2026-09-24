@@ -42,6 +42,9 @@ router.post("/auth/register", async (req: any, res: any) => {
     const verificationToken = randomBytes(24).toString("hex");
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h expiration
 
+    const hasEmailProvider = Boolean(process.env.RESEND_API_KEY || process.env.SMTP_PASS || process.env.SMTP_PASSWORD);
+    const isVerified = !hasEmailProvider; // Auto-verify if no SMTP/Resend key configured so sign-up never gets stuck
+
     await db.insert(usersTable).values({
       id: userId,
       email: email.toLowerCase(),
@@ -52,18 +55,24 @@ router.post("/auth/register", async (req: any, res: any) => {
       termsAccepted: true,
       privacyAccepted: true,
       consentTimestamp: new Date(),
-      isVerified: false,
-      verificationToken,
-      verificationTokenExpiresAt: expiresAt,
+      isVerified,
+      verificationToken: isVerified ? null : verificationToken,
+      verificationTokenExpiresAt: isVerified ? null : expiresAt,
     });
 
-    // Send confirmation email asynchronously (with 8s internal timeout)
-    await sendConfirmationEmail(email.toLowerCase(), name, verificationToken);
+    if (hasEmailProvider) {
+      // Trigger background email dispatch without awaiting
+      sendConfirmationEmail(email.toLowerCase(), name, verificationToken).catch((err) => {
+        logger.error({ err, recipient: email }, "Background email dispatch error");
+      });
+    }
 
     res.status(201).json({
-      message: "Account created! Please check your email to confirm your account.",
-      requiresConfirmation: true,
-      user: { id: userId, email, name }
+      message: isVerified
+        ? "Account created successfully!"
+        : "Account created! Please check your email to confirm your account.",
+      requiresConfirmation: !isVerified,
+      user: { id: userId, email, name, isVerified }
     });
   } catch (err) {
     logger.error({ err }, "Register error");

@@ -25,29 +25,35 @@ app.use(
   })
 );
 
-// ── Priority Static Asset Serving ─────────────────────────────────────────────
+// ── Dynamic Static Asset Resolution ─────────────────────────────────────────
 const possibleWebDistPaths = [
-  path.join(__dirname, "dist"),
-  path.join(__dirname, "dist/dist"),
-  path.join(__dirname, "dist/dist/dist"),
+  path.resolve(__dirname, "dist"),
+  path.resolve(__dirname, "dist/dist"),
+  path.resolve(__dirname, "dist/dist/dist"),
   path.resolve(process.cwd(), "artifacts/speed-date/dist"),
   path.resolve(process.cwd(), "artifacts/api-server/dist/dist"),
   path.resolve(process.cwd(), "artifacts/api-server/dist/dist/dist"),
   path.resolve(__dirname, "../../speed-date/dist"),
 ];
 
-const webDistPath = possibleWebDistPaths.find(p => fs.existsSync(path.join(p, "index.html"))) || possibleWebDistPaths[0];
-console.log("[app.ts] Resolved static webDistPath:", webDistPath);
+function getActiveWebDistPath(): string {
+  const found = possibleWebDistPaths.find((p) => fs.existsSync(path.join(p, "index.html")));
+  if (found) return found;
+  return possibleWebDistPaths[0];
+}
+
+const webDistPath = getActiveWebDistPath();
+console.log("[app.ts] Initialized static webDistPath:", webDistPath);
 
 app.use(
   express.static(webDistPath, {
     maxAge: isProduction ? "1y" : 0,
     immutable: isProduction,
-    index: false, // Don't serve index.html automatically for / so SPA fallback can control headers
+    index: false,
   })
 );
 
-// Handle favicon.ico requests instantly to prevent 15s gateway timeouts or SPA fallthrough
+// Handle favicon.ico requests instantly to prevent 15s gateway timeouts
 app.get("/favicon.ico", (_req, res) => {
   res.status(204).end();
 });
@@ -119,7 +125,7 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// ── Direct Auth Fallback Handlers ──────────────────────────────────────────
+// ── Direct Auth Handlers ───────────────────────────────────────────────────
 import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -229,16 +235,18 @@ app.use("/api/chat/assets", express.static(chatAssetsPath));
 // ── Android App Links (.well-known/assetlinks.json) ─────────────────────────
 app.get("/.well-known/assetlinks.json", (_req, res) => {
   res.setHeader("Content-Type", "application/json");
-  res.sendFile(path.join(webDistPath, "assetlinks.json"));
+  const activePath = getActiveWebDistPath();
+  res.sendFile(path.join(activePath, "assetlinks.json"));
 });
 
 // Fallback to index.html for SPA routing
 app.get("*path", (req, res, next) => {
   if (req.path.startsWith("/api")) return next();
+  const activePath = getActiveWebDistPath();
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
-  res.sendFile(path.join(webDistPath, "index.html"));
+  res.sendFile(path.join(activePath, "index.html"));
 });
 
 export default app;

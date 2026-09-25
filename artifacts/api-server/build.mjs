@@ -1,7 +1,6 @@
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { execSync } from "node:child_process";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
 import { rm, cp } from "node:fs/promises";
@@ -14,17 +13,8 @@ const artifactDir = path.dirname(fileURLToPath(import.meta.url));
 
 async function buildAll() {
   const speedDateDist = path.resolve(artifactDir, "../speed-date/dist");
-
-  if (!existsSync(speedDateDist)) {
-    console.log("Building frontend speed-date...");
-    try {
-      execSync("pnpm --dir ../speed-date build", { stdio: "inherit" });
-    } catch (err) {
-      console.warn("[build.mjs] speed-date build warning:", err);
-    }
-  }
-
   const distDir = path.resolve(artifactDir, "dist");
+
   await rm(distDir, { recursive: true, force: true });
 
   await esbuild({

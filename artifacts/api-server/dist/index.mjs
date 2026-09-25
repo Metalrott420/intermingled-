@@ -110754,6 +110754,48 @@ try {
   } catch (pErr) {
     console.warn("[DB] Warning: Could not set WAL mode pragma:", pErr);
   }
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS "users" (
+      "id" text PRIMARY KEY NOT NULL,
+      "clerk_id" text UNIQUE,
+      "email" text,
+      "name" text NOT NULL,
+      "bio" text,
+      "date_of_birth" text,
+      "gender" text,
+      "show_me_gender" text DEFAULT 'everyone',
+      "photos" text DEFAULT '[]',
+      "personality_vector" text,
+      "profile_prompts" text DEFAULT '[]',
+      "password_hash" text,
+      "role" text,
+      "status" text NOT NULL DEFAULT 'looking',
+      "stripe_customer_id" text,
+      "stripe_subscription_id" text,
+      "chooser_sessions_today" integer NOT NULL DEFAULT 0,
+      "chooser_last_session_date" text,
+      "expo_push_token" text,
+      "is_admin" integer NOT NULL DEFAULT 0,
+      "is_banned" integer NOT NULL DEFAULT 0,
+      "age_verified" integer NOT NULL DEFAULT 0,
+      "terms_accepted" integer NOT NULL DEFAULT 0,
+      "privacy_accepted" integer NOT NULL DEFAULT 0,
+      "terms_version" text DEFAULT '1.0',
+      "consent_timestamp" integer,
+      "is_verified" integer NOT NULL DEFAULT 0,
+      "verification_token" text,
+      "verification_token_expires_at" integer,
+      "is_premium" integer NOT NULL DEFAULT 0,
+      "is_organizer" integer NOT NULL DEFAULT 0,
+      "is_super_admin" integer NOT NULL DEFAULT 0,
+      "qualifications" text DEFAULT '[]',
+      "last_lat" text,
+      "last_lng" text,
+      "is_visible" integer NOT NULL DEFAULT 0,
+      "identity_session_id" text,
+      "created_at" integer NOT NULL DEFAULT (unixepoch())
+    );
+  `);
   dbInstance = drizzle(sqlite, { schema: schema_exports });
   console.log(`[DB] SQLite database initialized successfully at: ${dbPath}`);
 } catch (err) {

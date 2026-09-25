@@ -29,13 +29,13 @@ app.use(
 function getActiveWebDistPath(): string {
   const possiblePaths = [
     path.resolve(process.cwd(), "artifacts/speed-date/dist"),
+    path.resolve(process.cwd(), "artifacts/api-server/dist/dist"),
     path.resolve(__dirname, "../../speed-date/dist"),
     path.resolve(__dirname, "dist"),
     path.resolve(__dirname, "dist/dist"),
-    path.resolve(process.cwd(), "artifacts/api-server/dist/dist"),
   ];
   for (const p of possiblePaths) {
-    if (fs.existsSync(path.join(p, "index.html"))) {
+    if (fs.existsSync(path.resolve(p, "index.html"))) {
       return p;
     }
   }
@@ -235,17 +235,18 @@ app.use("/api/chat/assets", express.static(chatAssetsPath));
 app.get("/.well-known/assetlinks.json", (_req, res) => {
   res.setHeader("Content-Type", "application/json");
   const activePath = getActiveWebDistPath();
-  res.sendFile(path.join(activePath, "assetlinks.json"));
+  res.sendFile(path.resolve(activePath, "assetlinks.json"));
 });
 
 // Fallback to index.html for SPA routing
 app.get("*path", (req, res, next) => {
   if (req.path.startsWith("/api")) return next();
   const activePath = getActiveWebDistPath();
+  const absoluteIndexPath = path.resolve(activePath, "index.html");
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
-  res.sendFile(path.join(activePath, "index.html"));
+  res.sendFile(absoluteIndexPath);
 });
 
 export default app;

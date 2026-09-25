@@ -152592,13 +152592,13 @@ app.use(
 function getActiveWebDistPath() {
   const possiblePaths = [
     path5.resolve(process.cwd(), "artifacts/speed-date/dist"),
+    path5.resolve(process.cwd(), "artifacts/api-server/dist/dist"),
     path5.resolve(__dirname3, "../../speed-date/dist"),
     path5.resolve(__dirname3, "dist"),
-    path5.resolve(__dirname3, "dist/dist"),
-    path5.resolve(process.cwd(), "artifacts/api-server/dist/dist")
+    path5.resolve(__dirname3, "dist/dist")
   ];
   for (const p of possiblePaths) {
-    if (fs5.existsSync(path5.join(p, "index.html"))) {
+    if (fs5.existsSync(path5.resolve(p, "index.html"))) {
       return p;
     }
   }
@@ -152762,15 +152762,16 @@ app.use("/api/chat/assets", import_express21.default.static(chatAssetsPath));
 app.get("/.well-known/assetlinks.json", (_req, res) => {
   res.setHeader("Content-Type", "application/json");
   const activePath = getActiveWebDistPath();
-  res.sendFile(path5.join(activePath, "assetlinks.json"));
+  res.sendFile(path5.resolve(activePath, "assetlinks.json"));
 });
 app.get("*path", (req, res, next) => {
   if (req.path.startsWith("/api")) return next();
   const activePath = getActiveWebDistPath();
+  const absoluteIndexPath = path5.resolve(activePath, "index.html");
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
-  res.sendFile(path5.join(activePath, "index.html"));
+  res.sendFile(absoluteIndexPath);
 });
 var app_default = app;
 

@@ -24,8 +24,20 @@ app.use(
   })
 );
 
+import fs from "fs";
+
 // ── Priority Static Asset Serving ─────────────────────────────────────────────
-const webDistPath = path.join(__dirname, "dist");
+const possibleWebDistPaths = [
+  path.join(__dirname, "dist"),
+  path.join(__dirname, "dist/dist"),
+  path.resolve(__dirname, "../../speed-date/dist"),
+  path.resolve(process.cwd(), "artifacts/speed-date/dist"),
+  path.resolve(process.cwd(), "artifacts/api-server/dist/dist"),
+];
+
+const webDistPath = possibleWebDistPaths.find(p => fs.existsSync(path.join(p, "index.html"))) || possibleWebDistPaths[0];
+console.log("[app.ts] Resolved static webDistPath:", webDistPath);
+
 app.use(
   express.static(webDistPath, {
     maxAge: isProduction ? "1y" : 0,

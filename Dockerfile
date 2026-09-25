@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM node:22-slim
 
 WORKDIR /app
 
@@ -13,6 +13,9 @@ COPY . .
 
 # Install dependencies for Linux environment
 RUN pnpm install --no-frozen-lockfile
+
+# Rebuild native addons for Linux x64 GLIBC
+RUN pnpm rebuild better-sqlite3
 
 # Build backend bundle
 RUN cd artifacts/api-server && node build.mjs

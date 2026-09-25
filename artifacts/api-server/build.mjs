@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm, cp } from "node:fs/promises";
+import { rm, cp, mkdir, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
@@ -53,8 +53,12 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
 
   const targetDist = path.resolve(distDir, "dist");
   if (existsSync(speedDateDist)) {
-    await cp(speedDateDist, targetDist, { recursive: true });
-    console.log("[build.mjs] Successfully copied speed-date/dist into api-server/dist/dist");
+    await mkdir(targetDist, { recursive: true });
+    const entries = await readdir(speedDateDist);
+    for (const entry of entries) {
+      await cp(path.join(speedDateDist, entry), path.join(targetDist, entry), { recursive: true });
+    }
+    console.log("[build.mjs] Successfully copied speed-date/dist contents into api-server/dist/dist");
   } else {
     console.warn(`[build.mjs] Warning: ${speedDateDist} does not exist, skipping static dist copy.`);
   }

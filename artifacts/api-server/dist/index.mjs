@@ -110795,6 +110795,50 @@ try {
       "identity_session_id" text,
       "created_at" integer NOT NULL DEFAULT (unixepoch())
     );
+
+    CREATE TABLE IF NOT EXISTS "rooms" (
+      "id" text PRIMARY KEY NOT NULL,
+      "title" text NOT NULL,
+      "topic" text,
+      "status" text NOT NULL DEFAULT 'lobby',
+      "current_round" integer NOT NULL DEFAULT 1,
+      "total_rounds" integer NOT NULL DEFAULT 5,
+      "chooser_id" text,
+      "winner_id" text,
+      "category" text,
+      "created_at" integer NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS "participants" (
+      "id" text PRIMARY KEY NOT NULL,
+      "room_id" text NOT NULL,
+      "user_id" text NOT NULL,
+      "role" text NOT NULL,
+      "suitor_slot" integer,
+      "is_eliminated" integer NOT NULL DEFAULT 0,
+      "eliminated_in_round" integer,
+      "is_bot" integer NOT NULL DEFAULT 0,
+      "created_at" integer NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS "matches" (
+      "id" text PRIMARY KEY NOT NULL,
+      "room_id" text,
+      "chooser_id" text NOT NULL,
+      "winner_id" text NOT NULL,
+      "status" text NOT NULL DEFAULT 'active',
+      "created_at" integer NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS "direct_messages" (
+      "id" text PRIMARY KEY NOT NULL,
+      "match_id" text,
+      "sender_id" text NOT NULL,
+      "recipient_id" text NOT NULL,
+      "content" text NOT NULL,
+      "read" integer NOT NULL DEFAULT 0,
+      "created_at" integer NOT NULL DEFAULT (unixepoch())
+    );
   `);
   dbInstance = drizzle(sqlite, { schema: schema_exports });
   console.log(`[DB] SQLite database initialized successfully at: ${dbPath}`);

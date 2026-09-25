@@ -152594,21 +152594,25 @@ function getActiveWebDistPath() {
     path5.resolve(process.cwd(), "artifacts/speed-date/dist"),
     path5.resolve(__dirname3, "../../speed-date/dist"),
     path5.resolve(__dirname3, "dist"),
+    path5.resolve(__dirname3, "dist/dist"),
     path5.resolve(process.cwd(), "artifacts/api-server/dist/dist")
   ];
-  const found = possiblePaths.find((p) => fs5.existsSync(path5.join(p, "index.html")));
-  if (found) return found;
+  for (const p of possiblePaths) {
+    if (fs5.existsSync(path5.join(p, "index.html"))) {
+      return p;
+    }
+  }
   return possiblePaths[0];
 }
-var webDistPath = getActiveWebDistPath();
-console.log("[app.ts] Initialized static webDistPath:", webDistPath);
-app.use(
-  import_express21.default.static(webDistPath, {
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) return next();
+  const activePath = getActiveWebDistPath();
+  import_express21.default.static(activePath, {
     maxAge: isProduction ? "1y" : 0,
     immutable: isProduction,
     index: false
-  })
-);
+  })(req, res, next);
+});
 app.get("/favicon.ico", (_req, res) => {
   res.status(204).end();
 });

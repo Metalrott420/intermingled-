@@ -25,29 +25,32 @@ app.use(
   })
 );
 
-// ── Priority Static Asset Serving ─────────────────────────────────────────────
+// ── Dynamic Static Asset Resolution ─────────────────────────────────────────
 function getActiveWebDistPath(): string {
   const possiblePaths = [
     path.resolve(process.cwd(), "artifacts/speed-date/dist"),
     path.resolve(__dirname, "../../speed-date/dist"),
     path.resolve(__dirname, "dist"),
+    path.resolve(__dirname, "dist/dist"),
     path.resolve(process.cwd(), "artifacts/api-server/dist/dist"),
   ];
-  const found = possiblePaths.find((p) => fs.existsSync(path.join(p, "index.html")));
-  if (found) return found;
+  for (const p of possiblePaths) {
+    if (fs.existsSync(path.join(p, "index.html"))) {
+      return p;
+    }
+  }
   return possiblePaths[0];
 }
 
-const webDistPath = getActiveWebDistPath();
-console.log("[app.ts] Initialized static webDistPath:", webDistPath);
-
-app.use(
-  express.static(webDistPath, {
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) return next();
+  const activePath = getActiveWebDistPath();
+  express.static(activePath, {
     maxAge: isProduction ? "1y" : 0,
     immutable: isProduction,
     index: false,
-  })
-);
+  })(req, res, next);
+});
 
 // Handle favicon.ico requests instantly to prevent 15s gateway timeouts
 app.get("/favicon.ico", (_req, res) => {

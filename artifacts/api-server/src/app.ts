@@ -25,21 +25,17 @@ app.use(
   })
 );
 
-// ── Dynamic Static Asset Resolution ─────────────────────────────────────────
-const possibleWebDistPaths = [
-  path.resolve(__dirname, "dist"),
-  path.resolve(__dirname, "dist/dist"),
-  path.resolve(__dirname, "dist/dist/dist"),
-  path.resolve(process.cwd(), "artifacts/speed-date/dist"),
-  path.resolve(process.cwd(), "artifacts/api-server/dist/dist"),
-  path.resolve(process.cwd(), "artifacts/api-server/dist/dist/dist"),
-  path.resolve(__dirname, "../../speed-date/dist"),
-];
-
+// ── Priority Static Asset Serving ─────────────────────────────────────────────
 function getActiveWebDistPath(): string {
-  const found = possibleWebDistPaths.find((p) => fs.existsSync(path.join(p, "index.html")));
+  const possiblePaths = [
+    path.resolve(process.cwd(), "artifacts/speed-date/dist"),
+    path.resolve(__dirname, "../../speed-date/dist"),
+    path.resolve(__dirname, "dist"),
+    path.resolve(process.cwd(), "artifacts/api-server/dist/dist"),
+  ];
+  const found = possiblePaths.find((p) => fs.existsSync(path.join(p, "index.html")));
   if (found) return found;
-  return possibleWebDistPaths[0];
+  return possiblePaths[0];
 }
 
 const webDistPath = getActiveWebDistPath();

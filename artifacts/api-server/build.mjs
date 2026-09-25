@@ -60,6 +60,7 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
   const speedDateDist = path.resolve(artifactDir, "../speed-date/dist");
   const targetDist = path.resolve(distDir, "dist");
   if (existsSync(speedDateDist)) {
+    await rm(targetDist, { recursive: true, force: true });
     await cp(speedDateDist, targetDist, { recursive: true });
     console.log("[build.mjs] Successfully copied speed-date/dist into api-server/dist/dist");
   } else {

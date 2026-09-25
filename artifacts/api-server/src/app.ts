@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import pinoHttp from "pino-http";
 import helmet from "helmet";
@@ -24,15 +25,15 @@ app.use(
   })
 );
 
-import fs from "fs";
-
 // ── Priority Static Asset Serving ─────────────────────────────────────────────
 const possibleWebDistPaths = [
   path.join(__dirname, "dist"),
   path.join(__dirname, "dist/dist"),
-  path.resolve(__dirname, "../../speed-date/dist"),
+  path.join(__dirname, "dist/dist/dist"),
   path.resolve(process.cwd(), "artifacts/speed-date/dist"),
   path.resolve(process.cwd(), "artifacts/api-server/dist/dist"),
+  path.resolve(process.cwd(), "artifacts/api-server/dist/dist/dist"),
+  path.resolve(__dirname, "../../speed-date/dist"),
 ];
 
 const webDistPath = possibleWebDistPaths.find(p => fs.existsSync(path.join(p, "index.html"))) || possibleWebDistPaths[0];

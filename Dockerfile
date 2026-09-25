@@ -1,9 +1,6 @@
-FROM node:20-slim
+FROM node:20
 
 WORKDIR /app
-
-# Install build dependencies for native C++ modules
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm globally
 RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
@@ -20,3 +17,4 @@ RUN cd artifacts/api-server && node build.mjs
 EXPOSE 8080
 
 CMD ["node", "start.mjs"]
+

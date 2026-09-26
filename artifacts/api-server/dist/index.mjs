@@ -152756,11 +152756,11 @@ app.use(
 );
 function getActiveWebDistPath() {
   const possiblePaths = [
-    path5.resolve(process.cwd(), "artifacts/speed-date/dist"),
     path5.resolve(process.cwd(), "artifacts/api-server/dist/dist"),
-    path5.resolve(__dirname3, "../../speed-date/dist"),
     path5.resolve(__dirname3, "dist"),
-    path5.resolve(__dirname3, "dist/dist")
+    path5.resolve(__dirname3, "dist/dist"),
+    path5.resolve(process.cwd(), "artifacts/speed-date/dist"),
+    path5.resolve(__dirname3, "../../speed-date/dist")
   ];
   for (const p of possiblePaths) {
     if (fs5.existsSync(path5.resolve(p, "index.html"))) {

@@ -28,11 +28,11 @@ app.use(
 // ── Priority Static Asset Serving ─────────────────────────────────────────────
 function getActiveWebDistPath(): string {
   const possiblePaths = [
-    path.resolve(process.cwd(), "artifacts/speed-date/dist"),
     path.resolve(process.cwd(), "artifacts/api-server/dist/dist"),
-    path.resolve(__dirname, "../../speed-date/dist"),
     path.resolve(__dirname, "dist"),
     path.resolve(__dirname, "dist/dist"),
+    path.resolve(process.cwd(), "artifacts/speed-date/dist"),
+    path.resolve(__dirname, "../../speed-date/dist"),
   ];
   for (const p of possiblePaths) {
     if (fs.existsSync(path.resolve(p, "index.html"))) {

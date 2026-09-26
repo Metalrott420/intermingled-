@@ -118,6 +118,62 @@ try {
       "read" integer NOT NULL DEFAULT 0,
       "created_at" integer NOT NULL DEFAULT (unixepoch())
     );
+
+    CREATE TABLE IF NOT EXISTS "safe_zones" (
+      "id" text PRIMARY KEY NOT NULL,
+      "name" text NOT NULL,
+      "lat" text NOT NULL,
+      "lng" text NOT NULL,
+      "mood" text NOT NULL DEFAULT 'chill',
+      "deal_text" text,
+      "address" text,
+      "created_at" integer NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS "friends" (
+      "user_id" text NOT NULL,
+      "friend_id" text NOT NULL,
+      "status" text NOT NULL DEFAULT 'active',
+      "created_at" integer NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY ("user_id", "friend_id")
+    );
+
+    CREATE TABLE IF NOT EXISTS "blocks" (
+      "blocker_id" text NOT NULL,
+      "blocked_id" text NOT NULL,
+      "created_at" integer NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY ("blocker_id", "blocked_id")
+    );
+
+    CREATE TABLE IF NOT EXISTS "reports" (
+      "id" text PRIMARY KEY NOT NULL,
+      "reporter_id" text NOT NULL,
+      "reported_id" text NOT NULL,
+      "reason" text NOT NULL,
+      "detail" text,
+      "severity" text NOT NULL DEFAULT 'normal',
+      "status" text NOT NULL DEFAULT 'pending',
+      "created_at" integer NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS "likes" (
+      "liker_id" text NOT NULL,
+      "liked_id" text NOT NULL,
+      "created_at" integer NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS "user_stamps" (
+      "user_id" text NOT NULL,
+      "safe_zone_id" text NOT NULL,
+      "created_at" integer NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY ("user_id", "safe_zone_id")
+    );
+
+    INSERT OR IGNORE INTO "safe_zones" ("id", "name", "lat", "lng", "mood", "deal_text", "address")
+    VALUES
+      ('sz1', 'The Gold Room', '34.075', '-118.258', 'cocktails', '1-for-1 Intermingled Martini', '123 Sunset Blvd, LA'),
+      ('sz2', 'Obsidian Lounge', '34.045', '-118.235', 'chill', 'Complimentary Gold-Leaf Dessert', '456 Main St, LA'),
+      ('sz3', 'Vibe Rooftop', '34.052', '-118.243', 'energetic', 'VIP Entry for Intermingled Users', '789 Broadway, LA');
   `);
 
   dbInstance = drizzle(sqlite, { schema });

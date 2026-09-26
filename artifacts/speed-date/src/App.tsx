@@ -450,10 +450,6 @@ function AppRoutes() {
     </Switch>
   );
 }
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
 
 function App() {
   return (

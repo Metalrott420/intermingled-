@@ -152747,15 +152747,13 @@ function getActiveWebDistPath() {
   }
   return possiblePaths[0];
 }
-app.use((req, res, next) => {
-  if (req.path.startsWith("/api")) return next();
-  const activePath = getActiveWebDistPath();
-  import_express21.default.static(activePath, {
-    maxAge: isProduction ? "1y" : 0,
-    immutable: isProduction,
-    index: false
-  })(req, res, next);
-});
+var webDistPath = getActiveWebDistPath();
+console.log("[app.ts] Resolved static webDistPath:", webDistPath);
+var assetsPath = path5.join(webDistPath, "assets");
+if (fs5.existsSync(assetsPath)) {
+  app.use("/assets", import_express21.default.static(assetsPath, { maxAge: "1y", immutable: true }));
+}
+app.use(import_express21.default.static(webDistPath, { maxAge: isProduction ? "1y" : 0, immutable: isProduction }));
 app.get("/favicon.ico", (_req, res) => {
   res.status(204).end();
 });

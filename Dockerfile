@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt
 # Install pnpm globally
 RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
 
-# Copy repository (including force-committed dist bundles)
+# Copy repository (including pre-built dist bundles)
 COPY . .
 
 # Install dependencies for Linux environment

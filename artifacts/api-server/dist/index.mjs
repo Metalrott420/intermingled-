@@ -152749,11 +152749,13 @@ function getActiveWebDistPath() {
 }
 var webDistPath = getActiveWebDistPath();
 console.log("[app.ts] Resolved static webDistPath:", webDistPath);
-var assetsPath = path5.join(webDistPath, "assets");
-if (fs5.existsSync(assetsPath)) {
-  app.use("/assets", import_express21.default.static(assetsPath, { maxAge: "1y", immutable: true }));
-}
-app.use(import_express21.default.static(webDistPath, { maxAge: isProduction ? "1y" : 0, immutable: isProduction }));
+app.use(
+  import_express21.default.static(webDistPath, {
+    maxAge: isProduction ? "1y" : 0,
+    immutable: isProduction,
+    index: false
+  })
+);
 app.get("/favicon.ico", (_req, res) => {
   res.status(204).end();
 });

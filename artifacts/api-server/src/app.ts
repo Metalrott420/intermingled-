@@ -45,14 +45,13 @@ function getActiveWebDistPath(): string {
 const webDistPath = getActiveWebDistPath();
 console.log("[app.ts] Resolved static webDistPath:", webDistPath);
 
-// Mount assets directory explicitly for guaranteed static JS/CSS MIME type serving
-const assetsPath = path.join(webDistPath, "assets");
-if (fs.existsSync(assetsPath)) {
-  app.use("/assets", express.static(assetsPath, { maxAge: "1y", immutable: true }));
-}
-
-// Mount main web dist folder
-app.use(express.static(webDistPath, { maxAge: isProduction ? "1y" : 0, immutable: isProduction }));
+app.use(
+  express.static(webDistPath, {
+    maxAge: isProduction ? "1y" : 0,
+    immutable: isProduction,
+    index: false,
+  })
+);
 
 // Handle favicon.ico requests instantly to prevent 15s gateway timeouts
 app.get("/favicon.ico", (_req, res) => {

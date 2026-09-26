@@ -101,7 +101,7 @@ export default function MapPage() {
 
   // ── Initial Fetch ──────────────────────────────────────────────────────────
   useEffect(() => {
-    fetch("/api/exploration/safe-zones")
+    fetch("/api/safe-zones")
         .then(r => r.json())
         .then(data => setSafeZones(data.zones || []))
         .catch(err => console.warn("[Map] Safe zones fetch warning:", err));

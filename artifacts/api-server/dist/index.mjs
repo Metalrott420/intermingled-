@@ -111054,6 +111054,27 @@ router.post("/auth/register", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+router.post("/auth/resend-verification", async (req, res) => {
+  const { email: email3 } = req.body;
+  if (!email3) return res.status(400).json({ error: "Email required" });
+  try {
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.email, email3.toLowerCase())
+    });
+    if (!user) return res.status(404).json({ error: "Account not found" });
+    if (user.isVerified) return res.json({ message: "Account is already verified!", isVerified: true });
+    const verificationToken = randomBytes(24).toString("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1e3);
+    await db.update(usersTable).set({ verificationToken, verificationTokenExpiresAt: expiresAt }).where(eq(usersTable.id, user.id));
+    sendConfirmationEmail(user.email, user.name, verificationToken).catch((err) => {
+      logger.error({ err, recipient: email3 }, "Resend verification error");
+    });
+    res.json({ message: "Verification email sent! Please check your inbox.", ok: true });
+  } catch (err) {
+    logger.error({ err }, "Resend error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 router.get("/auth/verify-email", async (req, res) => {
   const { token } = req.query;
   if (typeof token !== "string" || !token) {
@@ -111107,7 +111128,8 @@ router.post("/auth/login", async (req, res) => {
         email: user.email,
         name: user.name,
         role: user.role || "chooser",
-        isVerified: user.isVerified ?? false
+        isVerified: user.isVerified ?? false,
+        ageVerified: user.ageVerified ?? false
       }
     });
   } catch (err) {

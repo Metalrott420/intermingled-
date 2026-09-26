@@ -1,18 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
-interface User {
+export interface User {
   id: string;
   email: string;
   name: string;
   role: "chooser" | "suitor";
+  isVerified?: boolean;
+  ageVerified?: boolean;
 }
 
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string, ageVerified: boolean, termsAccepted: boolean) => Promise<any>;
+  resendVerificationEmail: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   bypassLogin: () => void;
 }
 
@@ -40,6 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       else throw new Error("Invalid user data");
     });
   }, []);
+
+  const refreshUser = useCallback(async () => {
+    const token = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (token) {
+      await fetchProfile(token);
+    }
+  }, [fetchProfile]);
 
   useEffect(() => {
     const token = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -75,6 +86,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || "Registration failed");
+    return data;
+  }, []);
+
+  const resendVerificationEmail = useCallback(async (email: string) => {
+    const resp = await fetch(`/api/auth/resend-verification`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || "Resend failed");
   }, []);
 
   const signOut = useCallback(async () => {
@@ -91,12 +113,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const guestId = "u_8071647dc527ad40";
     localStorage.setItem(AUTH_STORAGE_KEY, guestId);
 
-    // Attempt immediate fetch to update state before reload
     setIsLoading(true);
     fetchProfile(guestId)
         .then(() => {
             console.log("[AuthContext] Bypass success, reloading...");
-            window.location.href = "/"; // Force redirect to root
+            window.location.href = "/";
         })
         .catch(err => {
             console.error("[AuthContext] Bypass fetch failed:", err);
@@ -105,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchProfile]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut, bypassLogin }}>
+    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, resendVerificationEmail, signOut, refreshUser, bypassLogin }}>
       {children}
     </AuthContext.Provider>
   );

@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/reac
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "./AuthContext";
-import { Heart, MessageCircle, User, Zap, Map as MapIcon, Calendar, Home as HomeIcon, Crown } from "lucide-react";
+import { Heart, MessageCircle, User, Zap, Map as MapIcon, Calendar, Home as HomeIcon, Crown, Mail, Shield } from "lucide-react";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Pool from "@/pages/pool";
@@ -231,6 +231,164 @@ function SignInPage() {
   );
 }
 
+function EmailVerificationGate({ user }: { user: any }) {
+  const { resendVerificationEmail, refreshUser, signOut } = useAuth();
+  const [resending, setResending] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  const handleResend = async () => {
+    setResending(true);
+    setMsg("");
+    setErr("");
+    try {
+      await resendVerificationEmail(user.email);
+      setMsg("Verification email sent! Please check your inbox and spam folder.");
+    } catch (e: any) {
+      setErr(e.message || "Failed to resend verification email.");
+    } finally {
+      setResending(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-black px-4 relative overflow-hidden text-white text-center">
+      <div className="z-10 max-w-md w-full bg-zinc-900/90 border border-white/10 p-8 rounded-3xl backdrop-blur-xl shadow-2xl space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto text-primary">
+          <Mail size={32} />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-black uppercase italic tracking-wider text-white">Email Verification Required</h2>
+          <p className="text-xs text-zinc-400">
+            We sent a confirmation link to <strong className="text-primary">{user?.email}</strong>. Please confirm your email address to unlock Intermingled.
+          </p>
+        </div>
+
+        {msg && <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs p-3 rounded-xl">{msg}</div>}
+        {err && <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-xl">{err}</div>}
+
+        <div className="space-y-3 pt-2">
+          <button
+            onClick={handleResend}
+            disabled={resending}
+            className="w-full py-4 bg-primary text-black font-black uppercase tracking-widest text-xs rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_30px_hsl(var(--primary)/0.3)] cursor-pointer disabled:opacity-50"
+          >
+            {resending ? "Sending..." : "Resend Verification Email"}
+          </button>
+
+          <button
+            onClick={() => refreshUser()}
+            className="w-full py-3 bg-white/5 border border-white/10 text-white font-bold uppercase tracking-widest text-xs rounded-xl hover:bg-white/10 transition-all cursor-pointer"
+          >
+            I Confirmed — Refresh Status
+          </button>
+
+          <button
+            onClick={signOut}
+            className="text-xs text-zinc-500 hover:text-white transition-colors pt-2"
+          >
+            Sign Out / Switch Account
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IdentityVerificationGate({ user }: { user: any }) {
+  const { signOut, refreshUser } = useAuth();
+  const [starting, setStarting] = useState(false);
+  const [statusMsg, setStatusMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  const handleStartIdentity = async () => {
+    setStarting(true);
+    setErr("");
+    try {
+      const res = await fetch("/api/identity/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Dev-User-Id": user.id }
+      });
+      const data = await res.json();
+      if (data.alreadyVerified) {
+        await refreshUser();
+        return;
+      }
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || "Failed to start identity verification.");
+      }
+    } catch (e: any) {
+      setErr(e.message || "Identity verification setup failed.");
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const handleCheckStatus = async () => {
+    setStarting(true);
+    try {
+      const res = await fetch("/api/identity/status", {
+        headers: { "X-Dev-User-Id": user.id }
+      });
+      const data = await res.json();
+      if (data.verified) {
+        await refreshUser();
+      } else {
+        setStatusMsg(data.message || "Verification in progress or required.");
+      }
+    } catch (e: any) {
+      setErr("Failed to check status.");
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-black px-4 relative overflow-hidden text-white text-center">
+      <div className="z-10 max-w-md w-full bg-zinc-900/90 border border-white/10 p-8 rounded-3xl backdrop-blur-xl shadow-2xl space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-secondary/10 border border-secondary/20 flex items-center justify-center mx-auto text-secondary">
+          <Shield size={32} />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-black uppercase italic tracking-wider text-white">Government ID Required</h2>
+          <p className="text-xs text-zinc-400">
+            Intermingled requires 18+ Government ID and live photo verification to maintain our high-security speed dating environment.
+          </p>
+        </div>
+
+        {statusMsg && <div className="bg-primary/10 border border-primary/30 text-primary text-xs p-3 rounded-xl">{statusMsg}</div>}
+        {err && <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-xl">{err}</div>}
+
+        <div className="space-y-3 pt-2">
+          <button
+            onClick={handleStartIdentity}
+            disabled={starting}
+            className="w-full py-4 bg-secondary text-black font-black uppercase tracking-widest text-xs rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_30px_hsl(var(--secondary)/0.3)] cursor-pointer disabled:opacity-50"
+          >
+            {starting ? "Starting Setup..." : "Verify Government ID (Stripe Identity)"}
+          </button>
+
+          <button
+            onClick={handleCheckStatus}
+            className="w-full py-3 bg-white/5 border border-white/10 text-white font-bold uppercase tracking-widest text-xs rounded-xl hover:bg-white/10 transition-all cursor-pointer"
+          >
+            Check Verification Status
+          </button>
+
+          <button
+            onClick={signOut}
+            className="text-xs text-zinc-500 hover:text-white transition-colors pt-2"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AppRoutes() {
   const { user, isLoading } = useAuth();
 
@@ -242,42 +400,56 @@ function AppRoutes() {
     );
   }
 
+  if (!user) {
+    return (
+      <Switch>
+        <Route path="/sign-in" component={SignInPage} />
+        <Route path="/sign-up" component={SignInPage} />
+        <Route><Redirect to="/sign-in" /></Route>
+      </Switch>
+    );
+  }
+
+  // GATE 1: Email Verification
+  if (user.isVerified === false) {
+    return <EmailVerificationGate user={user} />;
+  }
+
+  // GATE 2: Government ID / Age Verification
+  if (user.ageVerified === false) {
+    return <IdentityVerificationGate user={user} />;
+  }
+
   return (
     <Switch>
-      {user ? (
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/map" component={MapPage} />
-          <Route path="/friends" component={FriendsPage} />
-          <Route path="/overlord" component={OverlordDashboard} />
-          <Route path="/organizer" component={OrganizerDashboard} />
-          <Route path="/events" component={EventsPage} />
-          <Route path="/pool" component={Pool} />
-          <Route path="/match" component={Match} />
-          <Route path="/room/:id/chooser" component={RoomChooser} />
-          <Route path="/room/:id/suitor" component={RoomSuitor} />
-          <Route path="/result/:id" component={Result} />
-          <Route path="/subscribe" component={Subscribe} />
-          <Route path="/subscribe/success" component={SubscribeSuccess} />
-          <Route path="/profile" component={ProfilePage} />
-          <Route path="/safety" component={SafetyPage} />
-          <Route path="/inbox" component={InboxPage} />
-          <Route path="/conversation/:matchId" component={ConversationPage} />
-          <Route path="/who-liked-me" component={WhoLikedMe} />
-          <Route path="/admin" component={AdminPage} />
-          <Route path="/privacy" component={PrivacyPolicy} />
-          <Route path="/terms" component={TermsOfService} />
-          <Route path="/verify-age/result" component={VerifyAgeResult} />
-          <Route path="/sign-in"><Redirect to="/" /></Route>
-          <Route path="/sign-up"><Redirect to="/" /></Route>
-        </>
-      ) : (
-        <>
-          <Route path="/sign-in" component={SignInPage} />
-          <Route path="/sign-up" component={SignInPage} />
-          <Route><Redirect to="/sign-in" /></Route>
-        </>
-      )}
+      <Route path="/" component={Home} />
+      <Route path="/map" component={MapPage} />
+      <Route path="/friends" component={FriendsPage} />
+      <Route path="/overlord" component={OverlordDashboard} />
+      <Route path="/organizer" component={OrganizerDashboard} />
+      <Route path="/events" component={EventsPage} />
+      <Route path="/pool" component={Pool} />
+      <Route path="/match" component={Match} />
+      <Route path="/room/:id/chooser" component={RoomChooser} />
+      <Route path="/room/:id/suitor" component={RoomSuitor} />
+      <Route path="/result/:id" component={Result} />
+      <Route path="/subscribe" component={Subscribe} />
+      <Route path="/subscribe/success" component={SubscribeSuccess} />
+      <Route path="/profile" component={ProfilePage} />
+      <Route path="/safety" component={SafetyPage} />
+      <Route path="/inbox" component={InboxPage} />
+      <Route path="/conversation/:matchId" component={ConversationPage} />
+      <Route path="/who-liked-me" component={WhoLikedMe} />
+      <Route path="/admin" component={AdminPage} />
+      <Route path="/privacy" component={PrivacyPolicy} />
+      <Route path="/terms" component={TermsOfService} />
+      <Route path="/verify-age/result" component={VerifyAgeResult} />
+      <Route path="/sign-in"><Redirect to="/" /></Route>
+      <Route path="/sign-up"><Redirect to="/" /></Route>
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
       <Route component={NotFound} />
     </Switch>
   );

@@ -45,6 +45,16 @@ function getActiveWebDistPath(): string {
 const webDistPath = getActiveWebDistPath();
 console.log("[app.ts] Resolved static webDistPath:", webDistPath);
 
+// Strict asset route handler: serve files from /assets with correct MIME types or 404
+app.use("/assets", (req, res) => {
+  const activePath = getActiveWebDistPath();
+  const filePath = path.join(activePath, "assets", req.path);
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    return res.sendFile(filePath);
+  }
+  res.status(404).type("text/plain").send("Asset not found");
+});
+
 app.use(
   express.static(webDistPath, {
     maxAge: isProduction ? "1y" : 0,

@@ -152771,6 +152771,14 @@ function getActiveWebDistPath() {
 }
 var webDistPath = getActiveWebDistPath();
 console.log("[app.ts] Resolved static webDistPath:", webDistPath);
+app.use("/assets", (req, res) => {
+  const activePath = getActiveWebDistPath();
+  const filePath = path5.join(activePath, "assets", req.path);
+  if (fs5.existsSync(filePath) && fs5.statSync(filePath).isFile()) {
+    return res.sendFile(filePath);
+  }
+  res.status(404).type("text/plain").send("Asset not found");
+});
 app.use(
   import_express21.default.static(webDistPath, {
     maxAge: isProduction ? "1y" : 0,

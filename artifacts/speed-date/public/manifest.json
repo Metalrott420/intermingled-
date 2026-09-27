@@ -1,0 +1,27 @@
+{
+  "short_name": "Intermingled",
+  "name": "Intermingled — Speed Dating Gameshow",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    },
+    {
+      "src": "/logo-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#080a10",
+  "theme_color": "#9333ea",
+  "display": "standalone"
+}

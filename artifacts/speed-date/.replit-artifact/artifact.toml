@@ -23,6 +23,10 @@ publicDir = "artifacts/speed-date/dist/public"
 serve = "static"
 
 [[services.production.rewrites]]
+from = "/assets/*"
+to = "/404"
+
+[[services.production.rewrites]]
 from = "/*"
 to = "/index.html"
 

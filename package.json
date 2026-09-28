@@ -1,0 +1,12 @@
+{
+  "name": "intermingled-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "pnpm --filter @workspace/speed-date run build",
+    "start": "pnpm --filter @workspace/speed-date run serve"
+  },
+  "devDependencies": {
+    "pnpm": "^11.15.1"
+  }
+}

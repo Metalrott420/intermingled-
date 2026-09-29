@@ -1,50 +1,111 @@
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+const PORT = process.env.PORT || 8080;
 
-const distDir = path.resolve(__dirname, 'artifacts', 'speed-date', 'dist', 'public');
+const publicDir = path.resolve(__dirname, 'artifacts/speed-date/dist/public');
 
-console.log('Production static server starting...');
-console.log('Serving static files from:', distDir);
+// MIME type map
+const mimeTypes = {
+  '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.json': 'application/json; charset=utf-8',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.eot': 'application/vnd.ms-fontobject',
+  '.ico': 'image/x-icon',
+  '.webp': 'image/webp',
+  '.html': 'text/html; charset=utf-8',
+};
 
-if (!fs.existsSync(distDir)) {
-  console.error('CRITICAL WARNING: dist/public directory does not exist! Run pnpm build first.');
-}
-
-// 1. Serve static files from dist/public/assets without falling through to index.html for missing files
-app.use('/assets', express.static(path.join(distDir, 'assets'), {
-  fallthrough: false,
-  maxAge: '1y',
-  immutable: true
-}));
-
-// 2. Serve root public assets (favicon.svg, manifest.json, logo-192.png, etc.)
-app.use(express.static(distDir, {
-  fallthrough: true,
-  maxAge: '0',
-}));
-
-// Express 404 error handler for static asset errors (returns plain text 404, NEVER text/html)
-app.use('/assets', (err, req, res, next) => {
-  res.status(404).type('text/plain').send('Asset Not Found');
-});
-
-// 3. SPA wildcard route fallback ONLY for page requests (HTML)
-app.get('*', (req, res) => {
-  const indexHtmlPath = path.join(distDir, 'index.html');
-  if (fs.existsSync(indexHtmlPath)) {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.sendFile(indexHtmlPath);
-  } else {
-    res.status(500).type('text/plain').send('Production build not found in dist/public. Please run build.');
+// Explicit static file handler - responds directly with correct MIME types
+app.get(/\.(js|css|png|jpg|jpeg|gif|svg|json|woff|woff2|ttf|eot|ico|webp|html)$/i, (req, res, next) => {
+  const filePath = path.join(publicDir, req.path);
+  
+  // Security: prevent directory traversal
+  if (!filePath.startsWith(publicDir)) {
+    return res.status(403).send('Forbidden');
   }
+  
+  // Check if file exists
+  if (!fs.existsSync(filePath)) {
+    console.log(`[404] Static asset not found: ${req.path}`);
+    return res.status(404).send('Not Found');
+  }
+  
+  // Get file extension and set correct MIME type
+  const ext = path.extname(filePath).toLowerCase();
+  const mimeType = mimeTypes[ext] || 'application/octet-stream';
+  res.setHeader('Content-Type', mimeType);
+  
+  // Send the file
+  return res.sendFile(filePath);
 });
 
-const port = process.env.PORT || 24906;
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server listening on 0.0.0.0:${port}`);
+// Explicit /assets/* handler - guarantees static files from assets directory
+app.get('/assets/*', (req, res) => {
+  const filePath = path.join(publicDir, req.path);
+  
+  // Security: prevent directory traversal
+  if (!filePath.startsWith(publicDir)) {
+    return res.status(403).send('Forbidden');
+  }
+  
+  // Check if file exists
+  if (!fs.existsSync(filePath)) {
+    console.log(`[404] Asset not found: ${req.path}`);
+    return res.status(404).send('Not Found');
+  }
+  
+  // Detect MIME type from extension
+  const ext = path.extname(filePath).toLowerCase();
+  const mimeType = mimeTypes[ext] || 'application/octet-stream';
+  res.setHeader('Content-Type', mimeType);
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  
+  return res.sendFile(filePath);
 });
+
+// Serve other static files (favicon, robots.txt, manifest, etc.)
+app.use((req, res, next) => {
+  const filePath = path.join(publicDir, req.path);
+  
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeType = mimeTypes[ext] || 'application/octet-stream';
+    res.setHeader('Content-Type', mimeType);
+    return res.sendFile(filePath);
+  }
+  
+  next()
+});
+
+// SPA fallback - rewrite all other routes to index.html for client-side routing
+app.get('*', (req, res) => {
+  const indexPath = path.join(publicDir, 'index.html');
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.sendFile(indexPath);
+});
+
+// Error handling
+app.use((err, req, res, next) => {
+  console.error(`[ERROR] ${req.method} ${req.path}:`, err.message);
+  res.status(500).send('Internal Server Error');
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running on http://0.0.0.0:${PORT}`);
+  console.log(`📁 Serving static files from: ${publicDir}`);
+});
+

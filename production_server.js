@@ -1,3 +1,4 @@
+const { execSync } = require('child_process');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -5,12 +6,20 @@ const fs = require('fs');
 const app = express();
 
 const distDir = path.resolve(__dirname, 'artifacts', 'speed-date', 'dist', 'public');
+const indexHtmlPath = path.join(distDir, 'index.html');
 
 console.log('Production static server starting...');
-console.log('Serving static files from:', distDir);
+console.log('Target static directory:', distDir);
 
-if (!fs.existsSync(distDir)) {
-  console.error('CRITICAL WARNING: dist/public directory does not exist! Run pnpm build first.');
+// If build output is missing, compile it on the fly!
+if (!fs.existsSync(indexHtmlPath)) {
+  console.log('dist/public/index.html not found. Building speed-date frontend now...');
+  try {
+    execSync('pnpm --filter @workspace/speed-date run build', { stdio: 'inherit', cwd: __dirname });
+    console.log('Build completed successfully!');
+  } catch (err) {
+    console.error('Failed to build speed-date frontend:', err.message);
+  }
 }
 
 // 1. Serve static files from dist/public/assets without falling through to index.html for missing files
@@ -33,14 +42,13 @@ app.use('/assets', (err, req, res, next) => {
 
 // 3. SPA wildcard route fallback ONLY for page requests (HTML)
 app.get('*', (req, res) => {
-  const indexHtmlPath = path.join(distDir, 'index.html');
   if (fs.existsSync(indexHtmlPath)) {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     res.sendFile(indexHtmlPath);
   } else {
-    res.status(500).type('text/plain').send('Production build not found in dist/public. Please run build.');
+    res.status(500).type('text/plain').send('Production build not found in dist/public.');
   }
 });
 

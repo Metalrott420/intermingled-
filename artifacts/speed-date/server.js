@@ -6,46 +6,31 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 5173;
 
-// Serve static files from dist/public with proper MIME types
+// Serve static files from dist/public with correct MIME types
 const publicDir = path.resolve(__dirname, 'dist/public');
+
+// Explicit static file routes FIRST - these bypass any middleware below
+app.get('/assets/*', express.static(publicDir));
+app.get('*.js', express.static(publicDir));
+app.get('*.css', express.static(publicDir));
+app.get('*.json', express.static(publicDir));
+app.get('*.png', express.static(publicDir));
+app.get('*.svg', express.static(publicDir));
+app.get('*.jpg', express.static(publicDir));
+app.get('*.jpeg', express.static(publicDir));
+app.get('*.gif', express.static(publicDir));
+app.get('*.ico', express.static(publicDir));
+app.get('*.webp', express.static(publicDir));
+app.get('*.woff2', express.static(publicDir));
+
+// Serve all other static files with express.static
 app.use(express.static(publicDir, {
   maxAge: '1d',
-  etag: false,
-  setHeaders: (res, filepath) => {
-    // Ensure correct MIME types for assets
-    if (filepath.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    } else if (filepath.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css; charset=utf-8');
-    } else if (filepath.endsWith('.png')) {
-      res.setHeader('Content-Type', 'image/png');
-    } else if (filepath.endsWith('.svg')) {
-      res.setHeader('Content-Type', 'image/svg+xml');
-    } else if (filepath.endsWith('.json')) {
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    } else if (filepath.endsWith('.woff2')) {
-      res.setHeader('Content-Type', 'font/woff2');
-    }
-  }
+  etag: false
 }));
 
-// SPA fallback: only rewrite app routes back to index.html
-// Static assets (in /assets/, .js, .css, .png, .svg, .json, .woff2, etc.) are served directly
-// and return 404 if not found (not index.html)
+// SPA fallback - only for non-asset routes
 app.get('*', (req, res) => {
-  // Don't rewrite actual asset requests
-  if (req.path.match(/\.(js|css|png|svg|json|woff2|jpg|jpeg|gif|ico|webp)$/i)) {
-    res.status(404).send('Not Found');
-    return;
-  }
-  
-  // Don't rewrite API calls or known non-SPA paths
-  if (req.path.startsWith('/api/')) {
-    res.status(404).send('Not Found');
-    return;
-  }
-
-  // Rewrite SPA routes to index.html
   res.sendFile(path.join(publicDir, 'index.html'));
 });
 

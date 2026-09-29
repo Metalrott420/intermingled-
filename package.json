@@ -5,8 +5,6 @@
   "scripts": {
     "build": "pnpm --filter @workspace/speed-date run build",
     "start": "pnpm --filter @workspace/speed-date run serve"
-  },
-  "devDependencies": {
-    "pnpm": "^11.15.1"
   }
 }
+

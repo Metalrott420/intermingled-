@@ -6,11 +6,7 @@ settings:
 
 importers:
 
-  .:
-    devDependencies:
-      pnpm:
-        specifier: ^11.15.1
-        version: 11.28.0
+  .: {}
 
   artifacts/speed-date:
     dependencies:
@@ -1943,11 +1939,6 @@ packages:
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
-  pnpm@11.28.0:
-    resolution: {integrity: sha512-jtI5Nx3oIkS2zM+eICPBjqhDmWHy7D/omJE7n37i52ygpFcXWArKPHmXwTX21PXeRSTL7uGizKxDDAPRNOKkjA==}
-    engines: {node: '>=22.13'}
-    hasBin: true
-
   postcss-selector-parser@6.0.10:
     resolution: {integrity: sha512-IQ7TZdoaqbT+LCpShg46jnZVlhWD2w6iQYAcYXfHARZ7X1t/UGhhceQDs5X0cGqKvYlHNOuv7Oa1xmb0oQuA3w==}
     engines: {node: '>=4'}
@@ -3860,8 +3851,6 @@ snapshots:
   p-timeout@6.1.4: {}
 
   picocolors@1.1.1: {}
-
-  pnpm@11.28.0: {}
 
   postcss-selector-parser@6.0.10:
     dependencies:

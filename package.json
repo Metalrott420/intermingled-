@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "pnpm --filter @workspace/speed-date run build",
+    "prestart": "pnpm --filter @workspace/speed-date run build",
     "start": "node production_server.js"
   },
   "dependencies": {

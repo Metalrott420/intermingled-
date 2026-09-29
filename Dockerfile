@@ -1,26 +1,17 @@
-FROM node:24-alpine
-
-# Install pnpm globally to cache it in the image layer
-RUN npm install -g pnpm@12.6.0
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Copy package files first
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY artifacts/speed-date/package.json ./artifacts/speed-date/
+# Copy production server and prebuilt public bundle
+COPY package.json production_server.js ./
+COPY artifacts/speed-date/dist/public ./artifacts/speed-date/dist/public
 
-# Install dependencies with retry logic
-RUN pnpm install --frozen-lockfile --prefer-offline || pnpm install --frozen-lockfile --no-frozen-lockfile
+# Install lightweight Express dependency
+RUN npm install express@^4.21.2 --production --no-audit --no-fund
 
-# Copy source code
-COPY . .
+ENV PORT=24906
+ENV NODE_ENV=production
 
-# Build the SPA
-RUN pnpm --filter @workspace/speed-date run build
+EXPOSE 24906
 
-# Expose port
-EXPOSE 8080
-
-# Start server
-CMD ["pnpm", "--filter", "@workspace/speed-date", "start"]
-
+CMD ["node", "production_server.js"]

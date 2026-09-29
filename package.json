@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "build": "pnpm --filter @workspace/speed-date run build",
-    "start": "pnpm --filter @workspace/speed-date run serve"
+    "start": "node production_server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
   },
   "devDependencies": {
     "pnpm": "^11.15.1"

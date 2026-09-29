@@ -2,14 +2,13 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-# Copy ONLY the pre-built static assets and server
+# Copy pre-built static assets and server
 COPY artifacts/speed-date/dist/public /app/dist/public
 COPY artifacts/speed-date/server.js /app/server.js
 COPY artifacts/speed-date/package.json /app/
 
-# No pnpm install needed - server.js is standalone with only express dependency
-# Install just express globally to avoid node_modules bloat
-RUN npm install -g express@4.22.3 && npm cache clean --force
+# Install express as a production dependency only
+RUN npm install --production express@4.22.3 && npm cache clean --force
 
 EXPOSE 8080
 

@@ -43,13 +43,9 @@ COPY --from=builder /app/artifacts/speed-date/dist/public ./artifacts/speed-date
 RUN npm install express@^4.21.2 --production --no-audit --no-fund && \
     npm cache clean --force
 
-ENV PORT=24906
 ENV NODE_ENV=production
 
-EXPOSE 24906
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:24906', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+EXPOSE 3000
 
 CMD ["node", "production_server.js"]
 

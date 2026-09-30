@@ -2,10 +2,10 @@
 nixPkgs = ["nodejs_22"]
 
 [phases.install]
-cmds = ["npm install express@^4.21.2 --no-audit --no-fund"]
+cmds = ["echo 'No dependencies needed for pure Node server'"]
 
 [phases.build]
 cmds = ["echo 'Using prebuilt dist/public bundle'"]
 
 [start]
-cmd = "node production_server.js"
+cmd = "node server.js"

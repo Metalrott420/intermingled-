@@ -2,10 +2,10 @@
 nixPkgs = ["nodejs_22"]
 
 [phases.install]
-cmds = ["echo 'Skipping pnpm install - using prebuilt bundle'"]
+cmds = ["npm install express@^4.21.2 --no-audit --no-fund"]
 
 [phases.build]
-cmds = ["echo 'Skipping pnpm build - using prebuilt bundle'"]
+cmds = ["echo 'Using prebuilt dist/public bundle'"]
 
 [start]
 cmd = "node production_server.js"

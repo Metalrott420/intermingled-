@@ -9,9 +9,9 @@ COPY artifacts/speed-date/dist/public ./artifacts/speed-date/dist/public
 # Install lightweight Express dependency
 RUN npm install express@^4.21.2 --production --no-audit --no-fund
 
-ENV PORT=24906
+ENV PORT=3000
 ENV NODE_ENV=production
 
-EXPOSE 24906
+EXPOSE 3000
 
 CMD ["node", "production_server.js"]

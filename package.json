@@ -1,10 +1,10 @@
 {
-  "name": "intermingled-root",
+  "name": "intermingled-web",
   "version": "1.0.0",
   "private": true,
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
     "build": "pnpm --filter @workspace/speed-date run build",
-    "start": "node server.js"
+    "start": "node index.js"
   }
 }

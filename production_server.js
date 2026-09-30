@@ -1,4 +1,3 @@
-const { execSync } = require('child_process');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -11,16 +10,10 @@ const indexHtmlPath = path.join(distDir, 'index.html');
 console.log('Production static server starting...');
 console.log('Target static directory:', distDir);
 
-// If build output is missing, compile it on the fly!
-if (!fs.existsSync(indexHtmlPath)) {
-  console.log('dist/public/index.html not found. Building speed-date frontend now...');
-  try {
-    execSync('pnpm --filter @workspace/speed-date run build', { stdio: 'inherit', cwd: __dirname });
-    console.log('Build completed successfully!');
-  } catch (err) {
-    console.error('Failed to build speed-date frontend:', err.message);
-  }
-}
+// Healthcheck endpoint for Railway
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
 
 // 1. Serve static files from dist/public/assets without falling through to index.html for missing files
 app.use('/assets', express.static(path.join(distDir, 'assets'), {
@@ -52,7 +45,14 @@ app.get('*', (req, res) => {
   }
 });
 
-const port = process.env.PORT || 24906;
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server listening on 0.0.0.0:${port}`);
+const port = Number(process.env.PORT) || 24906;
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`Production server listening on 0.0.0.0:${port}`);
+});
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+  });
 });

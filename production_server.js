@@ -10,6 +10,8 @@ const indexHtmlPath = path.join(distDir, 'index.html');
 
 console.log('Production static server starting...');
 console.log('Target static directory:', distDir);
+console.log('Environment PORT:', process.env.PORT);
+console.log('NODE_ENV:', process.env.NODE_ENV);
 
 // If build output is missing, compile it on the fly!
 if (!fs.existsSync(indexHtmlPath)) {
@@ -52,7 +54,17 @@ app.get('*', (req, res) => {
   }
 });
 
-const port = process.env.PORT || 24906;
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server listening on 0.0.0.0:${port}`);
+const port = process.env.PORT || 3000;
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`✓ Server listening on 0.0.0.0:${port}`);
 });
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+

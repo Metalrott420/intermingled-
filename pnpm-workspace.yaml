@@ -1,6 +1,0 @@
-packages:
-  - "."
-  - "artifacts/speed-date"
-allowBuilds:
-  '@clerk/shared': true
-  esbuild: true

@@ -2,10 +2,10 @@
 nixPkgs = ["nodejs_22"]
 
 [phases.install]
-cmds = ["echo 'No dependencies needed for pure Node index.js server'"]
+cmds = ["echo 'Skipping install'"]
 
 [phases.build]
-cmds = ["echo 'Using prebuilt dist/public bundle'"]
+cmds = ["echo 'Skipping build'"]
 
 [start]
 cmd = "node index.js"

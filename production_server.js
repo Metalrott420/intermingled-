@@ -3,79 +3,75 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-
 const distDir = path.resolve(__dirname, 'artifacts', 'speed-date', 'dist', 'public');
 const indexHtmlPath = path.join(distDir, 'index.html');
 
-console.log('Production static server starting...');
-console.log('Target static directory:', distDir);
+// CRITICAL: Read PORT FIRST, before anything else
+const PORT = process.env.PORT;
+if (!PORT) {
+  console.error('FATAL: process.env.PORT is not set. Railway must provide it.');
+  process.exit(1);
+}
 
-// Log incoming requests for Railway debugging
+console.log(`[STARTUP] PORT from environment: ${PORT}`);
+console.log(`[STARTUP] NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`[STARTUP] Target directory: ${distDir}`);
+
+// Request logging
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
 
-// Healthcheck endpoint for Railway
+// Health check
 app.get('/health', (req, res) => {
-  res.status(200).type('text/plain').send('OK');
+  res.status(200).send('OK');
 });
 
-// 1. Serve static files from dist/public/assets without falling through to index.html for missing files
+// Static assets (no fallback)
 app.use('/assets', express.static(path.join(distDir, 'assets'), {
   fallthrough: false,
   maxAge: '1y',
   immutable: true
 }));
 
-// 2. Serve root public assets (favicon.svg, manifest.json, logo-192.png, etc.)
+// Root static files with fallback
 app.use(express.static(distDir, {
   fallthrough: true,
-  maxAge: '0',
+  maxAge: '0'
 }));
 
-// Express 404 error handler for static asset errors (returns plain text 404, NEVER text/html)
+// Asset 404 handler
 app.use('/assets', (err, req, res, next) => {
-  console.error(`Asset missing: ${req.url}`);
   if (!res.headersSent) {
     res.status(404).type('text/plain').send('Asset Not Found');
   }
 });
 
-// 3. SPA wildcard route fallback ONLY for page requests (HTML)
+// SPA wildcard fallback
 app.get('*', (req, res) => {
-  if (fs.existsSync(indexHtmlPath)) {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.sendFile(indexHtmlPath, (err) => {
-      if (err && !res.headersSent) {
-        console.error('Error sending index.html:', err.message);
-        res.status(500).type('text/plain').send('Error reading index.html');
-      }
-    });
-  } else {
-    console.error('index.html not found at:', indexHtmlPath);
-    res.status(500).type('text/plain').send('Production build not found in dist/public.');
+  if (!fs.existsSync(indexHtmlPath)) {
+    console.error(`[ERROR] index.html not found at ${indexHtmlPath}`);
+    return res.status(500).type('text/plain').send('Build not found');
   }
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.sendFile(indexHtmlPath);
 });
 
-const port = Number(process.env.PORT) || 3000;
-const server = app.listen(port, '0.0.0.0', () => {
-  console.log(`Production server listening on 0.0.0.0:${port}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[SUCCESS] Server listening on 0.0.0.0:${PORT}`);
 });
 
 server.on('error', (err) => {
-  console.error(`Server error on port ${port}:`, err.message);
-  if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${port} is in use. Exiting cleanly.`);
-    process.exit(1);
-  }
+  console.error(`[FATAL] Server error on port ${PORT}:`, err.message);
+  process.exit(1);
 });
 
 process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
+  console.log('[SHUTDOWN] SIGTERM received');
   server.close(() => {
-    console.log('HTTP server closed');
+    console.log('[SHUTDOWN] Server closed');
+    process.exit(0);
   });
 });
+

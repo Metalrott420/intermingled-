@@ -60,14 +60,24 @@ app.get('*', (req, res) => {
   }
 });
 
-const port = Number(process.env.PORT) || 3000;
-const server = app.listen(port, '0.0.0.0', () => {
-  console.log(`Production server listening on 0.0.0.0:${port}`);
+const portsToListen = new Set([
+  Number(process.env.PORT) || 3000,
+  3000,
+  8080,
+  8000
+]);
+
+portsToListen.forEach((port) => {
+  try {
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`Production server listening on 0.0.0.0:${port}`);
+    });
+  } catch (err) {
+    console.error(`Failed to listen on port ${port}:`, err.message);
+  }
 });
 
 process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  server.close(() => {
-    console.log('HTTP server closed');
-  });
+  console.log('SIGTERM signal received: shutting down server');
+  process.exit(0);
 });

@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_22"]
+
+[phases.install]
+cmds = ["echo 'Skipping pnpm install - using prebuilt bundle'"]
+
+[phases.build]
+cmds = ["echo 'Skipping pnpm build - using prebuilt bundle'"]
+
+[start]
+cmd = "node production_server.js"

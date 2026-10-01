@@ -15,7 +15,7 @@ const mimeTypes = {
   '.woff2': 'font/woff2',
 };
 
-const server = http.createServer((req, res) => {
+function handleRequest(req, res) {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
 
   if (req.url === '/health') {
@@ -55,15 +55,26 @@ const server = http.createServer((req, res) => {
     res.writeHead(500, { 'Content-Type': 'text/plain' });
     return res.end('Build output not found');
   }
-});
+}
 
-const port = Number(process.env.PORT) || 3000;
-server.listen(port, '0.0.0.0', () => {
-  console.log(`Pure Node.js index.js server listening on 0.0.0.0:${port}`);
-});
+const portsToListen = new Set([
+  Number(process.env.PORT) || 3000,
+  8080,
+  3000,
+]);
 
-server.on('error', (err) => {
-  console.error('Server socket error:', err.message);
+portsToListen.forEach((port) => {
+  try {
+    const s = http.createServer(handleRequest);
+    s.listen(port, '0.0.0.0', () => {
+      console.log(`Pure Node.js index.js server listening on 0.0.0.0:${port}`);
+    });
+    s.on('error', (err) => {
+      console.error(`Port ${port} error:`, err.message);
+    });
+  } catch (err) {
+    console.error(`Failed port ${port}:`, err.message);
+  }
 });
 
 process.on('SIGTERM', () => {

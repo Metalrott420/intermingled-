@@ -17,7 +17,7 @@ import RoundProgress from "@/components/RoundProgress";
 import { QuestionRatingPanel } from "@/components/QuestionRatingPanel";
 import { useGameCues } from "@/hooks/useGameCues";
 
-type Phase = "messaging" | "eliminate" | "advancing" | "choose_winner";
+type Phase = "profile_review" | "messaging" | "eliminate" | "advancing" | "choose_winner";
 
 const ROUND_LABELS: Record<number, string> = { 1: "I", 2: "II", 3: "III", 4: "FINAL" };
 
@@ -84,7 +84,8 @@ export default function RoomChooser() {
   const [inputValues, setInputValues] = useState<Record<number, string>>({});
   const [activeTab, setActiveTab] = useState(1);
   const [unread, setUnread] = useState<Record<number, number>>({});
-  const [phase, setPhase] = useState<Phase>("messaging");
+  const [phase, setPhase] = useState<Phase>("profile_review");
+  const [reviewRemaining, setReviewRemaining] = useState(180); // 3-Minute Pre-Game Review
   const [isProcessing, setIsProcessing] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
   const [pendingElimination, setPendingElimination] = useState<{ id: string; name: string } | null>(null);

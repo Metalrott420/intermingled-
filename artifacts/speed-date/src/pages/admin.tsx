@@ -287,6 +287,45 @@ export default function AdminPage() {
               <Stat icon={Flag} label="Reports" value={stats.openReports} color="bg-destructive" />
             </div>
 
+            {/* Admin AI Bot Match Launcher Card */}
+            <div className="bg-[#111218] border border-[#d4af37]/40 rounded-2xl p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-[#d4af37]/20 pb-3">
+                <div className="flex items-center gap-2">
+                  <Crown className="text-[#d4af37]" />
+                  <h3 className="font-display font-black uppercase text-base text-white">Admin 5-Round AI Bot Test Match Launcher</h3>
+                </div>
+                <span className="text-[10px] font-mono text-[#d4af37] bg-[#d4af37]/10 border border-[#d4af37]/30 px-2 py-1 rounded-md">ADMIN TEST SUITE</span>
+              </div>
+
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Launch an instant 5-Round Speed Dating Match populated with 4 AI Bots (`Bot Marcus`, `Bot Jessica`, `Bot Tyler`, `Bot Elena`) to test questions, 3-minute profile review, 60s round timers, and elimination flow.
+              </p>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    const testRoomId = `test-room-${Date.now()}`;
+                    sessionStorage.setItem(`participantId_${testRoomId}`, "admin-chooser-123");
+                    setLocation(`/room/${testRoomId}/chooser?adminTest=true`);
+                  }}
+                  className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-xs tracking-wider shadow-lg hover:from-[#b5952f] hover:to-[#d97706] transition-all"
+                >
+                  Test Match as Chooser (vs 4 AI Bots) 👑
+                </button>
+
+                <button
+                  onClick={() => {
+                    const testRoomId = `test-room-${Date.now()}`;
+                    sessionStorage.setItem(`participantId_${testRoomId}`, "admin-suitor-123");
+                    setLocation(`/room/${testRoomId}/suitor?adminTest=true`);
+                  }}
+                  className="flex-1 py-3 px-4 rounded-xl bg-[#181a24] hover:bg-[#222538] border border-[#d4af37]/40 text-[#d4af37] font-bold uppercase text-xs tracking-wider transition-all"
+                >
+                  Test Match as Suitor (vs 3 AI Bots) 💖
+                </button>
+              </div>
+            </div>
+
             {/* Recent reports preview */}
             {reports.length > 0 && (
               <div className="space-y-3">

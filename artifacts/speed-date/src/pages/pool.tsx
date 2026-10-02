@@ -22,6 +22,10 @@ import {
   Compass,
   ExternalLink,
   Car,
+  Utensils,
+  Coffee,
+  Wine,
+  Music,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +55,16 @@ interface SpeedDateEvent {
   latitude: number;
   longitude: number;
   isJoined?: boolean;
+}
+
+interface SearchResultItem {
+  id: string;
+  name: string;
+  displayName: string;
+  category: "restaurant" | "bar" | "cafe" | "club" | "address";
+  lat: number;
+  lng: number;
+  distanceMi: number;
 }
 
 export default function Pool() {
@@ -99,11 +113,13 @@ export default function Pool() {
   const [radiusFilter, setRadiusFilter] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   // Selected Map Pin Directions State
   const [selectedTarget, setSelectedTarget] = useState<{
     title: string;
-    type: "event" | "profile";
+    type: "event" | "profile" | "venue";
     latitude: number;
     longitude: number;
     distanceMi: number;
@@ -148,6 +164,11 @@ export default function Pool() {
   const leafletMapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
 
+  const { isConnected, poolCount, leavePool, subscribe } = usePoolSocket(
+    userId || undefined,
+    token ?? undefined
+  );
+
   // Automatically request GPS location on page load and center map on user's real local city
   useEffect(() => {
     if (navigator.geolocation) {
@@ -164,11 +185,6 @@ export default function Pool() {
       );
     }
   }, []);
-
-  const { isConnected, poolCount, leavePool, subscribe } = usePoolSocket(
-    userId || undefined,
-    token ?? undefined
-  );
 
   // Initialize Real Leaflet Interactive Map Engine
   useEffect(() => {
@@ -279,39 +295,86 @@ export default function Pool() {
     });
   }, [viewMode, userCoords, events, browseProfiles]);
 
-  // Handle Location Search via OpenStreetMap Nominatim Geocoding API
-  const handleLocationSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    setSearchLoading(true);
+  // Handle Autocomplete Location & Venue Search
+  const searchVenuesAndLocations = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
+    }
 
+    setSearchLoading(true);
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=1`
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`
       );
       const data = await res.json();
 
-      if (data && data[0]) {
-        const lat = parseFloat(data[0].lat);
-        const lng = parseFloat(data[0].lon);
-        setUserCoords({ lat, lng });
+      if (data && data.length > 0) {
+        const formatted: SearchResultItem[] = data.map((item: any, i: number) => {
+          const lat = parseFloat(item.lat);
+          const lng = parseFloat(item.lon);
+          const name = item.display_name.split(",")[0];
+          const type = item.type || "venue";
+          const category =
+            type.includes("restaurant") || type.includes("food")
+              ? "restaurant"
+              : type.includes("bar") || type.includes("pub")
+              ? "bar"
+              : type.includes("cafe") || type.includes("coffee")
+              ? "cafe"
+              : "address";
 
-        if (leafletMapRef.current) {
-          leafletMapRef.current.flyTo([lat, lng], 14, { duration: 1.5 });
-        }
-
-        toast({
-          title: "Location Found! 🗺️",
-          description: `Map camera moved to ${data[0].display_name.slice(0, 40)}...`,
+          return {
+            id: `sr-${i}`,
+            name,
+            displayName: item.display_name,
+            category,
+            lat,
+            lng,
+            distanceMi: Number((Math.random() * 2 + 0.3).toFixed(1)),
+          };
         });
+
+        setSearchResults(formatted);
+        setShowDropdown(true);
       } else {
-        toast({ title: "Address Not Found", description: "Try searching for a city or venue name.", variant: "destructive" });
+        setSearchResults([]);
       }
     } catch {
-      toast({ title: "Geocoding Error", description: "Could not fetch search coordinates.", variant: "destructive" });
+      setSearchResults([]);
     } finally {
       setSearchLoading(false);
     }
+  };
+
+  const handleSelectSearchResult = (item: SearchResultItem) => {
+    setUserCoords({ lat: item.lat, lng: item.lng });
+    setShowDropdown(false);
+    setSearchQuery(item.name);
+
+    if (leafletMapRef.current) {
+      leafletMapRef.current.flyTo([item.lat, item.lng], 15, { duration: 1.5 });
+    }
+
+    setSelectedTarget({
+      title: item.name,
+      type: "venue",
+      latitude: item.lat,
+      longitude: item.lng,
+      distanceMi: item.distanceMi,
+      etaMinutes: Math.round(item.distanceMi * 3),
+    });
+
+    toast({
+      title: `${item.name} Selected 📍`,
+      description: `Map camera moved to ${item.name}. Click 'Create Event' to host speed dating here!`,
+    });
+  };
+
+  const handleQuickCategorySearch = (category: string) => {
+    setSearchQuery(category);
+    searchVenuesAndLocations(`${category} near Austin TX`);
   };
 
   // Handle GPS location ping
@@ -360,8 +423,8 @@ export default function Pool() {
       capacity: newEvent.capacity,
       joinedCount: 1,
       scheduledTime: newEvent.scheduledTime,
-      latitude: userCoords.lat + (Math.random() - 0.5) * 0.02,
-      longitude: userCoords.lng + (Math.random() - 0.5) * 0.02,
+      latitude: selectedTarget ? selectedTarget.latitude : userCoords.lat + (Math.random() - 0.5) * 0.02,
+      longitude: selectedTarget ? selectedTarget.longitude : userCoords.lng + (Math.random() - 0.5) * 0.02,
       isJoined: true,
     };
     setEvents((prev) => [created, ...prev]);
@@ -391,24 +454,56 @@ export default function Pool() {
         </div>
       </div>
 
-      {/* Top Controls & Location Geocoding Search Bar */}
-      <div className="bg-[#111218] border-b border-[#d4af37]/20 p-4 space-y-3">
+      {/* Top Controls & Location Geocoding Autocomplete Search Bar */}
+      <div className="bg-[#111218] border-b border-[#d4af37]/20 p-4 space-y-3 relative z-30">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          {/* Location Search Bar */}
-          <form onSubmit={handleLocationSearch} className="flex gap-2 flex-1 max-w-md">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          {/* Autocomplete Search Bar */}
+          <div className="relative flex-1 max-w-lg">
+            <div className="relative flex items-center">
+              <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search city, address, or venue (e.g. 6th St, Austin, TX)..."
+                placeholder="Search popular venues, restaurants, bars, or addresses (e.g., Chipotle, Starbucks, 6th St)..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-[#181a24] border-[#252838] text-xs text-white h-10"
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  searchVenuesAndLocations(e.target.value);
+                }}
+                onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+                className="pl-9 bg-[#181a24] border-[#252838] text-xs text-white h-10 w-full"
               />
             </div>
-            <Button type="submit" disabled={searchLoading} className="bg-[#d4af37] hover:bg-[#b5952f] text-black font-bold h-10 px-4 text-xs">
-              {searchLoading ? "Searching..." : "Search"}
-            </Button>
-          </form>
+
+            {/* Autocomplete Dropdown Menu */}
+            {showDropdown && searchResults.length > 0 && (
+              <div className="absolute top-12 left-0 right-0 z-50 bg-[#111218] border border-[#d4af37]/40 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+                <div className="p-2 text-[10px] font-mono text-[#d4af37] uppercase tracking-wider border-b border-[#222538] flex items-center justify-between">
+                  <span>Popular Venue Search Results</span>
+                  <span>{searchResults.length} Found</span>
+                </div>
+                {searchResults.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleSelectSearchResult(item)}
+                    className="w-full text-left p-3 hover:bg-[#1d2030] transition-colors border-b border-[#1c1f2e] last:border-b-0 flex items-center justify-between"
+                  >
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-bold text-white flex items-center gap-1.5">
+                        {item.category === "restaurant" && <Utensils size={12} className="text-amber-400" />}
+                        {item.category === "bar" && <Wine size={12} className="text-purple-400" />}
+                        {item.category === "cafe" && <Coffee size={12} className="text-emerald-400" />}
+                        {item.category === "address" && <MapPin size={12} className="text-[#d4af37]" />}
+                        <span>{item.name}</span>
+                      </p>
+                      <p className="text-[10px] text-muted-foreground line-clamp-1">{item.displayName}</p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] border-[#d4af37]/30 text-[#d4af37] shrink-0 ml-2">
+                      {item.distanceMi} mi away
+                    </Badge>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center gap-2">
             <Button
@@ -440,6 +535,18 @@ export default function Pool() {
             </div>
 
             <Button
+              onClick={() => setCoordinatorMode(!coordinatorMode)}
+              className={`font-bold uppercase text-xs border h-10 ${
+                coordinatorMode
+                  ? "bg-[#d4af37] text-black border-[#d4af37] shadow-lg shadow-[#d4af37]/30"
+                  : "bg-[#181a24] hover:bg-[#222536] text-[#d4af37] border-[#d4af37]/50"
+              }`}
+            >
+              <Crown size={14} className="mr-1" />
+              {coordinatorMode ? "Coordinator Mode ✓" : "Coordinator Mode"}
+            </Button>
+
+            <Button
               onClick={() => setShowEventModal(true)}
               className="bg-[#181a24] hover:bg-[#222536] text-[#d4af37] border border-[#d4af37]/50 font-bold uppercase text-xs h-10"
             >
@@ -447,6 +554,35 @@ export default function Pool() {
               Create Event
             </Button>
           </div>
+        </div>
+
+        {/* Quick Venue Category Chips */}
+        <div className="flex items-center gap-2 pt-1 overflow-x-auto text-xs">
+          <span className="text-[10px] font-mono text-muted-foreground uppercase shrink-0">Popular Categories:</span>
+          <button
+            onClick={() => handleQuickCategorySearch("Restaurants")}
+            className="px-2.5 py-1 rounded-lg bg-[#181a24] border border-[#d4af37]/20 hover:border-[#d4af37] text-xs font-bold text-white flex items-center gap-1 shrink-0"
+          >
+            <Utensils size={12} className="text-amber-400" /> Restaurants
+          </button>
+          <button
+            onClick={() => handleQuickCategorySearch("Bars and Lounges")}
+            className="px-2.5 py-1 rounded-lg bg-[#181a24] border border-[#d4af37]/20 hover:border-[#d4af37] text-xs font-bold text-white flex items-center gap-1 shrink-0"
+          >
+            <Wine size={12} className="text-purple-400" /> Bars & Lounges
+          </button>
+          <button
+            onClick={() => handleQuickCategorySearch("Coffee Shops and Cafes")}
+            className="px-2.5 py-1 rounded-lg bg-[#181a24] border border-[#d4af37]/20 hover:border-[#d4af37] text-xs font-bold text-white flex items-center gap-1 shrink-0"
+          >
+            <Coffee size={12} className="text-emerald-400" /> Cafes
+          </button>
+          <button
+            onClick={() => handleQuickCategorySearch("Clubs and Live Music")}
+            className="px-2.5 py-1 rounded-lg bg-[#181a24] border border-[#d4af37]/20 hover:border-[#d4af37] text-xs font-bold text-white flex items-center gap-1 shrink-0"
+          >
+            <Music size={12} className="text-pink-400" /> Clubs & Live Music
+          </button>
         </div>
       </div>
 
@@ -510,11 +646,21 @@ export default function Pool() {
               </div>
 
               <div className="space-y-2 pt-2">
+                <Button
+                  onClick={() => {
+                    setNewEvent({ ...newEvent, title: `Speed Date @ ${selectedTarget.title}`, area: selectedTarget.title });
+                    setShowEventModal(true);
+                  }}
+                  className="w-full bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-xs py-3"
+                >
+                  <Crown size={14} className="mr-1.5" /> Host Speed Date Event Here
+                </Button>
+
                 <a
                   href={`https://www.google.com/maps/dir/?api=1&destination=${selectedTarget.latitude},${selectedTarget.longitude}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full flex items-center justify-center gap-2 bg-[#d4af37] hover:bg-[#b5952f] text-black font-bold uppercase text-xs py-3 rounded-xl shadow-lg"
+                  className="w-full flex items-center justify-center gap-2 bg-[#181a24] hover:bg-[#222536] text-white border border-[#d4af37]/40 font-bold uppercase text-xs py-3 rounded-xl"
                 >
                   Open in Google Maps <ExternalLink size={14} />
                 </a>

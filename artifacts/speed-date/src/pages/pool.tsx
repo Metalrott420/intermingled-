@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@clerk/react";
 import { usePoolSocket } from "@/hooks/useSocket";
@@ -18,11 +18,17 @@ import {
   Radio,
   SlidersHorizontal,
   Crown,
+  Search,
+  Compass,
+  ExternalLink,
+  Car,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+
+declare const L: any; // Leaflet global from CDN
 
 interface BrowseProfile {
   id: string;
@@ -30,8 +36,8 @@ interface BrowseProfile {
   bio: string | null;
   photos: string[];
   distanceMiles?: number;
-  latitude?: number;
-  longitude?: number;
+  latitude: number;
+  longitude: number;
 }
 
 interface SpeedDateEvent {
@@ -61,16 +67,48 @@ export default function Pool() {
     getToken().then((t) => setToken(t)).catch(() => {});
   }, [getToken]);
 
-  const [viewMode, setViewMode] = useState<"radar" | "map">("map");
+  const [viewMode, setViewMode] = useState<"map" | "radar">("map");
   const [coordinatorMode, setCoordinatorMode] = useState(false);
-  const [browseProfiles, setBrowseProfiles] = useState<BrowseProfile[]>([]);
+  const [browseProfiles, setBrowseProfiles] = useState<BrowseProfile[]>([
+    {
+      id: "p-1",
+      name: "Jessica Taylor",
+      bio: "Software engineer & coffee enthusiast. Looking for genuine speed dating chemistry!",
+      photos: ["/logo-192.png"],
+      distanceMiles: 0.8,
+      latitude: 30.2692,
+      longitude: -97.7411,
+    },
+    {
+      id: "p-2",
+      name: "Marcus Miller",
+      bio: "Architect & outdoor cyclist. Excited for the 30-person VIP mixer!",
+      photos: ["/logo-192.png"],
+      distanceMiles: 1.4,
+      latitude: 30.2622,
+      longitude: -97.7351,
+    },
+  ]);
+
   const [browseIndex, setBrowseIndex] = useState(0);
   const [liked, setLiked] = useState<Set<string>>(new Set());
 
-  // GPS Location Self-Pinging state
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  // Location & Geocoding Search State
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>({ lat: 30.2672, lng: -97.7431 });
   const [isPinging, setIsPinging] = useState(false);
-  const [radiusFilter, setRadiusFilter] = useState<number>(10); // 1, 5, 10, 25 miles
+  const [radiusFilter, setRadiusFilter] = useState<number>(10);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  // Selected Map Pin Directions State
+  const [selectedTarget, setSelectedTarget] = useState<{
+    title: string;
+    type: "event" | "profile";
+    latitude: number;
+    longitude: number;
+    distanceMi: number;
+    etaMinutes: number;
+  } | null>(null);
 
   // Event Coordinator Creation State
   const [showEventModal, setShowEventModal] = useState(false);
@@ -106,24 +144,158 @@ export default function Pool() {
     scheduledTime: "8:00 PM Tonight",
   });
 
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const leafletMapRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+
   const { isConnected, poolCount, leavePool, subscribe } = usePoolSocket(
     userId || undefined,
     token ?? undefined
   );
 
-  // Use active user ID from URL, Clerk, or session storage (never redirect to /)
-  const activeUserId = userId || "user-active";
-
+  // Initialize Real Leaflet Interactive Map Engine
   useEffect(() => {
-    const unsub = subscribe(
-      "match_found",
-      ({ roomId, participantId }: { roomId: string; participantId: string }) => {
-        sessionStorage.setItem(`participantId_${roomId}`, participantId);
-        setLocation(`/room/${roomId}/suitor`);
+    if (viewMode !== "map" || !mapContainerRef.current) return;
+
+    if (typeof L === "undefined") {
+      console.warn("Leaflet script not yet loaded from CDN.");
+      return;
+    }
+
+    if (!leafletMapRef.current) {
+      const map = L.map(mapContainerRef.current, {
+        center: [userCoords.lat, userCoords.lng],
+        zoom: 13,
+        zoomControl: false,
+      });
+
+      // CartoDB Dark Matter dark tile layer matching Luxury Gold theme
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        attribution: '&copy; <a href="https://carto.com/">CartoDB</a>',
+        maxZoom: 19,
+      }).addTo(map);
+
+      L.control.zoom({ position: "bottomright" }).addTo(map);
+      leafletMapRef.current = map;
+    } else {
+      leafletMapRef.current.setView([userCoords.lat, userCoords.lng]);
+    }
+
+    // Clear existing markers
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+
+    const map = leafletMapRef.current;
+
+    // 1. User Self-Location Pin (Gold Glowing Radar Marker)
+    const userIcon = L.divIcon({
+      className: "custom-leaflet-user-pin",
+      html: `
+        <div style="position:relative; width:36px; height:36px; display:flex; align-items:center; justify-content:center;">
+          <div style="position:absolute; inset:0; border-radius:50%; background:rgba(212,175,55,0.3); border:2px solid #d4af37; animation:ping 1.5s infinite;"></div>
+          <div style="width:24px; height:24px; border-radius:50%; background:#d4af37; border:2px solid #000; display:flex; align-items:center; justify-content:center; color:#000; font-weight:bold; font-size:12px;">📍</div>
+        </div>
+      `,
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
+    });
+
+    const userMarker = L.marker([userCoords.lat, userCoords.lng], { icon: userIcon })
+      .addTo(map)
+      .bindPopup("<b>Your GPS Location</b><br/>Broadcasting Live Matching Radius");
+    markersRef.current.push(userMarker);
+
+    // 2. Render Event Coordinator Pins
+    events.forEach((evt) => {
+      const evtIcon = L.divIcon({
+        className: "custom-leaflet-event-pin",
+        html: `
+          <div style="background:#111218; border:2px solid #d4af37; color:#d4af37; border-radius:12px; padding:4px 8px; font-size:10px; font-weight:900; font-family:sans-serif; white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,0.8); cursor:pointer;">
+            👑 ${evt.title.slice(0, 16)}... (${evt.joinedCount}/${evt.capacity})
+          </div>
+        `,
+        iconSize: [120, 30],
+        iconAnchor: [60, 15],
+      });
+
+      const m = L.marker([evt.latitude, evt.longitude], { icon: evtIcon })
+        .addTo(map)
+        .on("click", () => {
+          setSelectedTarget({
+            title: evt.title,
+            type: "event",
+            latitude: evt.latitude,
+            longitude: evt.longitude,
+            distanceMi: 1.2,
+            etaMinutes: 4,
+          });
+        });
+      markersRef.current.push(m);
+    });
+
+    // 3. Render Nearby Speed Daters Pins
+    browseProfiles.forEach((p) => {
+      const profileIcon = L.divIcon({
+        className: "custom-leaflet-profile-pin",
+        html: `
+          <div style="background:#181a24; border:2px solid #f59e0b; color:#fff; border-radius:20px; padding:3px 8px; font-size:10px; font-weight:bold; display:flex; align-items:center; gap:4px; box-shadow:0 4px 10px rgba(0,0,0,0.7); cursor:pointer;">
+            <span>💖</span> <span>${p.name.split(" ")[0]}</span>
+          </div>
+        `,
+        iconSize: [90, 26],
+        iconAnchor: [45, 13],
+      });
+
+      const m = L.marker([p.latitude, p.longitude], { icon: profileIcon })
+        .addTo(map)
+        .on("click", () => {
+          setSelectedTarget({
+            title: p.name,
+            type: "profile",
+            latitude: p.latitude,
+            longitude: p.longitude,
+            distanceMi: p.distanceMiles || 0.8,
+            etaMinutes: Math.round((p.distanceMiles || 0.8) * 3),
+          });
+        });
+      markersRef.current.push(m);
+    });
+  }, [viewMode, userCoords, events, browseProfiles]);
+
+  // Handle Location Search via OpenStreetMap Nominatim Geocoding API
+  const handleLocationSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearchLoading(true);
+
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=1`
+      );
+      const data = await res.json();
+
+      if (data && data[0]) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        setUserCoords({ lat, lng });
+
+        if (leafletMapRef.current) {
+          leafletMapRef.current.flyTo([lat, lng], 14, { duration: 1.5 });
+        }
+
+        toast({
+          title: "Location Found! 🗺️",
+          description: `Map camera moved to ${data[0].display_name.slice(0, 40)}...`,
+        });
+      } else {
+        toast({ title: "Address Not Found", description: "Try searching for a city or venue name.", variant: "destructive" });
       }
-    );
-    return unsub;
-  }, [subscribe, setLocation]);
+    } catch {
+      toast({ title: "Geocoding Error", description: "Could not fetch search coordinates.", variant: "destructive" });
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
   // Handle GPS location ping
   const handlePingLocation = () => {
@@ -134,6 +306,11 @@ export default function Pool() {
           const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           setUserCoords(coords);
           setIsPinging(false);
+
+          if (leafletMapRef.current) {
+            leafletMapRef.current.flyTo([coords.lat, coords.lng], 14, { duration: 1.5 });
+          }
+
           toast({
             title: "Location Pinged! 📍",
             description: `Broadcasting live GPS coordinates. Localized matching enabled (${radiusFilter} mi radius).`,
@@ -141,11 +318,7 @@ export default function Pool() {
         },
         () => {
           setIsPinging(false);
-          toast({
-            title: "GPS Permission Denied",
-            description: "Defaulting to Austin, TX hotspot location.",
-            variant: "destructive",
-          });
+          toast({ title: "GPS Permission Denied", description: "Defaulting to Austin, TX hotspot.", variant: "destructive" });
           setUserCoords({ lat: 30.2672, lng: -97.7431 });
         },
         { enableHighAccuracy: true }
@@ -155,29 +328,6 @@ export default function Pool() {
       setUserCoords({ lat: 30.2672, lng: -97.7431 });
     }
   };
-
-  useEffect(() => {
-    fetch("/api/users/looking")
-      .then((r) => r.json())
-      .then((data) => {
-        const profiles = (data.users ?? []).filter((u: BrowseProfile) => u.id !== userId);
-        setBrowseProfiles(profiles);
-      })
-      .catch(() => {});
-  }, [userId]);
-
-  const handleLike = useCallback(
-    async (profileId: string) => {
-      setLiked((prev) => new Set([...prev, profileId]));
-      fetch(`/api/users/${profileId}/like`, { method: "POST", credentials: "include" }).catch(() => {});
-      setBrowseIndex((i) => Math.min(i + 1, browseProfiles.length - 1));
-    },
-    [browseProfiles.length]
-  );
-
-  const handlePass = useCallback(() => {
-    setBrowseIndex((i) => Math.min(i + 1, browseProfiles.length - 1));
-  }, [browseProfiles.length]);
 
   const handleCreateEvent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,8 +343,8 @@ export default function Pool() {
       capacity: newEvent.capacity,
       joinedCount: 1,
       scheduledTime: newEvent.scheduledTime,
-      latitude: userCoords ? userCoords.lat + (Math.random() - 0.5) * 0.02 : 30.2672,
-      longitude: userCoords ? userCoords.lng + (Math.random() - 0.5) * 0.02 : -97.7431,
+      latitude: userCoords.lat + (Math.random() - 0.5) * 0.02,
+      longitude: userCoords.lng + (Math.random() - 0.5) * 0.02,
       isJoined: true,
     };
     setEvents((prev) => [created, ...prev]);
@@ -202,24 +352,8 @@ export default function Pool() {
     setNewEvent({ title: "", area: "", capacity: 20, scheduledTime: "8:00 PM Tonight" });
     toast({
       title: "Speed Dating Event Created! 🎉",
-      description: `${created.title} (${created.capacity} Person Event) is now pinned on the interactive map!`,
+      description: `${created.title} (${created.capacity} Person Event) is pinned on the interactive map!`,
     });
-  };
-
-  const handleJoinEvent = (eventId: string) => {
-    setEvents((prev) =>
-      prev.map((evt) => {
-        if (evt.id === eventId) {
-          const isJoined = !evt.isJoined;
-          const joinedCount = isJoined
-            ? Math.min(evt.joinedCount + 1, evt.capacity)
-            : Math.max(evt.joinedCount - 1, 0);
-          return { ...evt, isJoined, joinedCount };
-        }
-        return evt;
-      })
-    );
-    toast({ title: "Event Joined! ⭐", description: "You are queued in the speed dating pool." });
   };
 
   const currentProfile = browseProfiles[browseIndex];
@@ -240,140 +374,86 @@ export default function Pool() {
         </div>
       </div>
 
-      {/* Top Map & Control Bar */}
-      <div className="bg-[#111218] border-b border-[#d4af37]/20 p-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={handlePingLocation}
-            disabled={isPinging}
-            className="bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] text-[#08080c] font-black uppercase tracking-wider text-xs py-2 px-4 shadow-lg shadow-[#d4af37]/20"
-          >
-            <Radio size={16} className="mr-1.5 animate-pulse" />
-            {userCoords ? "Update Location Ping 📍" : "Ping My Location 📍"}
-          </Button>
+      {/* Top Controls & Location Geocoding Search Bar */}
+      <div className="bg-[#111218] border-b border-[#d4af37]/20 p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Location Search Bar */}
+          <form onSubmit={handleLocationSearch} className="flex gap-2 flex-1 max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search city, address, or venue (e.g. 6th St, Austin, TX)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 bg-[#181a24] border-[#252838] text-xs text-white h-10"
+              />
+            </div>
+            <Button type="submit" disabled={searchLoading} className="bg-[#d4af37] hover:bg-[#b5952f] text-black font-bold h-10 px-4 text-xs">
+              {searchLoading ? "Searching..." : "Search"}
+            </Button>
+          </form>
 
-          <div className="flex items-center gap-2 bg-[#181a24] border border-[#d4af37]/30 rounded-xl px-3 py-1.5 text-xs text-[#d4af37] font-mono">
-            <SlidersHorizontal size={14} />
-            <span>Radius:</span>
-            <select
-              value={radiusFilter}
-              onChange={(e) => setRadiusFilter(Number(e.target.value))}
-              className="bg-transparent text-white font-bold outline-none cursor-pointer"
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handlePingLocation}
+              disabled={isPinging}
+              className="bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-xs h-10 px-3"
             >
-              <option value={1} className="bg-[#111218]">1 Mile</option>
-              <option value={5} className="bg-[#111218]">5 Miles</option>
-              <option value={10} className="bg-[#111218]">10 Miles</option>
-              <option value={25} className="bg-[#111218]">25 Miles</option>
-            </select>
+              <Radio size={14} className="mr-1 animate-pulse" />
+              Ping GPS 📍
+            </Button>
+
+            <div className="flex bg-[#181a24] p-1 rounded-xl border border-[#d4af37]/30">
+              <button
+                onClick={() => setViewMode("map")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${
+                  viewMode === "map" ? "bg-[#d4af37] text-black" : "text-muted-foreground hover:text-white"
+                }`}
+              >
+                Map View 🗺️
+              </button>
+              <button
+                onClick={() => setViewMode("radar")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${
+                  viewMode === "radar" ? "bg-[#d4af37] text-black" : "text-muted-foreground hover:text-white"
+                }`}
+              >
+                Radar View 📡
+              </button>
+            </div>
+
+            <Button
+              onClick={() => setShowEventModal(true)}
+              className="bg-[#181a24] hover:bg-[#222536] text-[#d4af37] border border-[#d4af37]/50 font-bold uppercase text-xs h-10"
+            >
+              <Plus size={16} className="mr-1" />
+              Create Event
+            </Button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex bg-[#181a24] p-1 rounded-xl border border-[#d4af37]/30">
-            <button
-              onClick={() => setViewMode("map")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                viewMode === "map"
-                  ? "bg-[#d4af37] text-black shadow-md"
-                  : "text-muted-foreground hover:text-white"
-              }`}
-            >
-              Map View 🗺️
-            </button>
-            <button
-              onClick={() => setViewMode("radar")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                viewMode === "radar"
-                  ? "bg-[#d4af37] text-black shadow-md"
-                  : "text-muted-foreground hover:text-white"
-              }`}
-            >
-              Radar View 📡
-            </button>
-          </div>
-
-          <Button
-            onClick={() => setCoordinatorMode(!coordinatorMode)}
-            className={`font-bold uppercase text-xs border ${
-              coordinatorMode
-                ? "bg-[#d4af37] text-black border-[#d4af37] shadow-lg shadow-[#d4af37]/30"
-                : "bg-[#181a24] hover:bg-[#222536] text-[#d4af37] border-[#d4af37]/50"
-            }`}
-          >
-            <Crown size={16} className="mr-1" />
-            {coordinatorMode ? "Coordinator Mode Active ✓" : "Coordinator Mode"}
-          </Button>
-
-          <Button
-            onClick={() => setShowEventModal(true)}
-            className="bg-[#181a24] hover:bg-[#222536] text-[#d4af37] border border-[#d4af37]/50 font-bold uppercase text-xs"
-          >
-            <Plus size={16} className="mr-1" />
-            Create Event
-          </Button>
         </div>
       </div>
 
       {/* Main Container */}
       <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-hidden">
-        {/* LEFT: Interactive Map / Radar Panel */}
-        <div className="flex-1 relative bg-[#0a0b12] border-r border-[#d4af37]/20 flex flex-col justify-center items-center p-6 overflow-hidden">
+        {/* LEFT: Leaflet Map Container */}
+        <div className="flex-1 relative bg-[#0a0b12] border-r border-[#d4af37]/20 flex flex-col justify-center items-center p-4 overflow-hidden">
           {viewMode === "map" ? (
-            /* Interactive Canvas Map */
-            <div className="relative w-full h-full min-h-[420px] rounded-2xl bg-[#0e101a] border border-[#d4af37]/30 overflow-hidden shadow-2xl flex items-center justify-center">
-              {/* Map grid lines */}
-              <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f2438_1px,transparent_1px),linear-gradient(to_bottom,#1f2438_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-40" />
+            <div className="relative w-full h-full min-h-[460px] rounded-2xl overflow-hidden shadow-2xl border border-[#d4af37]/30">
+              {/* Leaflet Map Div */}
+              <div ref={mapContainerRef} className="w-full h-full min-h-[460px] z-10" />
 
-              {/* Center User Pin */}
-              <div className="relative z-10 flex flex-col items-center">
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-full bg-[#d4af37]/20 border-2 border-[#d4af37] flex items-center justify-center animate-pulse">
-                    <Navigation className="w-6 h-6 text-[#d4af37]" />
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-black" />
-                </div>
-                <Badge className="mt-2 bg-[#d4af37] text-black font-black uppercase text-[10px] tracking-widest">
-                  YOU (PINGED 📍)
-                </Badge>
-              </div>
-
-              {/* Event Pins on Map */}
-              {events.map((evt, idx) => (
-                <div
-                  key={evt.id}
-                  style={{
-                    position: "absolute",
-                    top: `${30 + (idx % 2 === 0 ? idx * 25 : -idx * 20)}%`,
-                    left: `${25 + idx * 30}%`,
-                  }}
-                  className="flex flex-col items-center z-20 group cursor-pointer"
-                >
-                  <div className="bg-[#181a24] border-2 border-[#d4af37] p-2 rounded-xl shadow-xl flex items-center gap-2 group-hover:scale-110 transition-transform">
-                    <Calendar size={18} className="text-[#d4af37]" />
-                    <div className="text-left">
-                      <p className="text-xs font-bold text-white line-clamp-1">{evt.title}</p>
-                      <p className="text-[10px] text-[#d4af37] font-mono">
-                        {evt.joinedCount} / {evt.capacity} Joined ({evt.capacity} Person Event)
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => handleJoinEvent(evt.id)}
-                    className={`mt-1.5 text-[10px] font-bold uppercase tracking-wider py-1 h-7 ${
-                      evt.isJoined
-                        ? "bg-emerald-500 text-black"
-                        : "bg-[#d4af37] hover:bg-[#b5952f] text-black"
-                    }`}
-                  >
-                    {evt.isJoined ? "Joined ✓" : "Join Event"}
-                  </Button>
-                </div>
-              ))}
+              {/* Recenter Button */}
+              <button
+                onClick={handlePingLocation}
+                className="absolute bottom-4 right-4 z-20 bg-[#111218] border border-[#d4af37] text-[#d4af37] p-2.5 rounded-xl shadow-2xl hover:bg-[#d4af37] hover:text-black transition-colors"
+                title="Center on My Location"
+              >
+                <Compass size={20} />
+              </button>
             </div>
           ) : (
-            /* Radar View */
-            <div className="relative mb-6 mx-auto w-64 h-64 flex items-center justify-center">
+            /* Radar Animation */
+            <div className="relative mx-auto w-64 h-64 flex items-center justify-center">
               <div className="absolute inset-0 rounded-full border-2 border-[#d4af37]/20 animate-ping" />
               <div className="absolute inset-4 rounded-full border-2 border-[#d4af37]/35 animate-ping [animation-delay:0.3s]" />
               <div className="absolute inset-8 rounded-full border-2 border-[#d4af37]/50 animate-ping [animation-delay:0.6s]" />
@@ -387,74 +467,77 @@ export default function Pool() {
           )}
         </div>
 
-        {/* RIGHT: Active Profiles Browse */}
-        <div className="lg:w-96 p-6 bg-[#0e1018] flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-[#d4af37]/20 pb-3">
-              <h2 className="font-display font-black text-lg tracking-wider text-[#d4af37] uppercase">
-                NEARBY SPEED DATERS
-              </h2>
-              <Badge variant="outline" className="border-[#d4af37]/40 text-[#d4af37] font-mono">
-                {browseProfiles.length} ONLINE
-              </Badge>
+        {/* RIGHT: Driving Directions & Target Selection Drawer */}
+        <div className="lg:w-96 p-6 bg-[#0e1018] flex flex-col justify-between space-y-4">
+          {selectedTarget ? (
+            <div className="bg-[#141622] border border-[#d4af37]/40 rounded-2xl p-5 space-y-4 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-[#d4af37]/20 pb-3">
+                <div className="flex items-center gap-2">
+                  <Car className="text-[#d4af37]" />
+                  <h3 className="font-bold text-sm text-white uppercase">{selectedTarget.title}</h3>
+                </div>
+                <button onClick={() => setSelectedTarget(null)} className="text-muted-foreground hover:text-white">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                <div className="bg-[#181a24] p-3 rounded-xl border border-[#222538]">
+                  <p className="text-[10px] text-muted-foreground font-mono uppercase">Driving Distance</p>
+                  <p className="text-base font-black text-[#d4af37]">{selectedTarget.distanceMi} Miles</p>
+                </div>
+                <div className="bg-[#181a24] p-3 rounded-xl border border-[#222538]">
+                  <p className="text-[10px] text-muted-foreground font-mono uppercase">Estimated Driving Time</p>
+                  <p className="text-base font-black text-emerald-400">~{selectedTarget.etaMinutes} Mins ETA</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${selectedTarget.latitude},${selectedTarget.longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full flex items-center justify-center gap-2 bg-[#d4af37] hover:bg-[#b5952f] text-black font-bold uppercase text-xs py-3 rounded-xl shadow-lg"
+                >
+                  Open in Google Maps <ExternalLink size={14} />
+                </a>
+
+                <a
+                  href={`https://maps.apple.com/?daddr=${selectedTarget.latitude},${selectedTarget.longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full flex items-center justify-center gap-2 bg-[#181a24] hover:bg-[#222536] text-[#d4af37] border border-[#d4af37]/40 font-bold uppercase text-xs py-3 rounded-xl"
+                >
+                  Open in Apple Maps <ExternalLink size={14} />
+                </a>
+              </div>
             </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-[#d4af37]/20 pb-3">
+                <h2 className="font-display font-black text-sm tracking-wider text-[#d4af37] uppercase">
+                  ACTIVE SPEED DATERS
+                </h2>
+                <Badge variant="outline" className="border-[#d4af37]/40 text-[#d4af37] font-mono">
+                  {browseProfiles.length} ONLINE
+                </Badge>
+              </div>
 
-            {currentProfile ? (
-              <div className="bg-[#141622] border border-[#d4af37]/30 rounded-2xl overflow-hidden shadow-2xl space-y-3 p-4">
-                <div className="aspect-square w-full rounded-xl bg-[#1d2030] overflow-hidden relative">
-                  {currentProfile.photos?.[0] ? (
-                    <img
-                      src={currentProfile.photos[0]}
-                      alt={currentProfile.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-[#d4af37]">
-                      {currentProfile.name[0]}
-                    </div>
-                  )}
-                  <div className="absolute bottom-2 left-2 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#d4af37]/30 text-[11px] font-mono text-[#d4af37]">
-                    0.4 mi away 📍
+              {currentProfile && (
+                <div className="bg-[#141622] border border-[#d4af37]/30 rounded-2xl p-4 space-y-3">
+                  <div className="aspect-square w-full rounded-xl bg-[#1d2030] overflow-hidden relative">
+                    <img src={currentProfile.photos[0]} alt={currentProfile.name} className="w-full h-full object-cover" />
                   </div>
+                  <h3 className="font-bold text-white text-base">{currentProfile.name}</h3>
+                  <p className="text-xs text-muted-foreground">{currentProfile.bio}</p>
                 </div>
-
-                <div className="space-y-1">
-                  <h3 className="text-xl font-bold text-white">{currentProfile.name}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                    {currentProfile.bio || "Looking for deep conversations and real speed dating chemistry."}
-                  </p>
-                </div>
-
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    onClick={handlePass}
-                    variant="outline"
-                    className="flex-1 border-muted-foreground/30 text-muted-foreground hover:bg-muted"
-                  >
-                    <X size={18} className="mr-1" />
-                    Pass
-                  </Button>
-                  <Button
-                    onClick={() => handleLike(currentProfile.id)}
-                    className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-bold"
-                  >
-                    <Heart size={18} className="mr-1 fill-black" />
-                    Like
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-12 space-y-2">
-                <Sparkles className="w-10 h-10 text-[#d4af37] mx-auto animate-bounce" />
-                <p className="text-sm font-bold text-white">Scanning for local speed daters...</p>
-                <p className="text-xs text-muted-foreground">Ping your location to expand discovery!</p>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Event Coordinator Modal */}
+      {/* Event Coordinator Creation Modal */}
       {showEventModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <form
@@ -463,37 +546,37 @@ export default function Pool() {
           >
             <div className="flex items-center justify-between border-b border-[#d4af37]/20 pb-3">
               <div className="flex items-center gap-2">
-                <Calendar className="text-[#d4af37]" />
-                <h3 className="text-lg font-black uppercase text-foreground">Create Speed Dating Event</h3>
+                <Crown className="text-[#d4af37]" />
+                <h3 className="text-base font-black uppercase text-white">Create Speed Dating Event</h3>
               </div>
               <button type="button" onClick={() => setShowEventModal(false)} className="text-muted-foreground hover:text-white">
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-mono text-[#d4af37] uppercase">Event Name / Title</label>
+                <label className="text-[10px] font-mono text-[#d4af37] uppercase">Event Title</label>
                 <Input
                   placeholder="e.g. Austin Blind Date Mixer"
                   value={newEvent.title}
                   onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                  className="bg-[#181a24] border-[#252838] text-white mt-1"
+                  className="bg-[#181a24] border-[#252838] text-xs text-white mt-1"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-mono text-[#d4af37] uppercase">Venue / Area Location</label>
+                <label className="text-[10px] font-mono text-[#d4af37] uppercase">Area / Venue Name</label>
                 <Input
                   placeholder="e.g. Rainey Street District"
                   value={newEvent.area}
                   onChange={(e) => setNewEvent({ ...newEvent, area: e.target.value })}
-                  className="bg-[#181a24] border-[#252838] text-white mt-1"
+                  className="bg-[#181a24] border-[#252838] text-xs text-white mt-1"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-mono text-[#d4af37] uppercase">Event Capacity (Person Limit)</label>
+                <label className="text-[10px] font-mono text-[#d4af37] uppercase">Person Limit (Capacity)</label>
                 <div className="grid grid-cols-3 gap-2 mt-1">
                   {[10, 20, 30].map((cap) => (
                     <Button
@@ -514,11 +597,11 @@ export default function Pool() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3">
+            <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setShowEventModal(false)} className="text-muted-foreground">
                 Cancel
               </Button>
-              <Button type="submit" className="bg-[#d4af37] hover:bg-[#b5952f] text-black font-bold uppercase">
+              <Button type="submit" className="bg-[#d4af37] hover:bg-[#b5952f] text-black font-bold uppercase text-xs">
                 Publish Event Pin
               </Button>
             </div>

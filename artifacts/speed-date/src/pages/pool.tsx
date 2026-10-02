@@ -17,6 +17,7 @@ import {
   Sparkles,
   Radio,
   SlidersHorizontal,
+  Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +62,7 @@ export default function Pool() {
   }, [getToken]);
 
   const [viewMode, setViewMode] = useState<"radar" | "map">("map");
+  const [coordinatorMode, setCoordinatorMode] = useState(false);
   const [browseProfiles, setBrowseProfiles] = useState<BrowseProfile[]>([]);
   const [browseIndex, setBrowseIndex] = useState(0);
   const [liked, setLiked] = useState<Set<string>>(new Set());
@@ -290,6 +292,18 @@ export default function Pool() {
               Radar View 📡
             </button>
           </div>
+
+          <Button
+            onClick={() => setCoordinatorMode(!coordinatorMode)}
+            className={`font-bold uppercase text-xs border ${
+              coordinatorMode
+                ? "bg-[#d4af37] text-black border-[#d4af37] shadow-lg shadow-[#d4af37]/30"
+                : "bg-[#181a24] hover:bg-[#222536] text-[#d4af37] border-[#d4af37]/50"
+            }`}
+          >
+            <Crown size={16} className="mr-1" />
+            {coordinatorMode ? "Coordinator Mode Active ✓" : "Coordinator Mode"}
+          </Button>
 
           <Button
             onClick={() => setShowEventModal(true)}

@@ -29,10 +29,11 @@ import VerifyAgeResult from "@/pages/verify-age-result";
 
 const queryClient = new QueryClient();
 
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
+const hostForClerk = typeof window !== "undefined" ? window.location.hostname.replace(/^www\./, "") : "";
+
+const clerkPubKey =
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ||
+  (hostForClerk ? publishableKeyFromHost(hostForClerk) : "");
 
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 

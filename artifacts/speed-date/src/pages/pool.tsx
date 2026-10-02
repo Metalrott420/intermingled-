@@ -148,6 +148,23 @@ export default function Pool() {
   const leafletMapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
 
+  // Automatically request GPS location on page load and center map on user's real local city
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setUserCoords(coords);
+          if (leafletMapRef.current) {
+            leafletMapRef.current.flyTo([coords.lat, coords.lng], 14, { duration: 1.5 });
+          }
+        },
+        () => {},
+        { enableHighAccuracy: true }
+      );
+    }
+  }, []);
+
   const { isConnected, poolCount, leavePool, subscribe } = usePoolSocket(
     userId || undefined,
     token ?? undefined
@@ -169,10 +186,10 @@ export default function Pool() {
         zoomControl: false,
       });
 
-      // Esri World Dark Gray Canvas - 100% Free Keyless Dark Tile Layer without watermarks
-      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
-        attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
-        maxZoom: 16,
+      // Full Street-Level OpenStreetMap Tile Layer (Real Streets, Highways, Landmarks)
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
       }).addTo(map);
 
       L.control.zoom({ position: "bottomright" }).addTo(map);

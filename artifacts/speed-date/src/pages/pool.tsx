@@ -83,24 +83,54 @@ export default function Pool() {
 
   const [viewMode, setViewMode] = useState<"map" | "radar">("map");
   const [coordinatorMode, setCoordinatorMode] = useState(false);
+
+  // User Coords (Initial Default Austin, TX until live GPS acquired)
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>({ lat: 30.2672, lng: -97.7431 });
+
+  // Dynamic Profiles and Events relative to live GPS coords
   const [browseProfiles, setBrowseProfiles] = useState<BrowseProfile[]>([
     {
       id: "p-1",
       name: "Jessica Taylor",
       bio: "Software engineer & coffee enthusiast. Looking for genuine speed dating chemistry!",
       photos: ["/logo-192.png"],
-      distanceMiles: 0.8,
-      latitude: 30.2762,
-      longitude: -97.7421,
+      distanceMiles: 0.4,
+      latitude: 30.2712,
+      longitude: -97.7401,
     },
     {
       id: "p-2",
       name: "Marcus Miller",
       bio: "Architect & outdoor cyclist. Excited for the 30-person VIP mixer!",
       photos: ["/logo-192.png"],
-      distanceMiles: 1.4,
-      latitude: 30.2482,
-      longitude: -97.7511,
+      distanceMiles: 0.8,
+      latitude: 30.2622,
+      longitude: -97.7481,
+    },
+  ]);
+
+  const [events, setEvents] = useState<SpeedDateEvent[]>([
+    {
+      id: "evt-1",
+      title: "Local Blind Speed Dating Mixer",
+      area: "Downtown City Center",
+      coordinatorName: "Elena V.",
+      capacity: 20,
+      joinedCount: 14,
+      scheduledTime: "8:00 PM Tonight",
+      latitude: 30.2722,
+      longitude: -97.7391,
+    },
+    {
+      id: "evt-2",
+      title: "VIP Gold Mixer (30 Person)",
+      area: "Main Nightlife District",
+      coordinatorName: "Marcus K.",
+      capacity: 30,
+      joinedCount: 22,
+      scheduledTime: "9:30 PM Tonight",
+      latitude: 30.2612,
+      longitude: -97.7461,
     },
   ]);
 
@@ -108,7 +138,6 @@ export default function Pool() {
   const [liked, setLiked] = useState<Set<string>>(new Set());
 
   // Location & Geocoding Search State
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>({ lat: 30.2672, lng: -97.7431 });
   const [isPinging, setIsPinging] = useState(false);
   const [radiusFilter, setRadiusFilter] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState("");
@@ -128,31 +157,6 @@ export default function Pool() {
 
   // Event Coordinator Creation State
   const [showEventModal, setShowEventModal] = useState(false);
-  const [events, setEvents] = useState<SpeedDateEvent[]>([
-    {
-      id: "evt-1",
-      title: "Austin Downtown Blind Speed Dating",
-      area: "Downtown Austin (6th St)",
-      coordinatorName: "Elena V.",
-      capacity: 20,
-      joinedCount: 14,
-      scheduledTime: "8:00 PM Tonight",
-      latitude: 30.2672,
-      longitude: -97.7431,
-    },
-    {
-      id: "evt-2",
-      title: "VIP Gold Mixer (30 Person)",
-      area: "Rainey Street District",
-      coordinatorName: "Marcus K.",
-      capacity: 30,
-      joinedCount: 22,
-      scheduledTime: "9:30 PM Tonight",
-      latitude: 30.2548,
-      longitude: -97.7325,
-    },
-  ]);
-
   const [newEvent, setNewEvent] = useState({
     title: "",
     area: "",
@@ -169,15 +173,67 @@ export default function Pool() {
     token ?? undefined
   );
 
+  // Dynamically update nearby events and speed daters around real GPS coordinates
+  const updateLocalPinsRelative = (lat: number, lng: number) => {
+    setEvents([
+      {
+        id: "evt-1",
+        title: "Local Blind Speed Dating Mixer",
+        area: "Downtown Center",
+        coordinatorName: "Elena V.",
+        capacity: 20,
+        joinedCount: 14,
+        scheduledTime: "8:00 PM Tonight",
+        latitude: lat + 0.005,
+        longitude: lng - 0.004,
+      },
+      {
+        id: "evt-2",
+        title: "VIP Gold Mixer (30 Person)",
+        area: "Main Nightlife District",
+        coordinatorName: "Marcus K.",
+        capacity: 30,
+        joinedCount: 22,
+        scheduledTime: "9:30 PM Tonight",
+        latitude: lat - 0.006,
+        longitude: lng + 0.005,
+      },
+    ]);
+
+    setBrowseProfiles([
+      {
+        id: "p-1",
+        name: "Jessica Taylor",
+        bio: "Software engineer & coffee enthusiast. Looking for genuine speed dating chemistry!",
+        photos: ["/logo-192.png"],
+        distanceMiles: 0.4,
+        latitude: lat + 0.004,
+        longitude: lng + 0.003,
+      },
+      {
+        id: "p-2",
+        name: "Marcus Miller",
+        bio: "Architect & outdoor cyclist. Excited for the 30-person VIP mixer!",
+        photos: ["/logo-192.png"],
+        distanceMiles: 0.9,
+        latitude: lat - 0.005,
+        longitude: lng - 0.006,
+      },
+    ]);
+  };
+
   // Automatically request GPS location on page load and center map on user's real local city
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          setUserCoords(coords);
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setUserCoords({ lat, lng });
+          updateLocalPinsRelative(lat, lng);
+
           if (leafletMapRef.current) {
-            leafletMapRef.current.flyTo([coords.lat, coords.lng], 14, { duration: 1.5 });
+            leafletMapRef.current.flyTo([lat, lng], 14, { duration: 1.5 });
           }
         },
         () => {},
@@ -198,7 +254,7 @@ export default function Pool() {
     if (!leafletMapRef.current) {
       const map = L.map(mapContainerRef.current, {
         center: [userCoords.lat, userCoords.lng],
-        zoom: 13,
+        zoom: 14,
         zoomControl: false,
       });
 
@@ -235,7 +291,7 @@ export default function Pool() {
 
     const userMarker = L.marker([userCoords.lat, userCoords.lng], { icon: userIcon })
       .addTo(map)
-      .bindPopup("<b>Your GPS Location</b><br/>Broadcasting Live Matching Radius");
+      .bindPopup("<b>Your Real GPS Location</b><br/>Broadcasting Live Local Matching Radius");
     markersRef.current.push(userMarker);
 
     // 2. Render Event Coordinator Pins
@@ -259,8 +315,8 @@ export default function Pool() {
             type: "event",
             latitude: evt.latitude,
             longitude: evt.longitude,
-            distanceMi: 1.2,
-            etaMinutes: 4,
+            distanceMi: 0.5,
+            etaMinutes: 3,
           });
         });
       markersRef.current.push(m);
@@ -287,8 +343,8 @@ export default function Pool() {
             type: "profile",
             latitude: p.latitude,
             longitude: p.longitude,
-            distanceMi: p.distanceMiles || 0.8,
-            etaMinutes: Math.round((p.distanceMiles || 0.8) * 3),
+            distanceMi: p.distanceMiles || 0.4,
+            etaMinutes: Math.round((p.distanceMiles || 0.4) * 3),
           });
         });
       markersRef.current.push(m);
@@ -350,6 +406,7 @@ export default function Pool() {
 
   const handleSelectSearchResult = (item: SearchResultItem) => {
     setUserCoords({ lat: item.lat, lng: item.lng });
+    updateLocalPinsRelative(item.lat, item.lng);
     setShowDropdown(false);
     setSearchQuery(item.name);
 
@@ -368,13 +425,13 @@ export default function Pool() {
 
     toast({
       title: `${item.name} Selected 📍`,
-      description: `Map camera moved to ${item.name}. Click 'Create Event' to host speed dating here!`,
+      description: `Map centered on ${item.name}. Click 'Create Event' to host speed dating here!`,
     });
   };
 
   const handleQuickCategorySearch = (category: string) => {
     setSearchQuery(category);
-    searchVenuesAndLocations(`${category} near Austin TX`);
+    searchVenuesAndLocations(category);
   };
 
   // Handle GPS location ping
@@ -383,29 +440,29 @@ export default function Pool() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          setUserCoords(coords);
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setUserCoords({ lat, lng });
+          updateLocalPinsRelative(lat, lng);
           setIsPinging(false);
 
           if (leafletMapRef.current) {
-            leafletMapRef.current.flyTo([coords.lat, coords.lng], 14, { duration: 1.5 });
+            leafletMapRef.current.flyTo([lat, lng], 15, { duration: 1.5 });
           }
 
           toast({
-            title: "Location Pinged! 📍",
-            description: `Broadcasting live GPS coordinates. Localized matching enabled (${radiusFilter} mi radius).`,
+            title: "Real GPS Location Pinged! 📍",
+            description: `Broadcasting live coordinates. Localized matching enabled (${radiusFilter} mi radius).`,
           });
         },
         () => {
           setIsPinging(false);
           toast({ title: "GPS Permission Denied", description: "Defaulting to Austin, TX hotspot.", variant: "destructive" });
-          setUserCoords({ lat: 30.2672, lng: -97.7431 });
         },
         { enableHighAccuracy: true }
       );
     } else {
       setIsPinging(false);
-      setUserCoords({ lat: 30.2672, lng: -97.7431 });
     }
   };
 
@@ -599,7 +656,7 @@ export default function Pool() {
               <button
                 onClick={handlePingLocation}
                 className="absolute bottom-4 right-4 z-20 bg-[#111218] border border-[#d4af37] text-[#d4af37] p-2.5 rounded-xl shadow-2xl hover:bg-[#d4af37] hover:text-black transition-colors"
-                title="Center on My Location"
+                title="Center on My Real Location"
               >
                 <Compass size={20} />
               </button>
@@ -721,7 +778,7 @@ export default function Pool() {
               <div>
                 <label className="text-[10px] font-mono text-[#d4af37] uppercase">Event Title</label>
                 <Input
-                  placeholder="e.g. Austin Blind Date Mixer"
+                  placeholder="e.g. Blind Date Mixer"
                   value={newEvent.title}
                   onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
                   className="bg-[#181a24] border-[#252838] text-xs text-white mt-1"
@@ -731,7 +788,7 @@ export default function Pool() {
               <div>
                 <label className="text-[10px] font-mono text-[#d4af37] uppercase">Area / Venue Name</label>
                 <Input
-                  placeholder="e.g. Rainey Street District"
+                  placeholder="e.g. Main Street District"
                   value={newEvent.area}
                   onChange={(e) => setNewEvent({ ...newEvent, area: e.target.value })}
                   className="bg-[#181a24] border-[#252838] text-xs text-white mt-1"

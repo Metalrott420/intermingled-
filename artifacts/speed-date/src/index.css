@@ -103,19 +103,19 @@
   --popover-foreground: 240 10% 96%;
   --popover-border: 240 18% 16%;
 
-  /* Electric Purple — main brand color */
-  --primary: 270 85% 60%;
-  --primary-foreground: 0 0% 100%;
+  /* Luxury Metallic Gold — main Intermingled brand color */
+  --primary: 45 80% 50%;
+  --primary-foreground: 240 25% 4%;
 
-  /* Gold/Amber — winner, champion color */
-  --secondary: 38 95% 54%;
-  --secondary-foreground: 240 25% 6%;
+  /* Metallic Silver/Amber — secondary accent */
+  --secondary: 42 85% 58%;
+  --secondary-foreground: 240 25% 4%;
 
-  /* Extra semantic colors for the gameshow */
-  --gold: 38 95% 54%;
-  --gold-foreground: 240 25% 6%;
+  /* Extra semantic colors for gameshow & dating */
+  --gold: 45 80% 50%;
+  --gold-foreground: 240 25% 4%;
   --elimination: 330 85% 58%;   /* hot pink — elimination drama */
-  --winner: 190 90% 44%;         /* cyan — winner announcement */
+  --winner: 45 90% 55%;         /* radiant gold winner announcement */
 
   --muted: 240 18% 12%;
   --muted-foreground: 240 10% 48%;
@@ -127,7 +127,7 @@
   --destructive-foreground: 0 0% 100%;
 
   --input: 240 18% 12%;
-  --ring: 270 85% 60%;
+  --ring: 45 80% 50%;
 
   --chart-1: 270 85% 60%;
   --chart-2: 38 95% 54%;

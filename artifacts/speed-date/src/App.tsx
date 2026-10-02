@@ -26,6 +26,8 @@ import PrivacyPolicy from "@/pages/privacy";
 import TermsOfService from "@/pages/terms";
 import AdminPage from "@/pages/admin";
 import VerifyAgeResult from "@/pages/verify-age-result";
+import SafetyPage from "@/pages/safety";
+import { MapPin, MessageSquare, Heart, Shield, User as UserIcon, Sparkles } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -152,6 +154,7 @@ function AppRoutes() {
       <Route path="/history" component={HistoryPage} />
       <Route path="/history/:gameId" component={HistoryGamePage} />
       <Route path="/insights" component={InsightsPage} />
+      <Route path="/safety" component={SafetyPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/terms" component={TermsOfService} />
@@ -160,6 +163,46 @@ function AppRoutes() {
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route component={NotFound} />
     </Switch>
+  );
+}
+
+function GlobalGoldNavbar() {
+  const [location, setLocation] = useLocation();
+
+  if (location.startsWith("/sign-in") || location.startsWith("/sign-up") || location.startsWith("/room")) {
+    return null;
+  }
+
+  const navItems = [
+    { label: "Map", path: "/map", icon: MapPin },
+    { label: "Pool", path: "/pool", icon: Sparkles },
+    { label: "Inbox", path: "/inbox", icon: MessageSquare },
+    { label: "Likes", path: "/who-liked-me", icon: Heart },
+    { label: "Safety", path: "/safety", icon: Shield },
+    { label: "Profile", path: "/profile", icon: UserIcon },
+  ];
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0c0d14]/95 backdrop-blur-lg border-t border-[#d4af37]/30 px-2 py-2 flex items-center justify-around shadow-2xl">
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = location === item.path;
+        return (
+          <button
+            key={item.path}
+            onClick={() => setLocation(item.path)}
+            className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
+              isActive
+                ? "bg-[#d4af37] text-[#08080c] font-black scale-105 shadow-md shadow-[#d4af37]/20"
+                : "text-muted-foreground hover:text-white"
+            }`}
+          >
+            <Icon size={18} />
+            <span className="text-[10px] font-mono tracking-wider uppercase">{item.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -194,6 +237,7 @@ function ClerkProviderWithRoutes() {
         <ClerkQueryClientCacheInvalidator />
         <TooltipProvider>
           <AppRoutes />
+          <GlobalGoldNavbar />
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>

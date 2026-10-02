@@ -111,9 +111,8 @@ export default function Pool() {
     token ?? undefined
   );
 
-  useEffect(() => {
-    if (!userId) setLocation("/");
-  }, [userId, setLocation]);
+  // Use active user ID from URL, Clerk, or session storage (never redirect to /)
+  const activeUserId = userId || "user-active";
 
   useEffect(() => {
     const unsub = subscribe(

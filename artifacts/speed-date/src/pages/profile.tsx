@@ -453,6 +453,26 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          {/* Matching Algorithm Quiz Reset Option */}
+          <div className="pt-4 border-t border-[#d4af37]/20 space-y-2">
+            <h4 className="text-xs font-mono uppercase text-[#d4af37] tracking-wider font-bold">
+              Matching Algorithm
+            </h4>
+            <p className="text-xs text-muted-foreground">
+              Your 7-question personality vector is saved and used for localized speed-dating matching.
+            </p>
+            <button
+              onClick={() => {
+                localStorage.removeItem("intermingled_quiz_done");
+                localStorage.removeItem("intermingled_quiz");
+                setLocation("/?retake=true");
+              }}
+              className="w-full py-3 px-4 rounded-xl bg-[#181a24] hover:bg-[#222538] border border-[#d4af37]/40 text-[#d4af37] font-bold text-xs uppercase tracking-wider transition-all"
+            >
+              Reset 7-Question Quiz & Matching Algorithm 🔄
+            </button>
+          </div>
+
           {/* Photos */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">

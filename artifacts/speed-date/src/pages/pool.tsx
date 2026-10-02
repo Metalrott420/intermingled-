@@ -76,8 +76,8 @@ export default function Pool() {
       bio: "Software engineer & coffee enthusiast. Looking for genuine speed dating chemistry!",
       photos: ["/logo-192.png"],
       distanceMiles: 0.8,
-      latitude: 30.2692,
-      longitude: -97.7411,
+      latitude: 30.2762,
+      longitude: -97.7421,
     },
     {
       id: "p-2",
@@ -85,8 +85,8 @@ export default function Pool() {
       bio: "Architect & outdoor cyclist. Excited for the 30-person VIP mixer!",
       photos: ["/logo-192.png"],
       distanceMiles: 1.4,
-      latitude: 30.2622,
-      longitude: -97.7351,
+      latitude: 30.2482,
+      longitude: -97.7511,
     },
   ]);
 
@@ -132,8 +132,8 @@ export default function Pool() {
       capacity: 30,
       joinedCount: 22,
       scheduledTime: "9:30 PM Tonight",
-      latitude: 30.2598,
-      longitude: -97.7385,
+      latitude: 30.2548,
+      longitude: -97.7325,
     },
   ]);
 
@@ -169,10 +169,10 @@ export default function Pool() {
         zoomControl: false,
       });
 
-      // CartoDB Dark Matter dark tile layer matching Luxury Gold theme
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-        attribution: '&copy; <a href="https://carto.com/">CartoDB</a>',
-        maxZoom: 19,
+      // Esri World Dark Gray Canvas - 100% Free Keyless Dark Tile Layer without watermarks
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+        attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+        maxZoom: 16,
       }).addTo(map);
 
       L.control.zoom({ position: "bottomright" }).addTo(map);

@@ -32,6 +32,10 @@ import {
   CheckCircle2,
   Building2,
   Trees,
+  Camera,
+  Circle,
+  Square,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,7 +101,7 @@ export default function Pool() {
   // User Coords (Initial Default Austin, TX until live GPS acquired)
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>({ lat: 30.2672, lng: -97.7431 });
 
-  // Clean initial state (ZERO hardcoded demo pins - pins ONLY appear when real users self-ping or create events)
+  // Clean initial state (ZERO hardcoded demo pins)
   const [browseProfiles, setBrowseProfiles] = useState<BrowseProfile[]>([]);
   const [events, setEvents] = useState<SpeedDateEvent[]>([]);
 
@@ -111,6 +115,15 @@ export default function Pool() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+
+  // Live Camera Recording Viewfinder State
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedVideoUrl, setRecordedVideoUrl] = useState<string | null>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
   // Selected Snapchat Live Video Broadcast Overlay State
   const [activeVideoBroadcast, setActiveVideoBroadcast] = useState<{
@@ -187,7 +200,7 @@ export default function Pool() {
         zoomControl: false,
       });
 
-      // Full Street-Level OpenStreetMap Tile Layer (Real Streets, Highways, Landmarks)
+      // Full Street-Level OpenStreetMap Tile Layer
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
@@ -256,7 +269,7 @@ export default function Pool() {
       const profileIcon = L.divIcon({
         className: "custom-leaflet-profile-pin",
         html: `
-          <div style="background:#181a24; border:2px solid #d4af37; color:#fff; border-radius:20px; padding:3px 8px; font-size:10px; font-weight:bold; display:flex; items-center; gap:4px; box-shadow:0 4px 10px rgba(0,0,0,0.7); cursor:pointer;">
+          <div style="background:#181a24; border:2px solid #d4af37; color:#fff; border-radius:20px; padding:3px 8px; font-size:10px; font-weight:bold; display:flex; align-items:center; gap:4px; box-shadow:0 4px 10px rgba(0,0,0,0.7); cursor:pointer;">
             <span>📹</span> <span>${p.name.split(" ")[0]}</span> <span style="color:#d4af37; font-size:9px;">LIVE</span>
           </div>
         `,
@@ -280,6 +293,141 @@ export default function Pool() {
       markersRef.current.push(m);
     });
   }, [viewMode, userCoords, events, browseProfiles]);
+
+  // Request Camera Permissions & Start Live Camera Viewfinder
+  const startLiveCamera = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast({
+          title: "Camera Access Error",
+          description: "Your browser or device does not support live camera access.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+        audio: true,
+      });
+
+      setCameraStream(stream);
+      setShowCameraModal(true);
+
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = stream;
+      }
+
+      toast({
+        title: "Camera Permissions Granted! 📷",
+        description: "Live camera viewfinder active. Tap Record to broadcast a 10s video snippet to the map.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Camera Permission Denied 🛑",
+        description: "Please allow camera & microphone permissions in your browser to record a live map broadcast.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Attach MediaStream to Video element once modal renders
+  useEffect(() => {
+    if (showCameraModal && cameraStream && cameraVideoRef.current) {
+      cameraVideoRef.current.srcObject = cameraStream;
+    }
+  }, [showCameraModal, cameraStream]);
+
+  // Stop camera stream
+  const stopLiveCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+      setCameraStream(null);
+    }
+    setShowCameraModal(false);
+    setIsRecording(false);
+    setRecordedVideoUrl(null);
+  };
+
+  // Start recording 10s video snippet
+  const startRecordingVideo = () => {
+    if (!cameraStream) return;
+
+    recordedChunksRef.current = [];
+    try {
+      const recorder = new MediaRecorder(cameraStream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          recordedChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: "video/mp4" });
+        const videoUrl = URL.createObjectURL(blob);
+        setRecordedVideoUrl(videoUrl);
+        setIsRecording(false);
+      };
+
+      recorder.start();
+      setIsRecording(true);
+
+      // Auto-stop recording after 10 seconds
+      setTimeout(() => {
+        if (recorder.state === "recording") {
+          recorder.stop();
+        }
+      }, 10000);
+    } catch {
+      setIsRecording(false);
+    }
+  };
+
+  // Publish recorded video broadcast onto the live map
+  const publishRecordedBroadcast = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setUserCoords({ lat, lng });
+
+          const myBroadcast: BrowseProfile = {
+            id: `my-broadcast-${Date.now()}`,
+            name: name || "You (Live Video Broadcast)",
+            bio: "Broadcasting live camera stream at local trusted hotspot!",
+            photos: ["/logo-192.png"],
+            distanceMiles: 0.1,
+            latitude: lat,
+            longitude: lng,
+            trustedVenueName: searchQuery || "Trusted Local Mall & Plaza",
+            videoUrl: recordedVideoUrl || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+            likesCount: 1,
+          };
+
+          setBrowseProfiles((prev) => [myBroadcast, ...prev]);
+          stopLiveCamera();
+
+          if (leafletMapRef.current) {
+            leafletMapRef.current.flyTo([lat, lng], 15, { duration: 1.5 });
+          }
+
+          toast({
+            title: "Live Camera Broadcast Pinned! 📹📍",
+            description: "Your live video snippet is now pinned at your real GPS location on the map!",
+          });
+        },
+        () => {
+          stopLiveCamera();
+          toast({ title: "GPS Location Error", description: "Unable to retrieve GPS coordinates for broadcast pin.", variant: "destructive" });
+        }
+      );
+    } else {
+      stopLiveCamera();
+    }
+  };
 
   // Handle Autocomplete Location & Venue Search
   const searchVenuesAndLocations = async (query: string) => {
@@ -315,8 +463,6 @@ export default function Pool() {
               ? "cafe"
               : "address";
 
-          const isTrustedVenue = category !== "address";
-
           return {
             id: `sr-${i}`,
             name,
@@ -325,7 +471,7 @@ export default function Pool() {
             lat,
             lng,
             distanceMi: Number((Math.random() * 1.5 + 0.2).toFixed(1)),
-            isTrustedVenue,
+            isTrustedVenue: category !== "address",
           };
         });
 
@@ -372,57 +518,6 @@ export default function Pool() {
     searchVenuesAndLocations(category);
   };
 
-  // Self-Ping Location & Broadcast Live Video at Trusted Area
-  const handlePingAndBroadcastVideo = () => {
-    setIsPinging(true);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          setUserCoords({ lat, lng });
-          setIsPinging(false);
-
-          // Create dynamic live self-ping broadcast pin on real GPS coordinates
-          const myBroadcast: BrowseProfile = {
-            id: `my-broadcast-${Date.now()}`,
-            name: name || "You (Live Broadcast)",
-            bio: "Broadcasting live at local trusted hotspot!",
-            photos: ["/logo-192.png"],
-            distanceMiles: 0.1,
-            latitude: lat,
-            longitude: lng,
-            trustedVenueName: searchQuery || "Trusted Local Mall & Plaza",
-            videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-            likesCount: 1,
-          };
-
-          setBrowseProfiles((prev) => [myBroadcast, ...prev]);
-
-          if (leafletMapRef.current) {
-            leafletMapRef.current.flyTo([lat, lng], 15, { duration: 1.5 });
-          }
-
-          toast({
-            title: "Live Video Broadcast Pinned! 📹📍",
-            description: `Live video stream pinned at your GPS location. Nearby users can like and join!`,
-          });
-        },
-        () => {
-          setIsPinging(false);
-          toast({
-            title: "GPS Permission Denied",
-            description: "Please enable location permissions in browser to broadcast live.",
-            variant: "destructive",
-          });
-        },
-        { enableHighAccuracy: true }
-      );
-    } else {
-      setIsPinging(false);
-    }
-  };
-
   const handleCreateEvent = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEvent.title || !newEvent.area) {
@@ -457,6 +552,8 @@ export default function Pool() {
     );
     toast({ title: "Broadcast Liked! ❤️", description: "Your like was sent to the creator." });
   };
+
+  const currentProfile = browseProfiles[browseIndex];
 
   return (
     <div className="min-h-[100dvh] w-full flex flex-col bg-[#08080c] text-foreground spotlight-bg overflow-hidden pb-20">
@@ -531,11 +628,10 @@ export default function Pool() {
 
           <div className="flex items-center gap-2">
             <Button
-              onClick={handlePingAndBroadcastVideo}
-              disabled={isPinging}
+              onClick={startLiveCamera}
               className="bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-xs h-10 px-3"
             >
-              <Video size={14} className="mr-1 animate-pulse" />
+              <Camera size={14} className="mr-1 animate-pulse" />
               Ping Video Broadcast 📹
             </Button>
 
@@ -621,11 +717,11 @@ export default function Pool() {
 
               {/* Recenter Button */}
               <button
-                onClick={handlePingAndBroadcastVideo}
+                onClick={startLiveCamera}
                 className="absolute bottom-4 right-4 z-20 bg-[#111218] border border-[#d4af37] text-[#d4af37] p-2.5 rounded-xl shadow-2xl hover:bg-[#d4af37] hover:text-black transition-colors"
-                title="Center on My Real Location"
+                title="Broadcast Live Camera Stream"
               >
-                <Compass size={20} />
+                <Camera size={20} />
               </button>
             </div>
           ) : (
@@ -714,7 +810,12 @@ export default function Pool() {
                 <div className="text-center py-10 space-y-2">
                   <Video className="w-10 h-10 text-[#d4af37] mx-auto opacity-50" />
                   <p className="text-xs text-muted-foreground">No active live video broadcasts in range.</p>
-                  <p className="text-xs text-white font-bold">Ping your location to start a live broadcast!</p>
+                  <Button
+                    onClick={startLiveCamera}
+                    className="bg-[#d4af37] text-black font-bold text-xs mt-2"
+                  >
+                    <Camera size={14} className="mr-1.5" /> Open Camera & Broadcast
+                  </Button>
                 </div>
               ) : (
                 browseProfiles.map((p) => (
@@ -747,6 +848,68 @@ export default function Pool() {
           )}
         </div>
       </div>
+
+      {/* Live Camera Viewfinder Recording Modal */}
+      {showCameraModal && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg flex items-center justify-center p-4">
+          <div className="bg-[#111218] border border-[#d4af37]/50 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl relative flex flex-col p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#d4af37]/20 pb-3">
+              <div className="flex items-center gap-2">
+                <Camera className="text-[#d4af37]" />
+                <h3 className="font-bold text-sm text-white uppercase">Live Camera Viewfinder</h3>
+              </div>
+              <button onClick={stopLiveCamera} className="text-muted-foreground hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Live Camera Viewfinder Video Stream */}
+            <div className="relative aspect-[3/4] w-full bg-black rounded-xl overflow-hidden border border-[#222538] shadow-inner flex items-center justify-center">
+              {recordedVideoUrl ? (
+                <video src={recordedVideoUrl} autoPlay loop playsInline className="w-full h-full object-cover" />
+              ) : (
+                <video ref={cameraVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              )}
+
+              {/* Status Badge Overlay */}
+              <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg border border-red-500/50 flex items-center gap-1.5 text-[10px] font-mono text-red-400">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                <span>{isRecording ? "RECORDING (10s Max)..." : "CAMERA ACTIVE"}</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2 pt-1">
+              {!recordedVideoUrl ? (
+                <Button
+                  onClick={startRecordingVideo}
+                  disabled={isRecording}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs py-3"
+                >
+                  <Circle className="fill-white mr-1.5 h-4 w-4 animate-pulse" />
+                  {isRecording ? "Recording 10s Clip..." : "Record 10s Broadcast Snippet"}
+                </Button>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onClick={() => setRecordedVideoUrl(null)}
+                    variant="outline"
+                    className="border-[#252838] text-muted-foreground hover:text-white text-xs"
+                  >
+                    <RefreshCw size={14} className="mr-1" /> Re-record
+                  </Button>
+                  <Button
+                    onClick={publishRecordedBroadcast}
+                    className="bg-[#d4af37] hover:bg-[#b5952f] text-black font-bold uppercase text-xs"
+                  >
+                    <CheckCircle2 size={14} className="mr-1" /> Pin To Map
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Snapchat Map Live Video Broadcast Stream Overlay */}
       {activeVideoBroadcast && (

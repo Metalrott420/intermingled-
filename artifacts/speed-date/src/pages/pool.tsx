@@ -296,37 +296,44 @@ export default function Pool() {
 
   // Request Camera Permissions & Start Live Camera Viewfinder
   const startLiveCamera = async () => {
+    setShowCameraModal(true);
     try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast({
-          title: "Camera Access Error",
-          description: "Your browser or device does not support live camera access.",
-          variant: "destructive",
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        }).catch(async () => {
+          // Fallback to video only if audio permission fails
+          return await navigator.mediaDevices.getUserMedia({ video: true });
         });
-        return;
+
+        setCameraStream(stream);
+        if (cameraVideoRef.current) {
+          cameraVideoRef.current.srcObject = stream;
+        }
+        toast({
+          title: "Camera Active! 📷",
+          description: "Live camera viewfinder connected. Record a 10s clip or upload a video.",
+        });
       }
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
-        audio: true,
-      });
-
-      setCameraStream(stream);
-      setShowCameraModal(true);
-
-      if (cameraVideoRef.current) {
-        cameraVideoRef.current.srcObject = stream;
-      }
-
-      toast({
-        title: "Camera Permissions Granted! 📷",
-        description: "Live camera viewfinder active. Tap Record to broadcast a 10s video snippet to the map.",
-      });
     } catch (err: any) {
+      console.warn("getUserMedia failed or denied:", err.message);
       toast({
-        title: "Camera Permission Denied 🛑",
-        description: "Please allow camera & microphone permissions in your browser to record a live map broadcast.",
-        variant: "destructive",
+        title: "Live Camera Stream Unavailable",
+        description: "You can use the 'Record with Phone Camera' button below to capture video directly.",
+      });
+    }
+  };
+
+  // Handle Mobile Native Camera File Capture
+  const handleMobileCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const videoUrl = URL.createObjectURL(file);
+      setRecordedVideoUrl(videoUrl);
+      toast({
+        title: "Mobile Camera Video Captured! 📹",
+        description: "Click 'Pin To Map' to publish your live video broadcast.",
       });
     }
   };
@@ -881,14 +888,27 @@ export default function Pool() {
             {/* Action Buttons */}
             <div className="space-y-2 pt-1">
               {!recordedVideoUrl ? (
-                <Button
-                  onClick={startRecordingVideo}
-                  disabled={isRecording}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs py-3"
-                >
-                  <Circle className="fill-white mr-1.5 h-4 w-4 animate-pulse" />
-                  {isRecording ? "Recording 10s Clip..." : "Record 10s Broadcast Snippet"}
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    onClick={startRecordingVideo}
+                    disabled={isRecording}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs py-3"
+                  >
+                    <Circle className="fill-white mr-1.5 h-4 w-4 animate-pulse" />
+                    {isRecording ? "Recording 10s Clip..." : "Record 10s Viewfinder Clip"}
+                  </Button>
+
+                  <label className="block w-full text-center py-2.5 px-3 rounded-xl bg-[#181a24] hover:bg-[#222536] border border-[#d4af37]/40 text-[#d4af37] font-bold text-xs uppercase cursor-pointer transition-colors">
+                    <Camera size={14} className="inline mr-1.5" /> Record with Phone Camera / Upload Video
+                    <input
+                      type="file"
+                      accept="video/*"
+                      capture="user"
+                      onChange={handleMobileCameraCapture}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   <Button

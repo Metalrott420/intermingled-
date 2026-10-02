@@ -26,6 +26,12 @@ import {
   Coffee,
   Wine,
   Music,
+  Video,
+  Play,
+  Volume2,
+  CheckCircle2,
+  Building2,
+  Trees,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +48,9 @@ interface BrowseProfile {
   distanceMiles?: number;
   latitude: number;
   longitude: number;
+  videoUrl?: string;
+  trustedVenueName?: string;
+  likesCount?: number;
 }
 
 interface SpeedDateEvent {
@@ -61,10 +70,11 @@ interface SearchResultItem {
   id: string;
   name: string;
   displayName: string;
-  category: "restaurant" | "bar" | "cafe" | "club" | "address";
+  category: "restaurant" | "bar" | "cafe" | "club" | "mall" | "park" | "address";
   lat: number;
   lng: number;
   distanceMi: number;
+  isTrustedVenue: boolean;
 }
 
 export default function Pool() {
@@ -87,52 +97,9 @@ export default function Pool() {
   // User Coords (Initial Default Austin, TX until live GPS acquired)
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>({ lat: 30.2672, lng: -97.7431 });
 
-  // Dynamic Profiles and Events relative to live GPS coords
-  const [browseProfiles, setBrowseProfiles] = useState<BrowseProfile[]>([
-    {
-      id: "p-1",
-      name: "Jessica Taylor",
-      bio: "Software engineer & coffee enthusiast. Looking for genuine speed dating chemistry!",
-      photos: ["/logo-192.png"],
-      distanceMiles: 0.4,
-      latitude: 30.2712,
-      longitude: -97.7401,
-    },
-    {
-      id: "p-2",
-      name: "Marcus Miller",
-      bio: "Architect & outdoor cyclist. Excited for the 30-person VIP mixer!",
-      photos: ["/logo-192.png"],
-      distanceMiles: 0.8,
-      latitude: 30.2622,
-      longitude: -97.7481,
-    },
-  ]);
-
-  const [events, setEvents] = useState<SpeedDateEvent[]>([
-    {
-      id: "evt-1",
-      title: "Local Blind Speed Dating Mixer",
-      area: "Downtown City Center",
-      coordinatorName: "Elena V.",
-      capacity: 20,
-      joinedCount: 14,
-      scheduledTime: "8:00 PM Tonight",
-      latitude: 30.2722,
-      longitude: -97.7391,
-    },
-    {
-      id: "evt-2",
-      title: "VIP Gold Mixer (30 Person)",
-      area: "Main Nightlife District",
-      coordinatorName: "Marcus K.",
-      capacity: 30,
-      joinedCount: 22,
-      scheduledTime: "9:30 PM Tonight",
-      latitude: 30.2612,
-      longitude: -97.7461,
-    },
-  ]);
+  // Clean initial state (ZERO hardcoded demo pins - pins ONLY appear when real users self-ping or create events)
+  const [browseProfiles, setBrowseProfiles] = useState<BrowseProfile[]>([]);
+  const [events, setEvents] = useState<SpeedDateEvent[]>([]);
 
   const [browseIndex, setBrowseIndex] = useState(0);
   const [liked, setLiked] = useState<Set<string>>(new Set());
@@ -144,6 +111,18 @@ export default function Pool() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+
+  // Selected Snapchat Live Video Broadcast Overlay State
+  const [activeVideoBroadcast, setActiveVideoBroadcast] = useState<{
+    profileId: string;
+    creatorName: string;
+    trustedVenueName: string;
+    videoUrl: string;
+    latitude: number;
+    longitude: number;
+    likesCount: number;
+    hasLiked?: boolean;
+  } | null>(null);
 
   // Selected Map Pin Directions State
   const [selectedTarget, setSelectedTarget] = useState<{
@@ -173,55 +152,6 @@ export default function Pool() {
     token ?? undefined
   );
 
-  // Dynamically update nearby events and speed daters around real GPS coordinates
-  const updateLocalPinsRelative = (lat: number, lng: number) => {
-    setEvents([
-      {
-        id: "evt-1",
-        title: "Local Blind Speed Dating Mixer",
-        area: "Downtown Center",
-        coordinatorName: "Elena V.",
-        capacity: 20,
-        joinedCount: 14,
-        scheduledTime: "8:00 PM Tonight",
-        latitude: lat + 0.005,
-        longitude: lng - 0.004,
-      },
-      {
-        id: "evt-2",
-        title: "VIP Gold Mixer (30 Person)",
-        area: "Main Nightlife District",
-        coordinatorName: "Marcus K.",
-        capacity: 30,
-        joinedCount: 22,
-        scheduledTime: "9:30 PM Tonight",
-        latitude: lat - 0.006,
-        longitude: lng + 0.005,
-      },
-    ]);
-
-    setBrowseProfiles([
-      {
-        id: "p-1",
-        name: "Jessica Taylor",
-        bio: "Software engineer & coffee enthusiast. Looking for genuine speed dating chemistry!",
-        photos: ["/logo-192.png"],
-        distanceMiles: 0.4,
-        latitude: lat + 0.004,
-        longitude: lng + 0.003,
-      },
-      {
-        id: "p-2",
-        name: "Marcus Miller",
-        bio: "Architect & outdoor cyclist. Excited for the 30-person VIP mixer!",
-        photos: ["/logo-192.png"],
-        distanceMiles: 0.9,
-        latitude: lat - 0.005,
-        longitude: lng - 0.006,
-      },
-    ]);
-  };
-
   // Automatically request GPS location on page load and center map on user's real local city
   useEffect(() => {
     if (navigator.geolocation) {
@@ -230,7 +160,6 @@ export default function Pool() {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           setUserCoords({ lat, lng });
-          updateLocalPinsRelative(lat, lng);
 
           if (leafletMapRef.current) {
             leafletMapRef.current.flyTo([lat, lng], 14, { duration: 1.5 });
@@ -322,29 +251,30 @@ export default function Pool() {
       markersRef.current.push(m);
     });
 
-    // 3. Render Nearby Speed Daters Pins
+    // 3. Render Snapchat Map Live Video Broadcast Pins
     browseProfiles.forEach((p) => {
       const profileIcon = L.divIcon({
         className: "custom-leaflet-profile-pin",
         html: `
-          <div style="background:#181a24; border:2px solid #f59e0b; color:#fff; border-radius:20px; padding:3px 8px; font-size:10px; font-weight:bold; display:flex; align-items:center; gap:4px; box-shadow:0 4px 10px rgba(0,0,0,0.7); cursor:pointer;">
-            <span>💖</span> <span>${p.name.split(" ")[0]}</span>
+          <div style="background:#181a24; border:2px solid #d4af37; color:#fff; border-radius:20px; padding:3px 8px; font-size:10px; font-weight:bold; display:flex; items-center; gap:4px; box-shadow:0 4px 10px rgba(0,0,0,0.7); cursor:pointer;">
+            <span>📹</span> <span>${p.name.split(" ")[0]}</span> <span style="color:#d4af37; font-size:9px;">LIVE</span>
           </div>
         `,
-        iconSize: [90, 26],
-        iconAnchor: [45, 13],
+        iconSize: [95, 26],
+        iconAnchor: [47, 13],
       });
 
       const m = L.marker([p.latitude, p.longitude], { icon: profileIcon })
         .addTo(map)
         .on("click", () => {
-          setSelectedTarget({
-            title: p.name,
-            type: "profile",
+          setActiveVideoBroadcast({
+            profileId: p.id,
+            creatorName: p.name,
+            trustedVenueName: p.trustedVenueName || "Trusted Local Hotspot",
+            videoUrl: p.videoUrl || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
             latitude: p.latitude,
             longitude: p.longitude,
-            distanceMi: p.distanceMiles || 0.4,
-            etaMinutes: Math.round((p.distanceMiles || 0.4) * 3),
+            likesCount: p.likesCount || 12,
           });
         });
       markersRef.current.push(m);
@@ -371,15 +301,21 @@ export default function Pool() {
           const lat = parseFloat(item.lat);
           const lng = parseFloat(item.lon);
           const name = item.display_name.split(",")[0];
-          const type = item.type || "venue";
+          const type = (item.type || "venue").toLowerCase();
           const category =
-            type.includes("restaurant") || type.includes("food")
+            type.includes("mall") || type.includes("shopping")
+              ? "mall"
+              : type.includes("park") || type.includes("plaza")
+              ? "park"
+              : type.includes("restaurant") || type.includes("food")
               ? "restaurant"
               : type.includes("bar") || type.includes("pub")
               ? "bar"
               : type.includes("cafe") || type.includes("coffee")
               ? "cafe"
               : "address";
+
+          const isTrustedVenue = category !== "address";
 
           return {
             id: `sr-${i}`,
@@ -388,7 +324,8 @@ export default function Pool() {
             category,
             lat,
             lng,
-            distanceMi: Number((Math.random() * 2 + 0.3).toFixed(1)),
+            distanceMi: Number((Math.random() * 1.5 + 0.2).toFixed(1)),
+            isTrustedVenue,
           };
         });
 
@@ -406,7 +343,6 @@ export default function Pool() {
 
   const handleSelectSearchResult = (item: SearchResultItem) => {
     setUserCoords({ lat: item.lat, lng: item.lng });
-    updateLocalPinsRelative(item.lat, item.lng);
     setShowDropdown(false);
     setSearchQuery(item.name);
 
@@ -425,7 +361,9 @@ export default function Pool() {
 
     toast({
       title: `${item.name} Selected 📍`,
-      description: `Map centered on ${item.name}. Click 'Create Event' to host speed dating here!`,
+      description: item.isTrustedVenue
+        ? `Trusted Hotspot Venue selected. You can broadcast or create a speed dating event here!`
+        : `Location selected.`,
     });
   };
 
@@ -434,8 +372,8 @@ export default function Pool() {
     searchVenuesAndLocations(category);
   };
 
-  // Handle GPS location ping
-  const handlePingLocation = () => {
+  // Self-Ping Location & Broadcast Live Video at Trusted Area
+  const handlePingAndBroadcastVideo = () => {
     setIsPinging(true);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -443,21 +381,40 @@ export default function Pool() {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           setUserCoords({ lat, lng });
-          updateLocalPinsRelative(lat, lng);
           setIsPinging(false);
+
+          // Create dynamic live self-ping broadcast pin on real GPS coordinates
+          const myBroadcast: BrowseProfile = {
+            id: `my-broadcast-${Date.now()}`,
+            name: name || "You (Live Broadcast)",
+            bio: "Broadcasting live at local trusted hotspot!",
+            photos: ["/logo-192.png"],
+            distanceMiles: 0.1,
+            latitude: lat,
+            longitude: lng,
+            trustedVenueName: searchQuery || "Trusted Local Mall & Plaza",
+            videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+            likesCount: 1,
+          };
+
+          setBrowseProfiles((prev) => [myBroadcast, ...prev]);
 
           if (leafletMapRef.current) {
             leafletMapRef.current.flyTo([lat, lng], 15, { duration: 1.5 });
           }
 
           toast({
-            title: "Real GPS Location Pinged! 📍",
-            description: `Broadcasting live coordinates. Localized matching enabled (${radiusFilter} mi radius).`,
+            title: "Live Video Broadcast Pinned! 📹📍",
+            description: `Live video stream pinned at your GPS location. Nearby users can like and join!`,
           });
         },
         () => {
           setIsPinging(false);
-          toast({ title: "GPS Permission Denied", description: "Defaulting to Austin, TX hotspot.", variant: "destructive" });
+          toast({
+            title: "GPS Permission Denied",
+            description: "Please enable location permissions in browser to broadcast live.",
+            variant: "destructive",
+          });
         },
         { enableHighAccuracy: true }
       );
@@ -493,7 +450,13 @@ export default function Pool() {
     });
   };
 
-  const currentProfile = browseProfiles[browseIndex];
+  const handleLikeBroadcast = () => {
+    if (!activeVideoBroadcast) return;
+    setActiveVideoBroadcast((prev) =>
+      prev ? { ...prev, likesCount: prev.likesCount + 1, hasLiked: true } : null
+    );
+    toast({ title: "Broadcast Liked! ❤️", description: "Your like was sent to the creator." });
+  };
 
   return (
     <div className="min-h-[100dvh] w-full flex flex-col bg-[#08080c] text-foreground spotlight-bg overflow-hidden pb-20">
@@ -519,7 +482,7 @@ export default function Pool() {
             <div className="relative flex items-center">
               <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search popular venues, restaurants, bars, or addresses (e.g., Chipotle, Starbucks, 6th St)..."
+                placeholder="Search trusted venues: Malls, Parks, Shopping Centers, Restaurants..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -534,7 +497,7 @@ export default function Pool() {
             {showDropdown && searchResults.length > 0 && (
               <div className="absolute top-12 left-0 right-0 z-50 bg-[#111218] border border-[#d4af37]/40 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
                 <div className="p-2 text-[10px] font-mono text-[#d4af37] uppercase tracking-wider border-b border-[#222538] flex items-center justify-between">
-                  <span>Popular Venue Search Results</span>
+                  <span>Trusted Hotspot Venue Search Results</span>
                   <span>{searchResults.length} Found</span>
                 </div>
                 {searchResults.map((item) => (
@@ -545,17 +508,21 @@ export default function Pool() {
                   >
                     <div className="space-y-0.5">
                       <p className="text-xs font-bold text-white flex items-center gap-1.5">
+                        {item.category === "mall" && <Building2 size={12} className="text-[#d4af37]" />}
+                        {item.category === "park" && <Trees size={12} className="text-emerald-400" />}
                         {item.category === "restaurant" && <Utensils size={12} className="text-amber-400" />}
                         {item.category === "bar" && <Wine size={12} className="text-purple-400" />}
                         {item.category === "cafe" && <Coffee size={12} className="text-emerald-400" />}
-                        {item.category === "address" && <MapPin size={12} className="text-[#d4af37]" />}
+                        {item.category === "address" && <MapPin size={12} className="text-muted-foreground" />}
                         <span>{item.name}</span>
                       </p>
                       <p className="text-[10px] text-muted-foreground line-clamp-1">{item.displayName}</p>
                     </div>
-                    <Badge variant="outline" className="text-[10px] border-[#d4af37]/30 text-[#d4af37] shrink-0 ml-2">
-                      {item.distanceMi} mi away
-                    </Badge>
+                    {item.isTrustedVenue && (
+                      <Badge className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                        TRUSTED HOTSPOT
+                      </Badge>
+                    )}
                   </button>
                 ))}
               </div>
@@ -564,12 +531,12 @@ export default function Pool() {
 
           <div className="flex items-center gap-2">
             <Button
-              onClick={handlePingLocation}
+              onClick={handlePingAndBroadcastVideo}
               disabled={isPinging}
               className="bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-xs h-10 px-3"
             >
-              <Radio size={14} className="mr-1 animate-pulse" />
-              Ping GPS 📍
+              <Video size={14} className="mr-1 animate-pulse" />
+              Ping Video Broadcast 📹
             </Button>
 
             <div className="flex bg-[#181a24] p-1 rounded-xl border border-[#d4af37]/30">
@@ -613,9 +580,21 @@ export default function Pool() {
           </div>
         </div>
 
-        {/* Quick Venue Category Chips */}
+        {/* Quick Trusted Venue Category Chips */}
         <div className="flex items-center gap-2 pt-1 overflow-x-auto text-xs">
-          <span className="text-[10px] font-mono text-muted-foreground uppercase shrink-0">Popular Categories:</span>
+          <span className="text-[10px] font-mono text-muted-foreground uppercase shrink-0">Trusted Hotspot Categories:</span>
+          <button
+            onClick={() => handleQuickCategorySearch("Malls and Shopping Centers")}
+            className="px-2.5 py-1 rounded-lg bg-[#181a24] border border-[#d4af37]/20 hover:border-[#d4af37] text-xs font-bold text-white flex items-center gap-1 shrink-0"
+          >
+            <Building2 size={12} className="text-[#d4af37]" /> Malls & Shopping
+          </button>
+          <button
+            onClick={() => handleQuickCategorySearch("Public Parks and Plazas")}
+            className="px-2.5 py-1 rounded-lg bg-[#181a24] border border-[#d4af37]/20 hover:border-[#d4af37] text-xs font-bold text-white flex items-center gap-1 shrink-0"
+          >
+            <Trees size={12} className="text-emerald-400" /> Parks & Plazas
+          </button>
           <button
             onClick={() => handleQuickCategorySearch("Restaurants")}
             className="px-2.5 py-1 rounded-lg bg-[#181a24] border border-[#d4af37]/20 hover:border-[#d4af37] text-xs font-bold text-white flex items-center gap-1 shrink-0"
@@ -623,22 +602,10 @@ export default function Pool() {
             <Utensils size={12} className="text-amber-400" /> Restaurants
           </button>
           <button
-            onClick={() => handleQuickCategorySearch("Bars and Lounges")}
+            onClick={() => handleQuickCategorySearch("Bars and Entertainment")}
             className="px-2.5 py-1 rounded-lg bg-[#181a24] border border-[#d4af37]/20 hover:border-[#d4af37] text-xs font-bold text-white flex items-center gap-1 shrink-0"
           >
-            <Wine size={12} className="text-purple-400" /> Bars & Lounges
-          </button>
-          <button
-            onClick={() => handleQuickCategorySearch("Coffee Shops and Cafes")}
-            className="px-2.5 py-1 rounded-lg bg-[#181a24] border border-[#d4af37]/20 hover:border-[#d4af37] text-xs font-bold text-white flex items-center gap-1 shrink-0"
-          >
-            <Coffee size={12} className="text-emerald-400" /> Cafes
-          </button>
-          <button
-            onClick={() => handleQuickCategorySearch("Clubs and Live Music")}
-            className="px-2.5 py-1 rounded-lg bg-[#181a24] border border-[#d4af37]/20 hover:border-[#d4af37] text-xs font-bold text-white flex items-center gap-1 shrink-0"
-          >
-            <Music size={12} className="text-pink-400" /> Clubs & Live Music
+            <Wine size={12} className="text-purple-400" /> Bars & Nightlife
           </button>
         </div>
       </div>
@@ -654,7 +621,7 @@ export default function Pool() {
 
               {/* Recenter Button */}
               <button
-                onClick={handlePingLocation}
+                onClick={handlePingAndBroadcastVideo}
                 className="absolute bottom-4 right-4 z-20 bg-[#111218] border border-[#d4af37] text-[#d4af37] p-2.5 rounded-xl shadow-2xl hover:bg-[#d4af37] hover:text-black transition-colors"
                 title="Center on My Real Location"
               >
@@ -736,26 +703,138 @@ export default function Pool() {
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-[#d4af37]/20 pb-3">
                 <h2 className="font-display font-black text-sm tracking-wider text-[#d4af37] uppercase">
-                  ACTIVE SPEED DATERS
+                  ACTIVE MAP BROADCASTS
                 </h2>
                 <Badge variant="outline" className="border-[#d4af37]/40 text-[#d4af37] font-mono">
-                  {browseProfiles.length} ONLINE
+                  {browseProfiles.length} BROADCASTING
                 </Badge>
               </div>
 
-              {currentProfile && (
-                <div className="bg-[#141622] border border-[#d4af37]/30 rounded-2xl p-4 space-y-3">
-                  <div className="aspect-square w-full rounded-xl bg-[#1d2030] overflow-hidden relative">
-                    <img src={currentProfile.photos[0]} alt={currentProfile.name} className="w-full h-full object-cover" />
-                  </div>
-                  <h3 className="font-bold text-white text-base">{currentProfile.name}</h3>
-                  <p className="text-xs text-muted-foreground">{currentProfile.bio}</p>
+              {browseProfiles.length === 0 ? (
+                <div className="text-center py-10 space-y-2">
+                  <Video className="w-10 h-10 text-[#d4af37] mx-auto opacity-50" />
+                  <p className="text-xs text-muted-foreground">No active live video broadcasts in range.</p>
+                  <p className="text-xs text-white font-bold">Ping your location to start a live broadcast!</p>
                 </div>
+              ) : (
+                browseProfiles.map((p) => (
+                  <div key={p.id} className="bg-[#141622] border border-[#d4af37]/30 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="font-bold text-white text-sm">{p.name}</p>
+                      <Badge className="bg-[#d4af37] text-black text-[10px] font-bold">LIVE BROADCAST 📹</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{p.trustedVenueName}</p>
+                    <Button
+                      onClick={() =>
+                        setActiveVideoBroadcast({
+                          profileId: p.id,
+                          creatorName: p.name,
+                          trustedVenueName: p.trustedVenueName || "Trusted Hotspot",
+                          videoUrl: p.videoUrl || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+                          latitude: p.latitude,
+                          longitude: p.longitude,
+                          likesCount: p.likesCount || 12,
+                        })
+                      }
+                      className="w-full bg-[#181a24] hover:bg-[#222536] text-[#d4af37] border border-[#d4af37]/40 font-bold text-xs"
+                    >
+                      Watch Live Stream Video 📹
+                    </Button>
+                  </div>
+                ))
               )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Snapchat Map Live Video Broadcast Stream Overlay */}
+      {activeVideoBroadcast && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg flex items-center justify-center p-4">
+          <div className="bg-[#111218] border border-[#d4af37]/50 rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl relative flex flex-col">
+            {/* Top Overlay Bar */}
+            <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-4 flex items-center justify-between text-white">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-[#d4af37] text-black font-black flex items-center justify-center text-xs">
+                  {activeVideoBroadcast.creatorName[0]}
+                </div>
+                <div>
+                  <p className="font-bold text-xs text-white">{activeVideoBroadcast.creatorName}</p>
+                  <p className="text-[10px] text-[#d4af37] flex items-center gap-1">
+                    <Building2 size={10} /> {activeVideoBroadcast.trustedVenueName}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveVideoBroadcast(null)}
+                className="w-8 h-8 rounded-full bg-black/50 border border-white/20 flex items-center justify-center text-white hover:bg-black/80"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Video Player */}
+            <div className="relative w-full aspect-[9/16] bg-black">
+              <video
+                src={activeVideoBroadcast.videoUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+
+              {/* Limited Interactions Overlay Bar (No Chatting Allowed) */}
+              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent space-y-3">
+                <div className="flex items-center justify-around">
+                  <button
+                    onClick={handleLikeBroadcast}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-full transition-transform active:scale-125 ${
+                      activeVideoBroadcast.hasLiked ? "text-pink-500" : "text-white hover:text-pink-400"
+                    }`}
+                  >
+                    <Heart size={26} className={activeVideoBroadcast.hasLiked ? "fill-pink-500" : ""} />
+                    <span className="text-[10px] font-mono text-white">{activeVideoBroadcast.likesCount}</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSelectedTarget({
+                        title: activeVideoBroadcast.trustedVenueName,
+                        type: "venue",
+                        latitude: activeVideoBroadcast.latitude,
+                        longitude: activeVideoBroadcast.longitude,
+                        distanceMi: 0.4,
+                        etaMinutes: 2,
+                      });
+                      setActiveVideoBroadcast(null);
+                    }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-full text-white hover:text-[#d4af37]"
+                  >
+                    <MapPin size={26} className="text-[#d4af37]" />
+                    <span className="text-[10px] font-mono text-white">Location</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowEventModal(true);
+                      setActiveVideoBroadcast(null);
+                    }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-full text-white hover:text-[#d4af37]"
+                  >
+                    <Crown size={26} className="text-[#d4af37]" />
+                    <span className="text-[10px] font-mono text-white">Join Event</span>
+                  </button>
+                </div>
+
+                <p className="text-[10px] font-mono text-center text-muted-foreground">
+                  🔒 Stream Mode Active · Direct Chatting Disabled for Safety
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Event Coordinator Creation Modal */}
       {showEventModal && (
@@ -786,9 +865,9 @@ export default function Pool() {
               </div>
 
               <div>
-                <label className="text-[10px] font-mono text-[#d4af37] uppercase">Area / Venue Name</label>
+                <label className="text-[10px] font-mono text-[#d4af37] uppercase">Area / Venue Name (Trusted Hotspot)</label>
                 <Input
-                  placeholder="e.g. Main Street District"
+                  placeholder="e.g. The Domain Mall / Main Street Plaza"
                   value={newEvent.area}
                   onChange={(e) => setNewEvent({ ...newEvent, area: e.target.value })}
                   className="bg-[#181a24] border-[#252838] text-xs text-white mt-1"

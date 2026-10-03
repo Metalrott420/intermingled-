@@ -564,20 +564,6 @@ export default function Pool() {
 
   return (
     <div className="min-h-[100dvh] w-full flex flex-col bg-[#08080c] text-foreground spotlight-bg overflow-hidden pb-20">
-      {/* Ticker bar */}
-      <div className="relative z-20 bg-[#d4af37] text-[#08080c] py-1.5 overflow-hidden font-bold">
-        <div className="flex items-center gap-2 ticker-scroll whitespace-nowrap text-xs font-display uppercase tracking-widest">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <span key={i} className="flex items-center gap-4">
-              <span>⭐ INTERMINGLED GOLD LIVE</span>
-              <span className="opacity-50">·</span>
-              <span>5 ROUNDS. 2 WINNERS. 1 PERFECT MATCH.</span>
-              <span className="opacity-50">·</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
       {/* Top Controls & Location Geocoding Autocomplete Search Bar */}
       <div className="bg-[#111218] border-b border-[#d4af37]/20 p-4 space-y-3 relative z-30">
         <div className="flex flex-wrap items-center justify-between gap-3">

@@ -331,12 +331,12 @@ export default function Home() {
           return;
         }
 
-        // Profile verified — check for cached quiz or quiz bypass flag
+        // Profile verified — default to Control Center Dashboard (never show quiz unless explicitly retaken)
         const profileName = profile.name as string;
-        const quizDoneLocal = localStorage.getItem("intermingled_quiz_done") === "true";
-        const raw = localStorage.getItem(QUIZ_STORAGE_KEY);
+        const isRetake = typeof window !== "undefined" && window.location.search.includes("retake=true");
 
-        if (quizDoneLocal || raw) {
+        if (!isRetake) {
+          const raw = localStorage.getItem(QUIZ_STORAGE_KEY);
           try {
             const parsed = raw ? (JSON.parse(raw) as StoredQuiz) : null;
             setStoredQuiz(parsed ?? { name: profileName, personalityVector: [4, 3, 4, 3, 4, 3, 2] });
@@ -344,19 +344,16 @@ export default function Home() {
             setPhase("role");
             return;
           } catch {
-            localStorage.removeItem(QUIZ_STORAGE_KEY);
+            setPhase("role");
+            return;
           }
         }
         setSessionName(profileName);
         setPhase("quiz");
       })
       .catch(() => {
-        // Network error — default to role if local quiz done flag present
-        if (localStorage.getItem("intermingled_quiz_done") === "true") {
-          setPhase("role");
-        } else {
-          setPhase("quiz");
-        }
+        // Network error — default to Control Center Dashboard if signed in
+        setPhase("role");
       });
   }, [isLoaded, isSignedIn]);
 
@@ -686,12 +683,13 @@ export default function Home() {
 
       <div className="z-10 w-full max-w-2xl space-y-6 pt-4">
         {/* Brand Header */}
-        <div className="text-center space-y-1">
-          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158]">
+        <div className="text-center space-y-2 flex flex-col items-center">
+          <img src="/logo.svg" alt="Intermingled Logo" className="h-20 w-auto filter drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]" />
+          <h1 className="text-3xl md:text-4xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158]">
             INTERMINGLED
           </h1>
           <p className="text-[11px] font-mono text-[#d4af37] uppercase tracking-widest font-bold">
-            5 ROUNDS. 2 WINNERS. 1 PERFECT MATCH.
+            5 ROUNDS. 2 WINNERS. 1 PERFECT MATCH. FIND THE ONE WHO COMPLETES YOU.
           </p>
         </div>
 

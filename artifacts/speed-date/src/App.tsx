@@ -27,7 +27,7 @@ import TermsOfService from "@/pages/terms";
 import AdminPage from "@/pages/admin";
 import VerifyAgeResult from "@/pages/verify-age-result";
 import SafetyPage from "@/pages/safety";
-import { MapPin, MessageSquare, Heart, Shield, User as UserIcon, Sparkles } from "lucide-react";
+import { MapPin, MessageSquare, Heart, Shield, User as UserIcon, Sparkles, Home as HomeIcon } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -174,6 +174,7 @@ function GlobalGoldNavbar() {
   }
 
   const navItems = [
+    { label: "Home", path: "/", icon: HomeIcon },
     { label: "Map", path: "/map", icon: MapPin },
     { label: "Pool", path: "/pool", icon: Sparkles },
     { label: "Inbox", path: "/inbox", icon: MessageSquare },

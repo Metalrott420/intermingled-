@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   ArrowLeft,
+  Ban,
+  Flag,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +32,6 @@ interface TrustedContact {
 }
 
 const STORAGE_KEY_CONTACTS = "intermingled_trusted_contacts";
-const STORAGE_KEY_GUARDIAN = "intermingled_guardian_timer";
 
 export default function SafetyPage() {
   const [, setLocation] = useLocation();
@@ -68,6 +70,16 @@ export default function SafetyPage() {
   const [guardianMinutes, setGuardianMinutes] = useState<number>(60);
   const [guardianActive, setGuardianActive] = useState(false);
   const [timerRemaining, setTimerRemaining] = useState<number | null>(null);
+
+  // 3-Strike Moderation State
+  const [userStrikes, setUserStrikes] = useState<number>(() => {
+    return Number(localStorage.getItem("intermingled_strikes") || 0);
+  });
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportTargetName, setReportTargetName] = useState("");
+  const [reportReason, setReportReason] = useState("Inappropriate behavior");
+
+  const isMutedBanned = userStrikes >= 3;
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_CONTACTS, JSON.stringify(contacts));
@@ -137,6 +149,19 @@ export default function SafetyPage() {
     });
   };
 
+  const handleReportUserSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportTargetName.trim()) return;
+
+    toast({
+      title: "User Reported 🚩",
+      description: `Report submitted against ${reportTargetName}. Community moderators will review and apply strikes.`,
+    });
+
+    setShowReportModal(false);
+    setReportTargetName("");
+  };
+
   const startGuardianTimer = () => {
     setTimerRemaining(guardianMinutes * 60);
     setGuardianActive(true);
@@ -163,11 +188,11 @@ export default function SafetyPage() {
       {/* Top Header */}
       <div className="sticky top-0 z-30 bg-[#0d0e14]/90 backdrop-blur-md border-b border-[#d4af37]/20 px-4 py-3 flex items-center justify-between">
         <button
-          onClick={() => setLocation("/map")}
+          onClick={() => setLocation("/")}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
         >
           <ArrowLeft size={18} />
-          Back to Map
+          Control Center
         </button>
 
         <div className="flex items-center gap-2">
@@ -177,13 +202,40 @@ export default function SafetyPage() {
           </h1>
         </div>
 
-        <Badge variant="outline" className="border-[#d4af37]/40 text-[#d4af37] bg-[#d4af37]/10">
-          PROTECTED
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge
+            variant="outline"
+            className={`text-xs font-mono font-bold ${
+              userStrikes === 0
+                ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10"
+                : userStrikes < 3
+                ? "border-amber-500/40 text-amber-400 bg-amber-500/10"
+                : "border-red-500/40 text-red-400 bg-red-500/10"
+            }`}
+          >
+            {userStrikes} / 3 STRIKES
+          </Badge>
+        </div>
       </div>
 
       {/* Main Container */}
       <div className="flex-1 max-w-2xl w-full mx-auto p-4 space-y-6">
+        {/* 24-Hour Mute Ban Banner */}
+        {isMutedBanned && (
+          <div className="bg-gradient-to-r from-red-950 to-red-900 border-2 border-red-500 rounded-2xl p-6 text-center space-y-3 shadow-2xl">
+            <div className="flex justify-center">
+              <Ban className="w-12 h-12 text-red-500 animate-bounce" />
+            </div>
+            <h2 className="text-xl font-black uppercase text-white tracking-wider">
+              24-Hour Mute & Ban Active 🔒
+            </h2>
+            <p className="text-xs text-red-200 leading-relaxed max-w-md mx-auto">
+              Your account has received 3 Community Policy strikes. Matchmaking, live messaging, and event hosting are temporarily muted for 24 hours.
+            </p>
+            <p className="text-xs font-mono text-amber-400 font-bold">Mute Expires in: 23h 48m</p>
+          </div>
+        )}
+
         {/* Panic SOS Trigger Card */}
         <div className="bg-gradient-to-b from-[#181214] to-[#121014] border border-destructive/40 rounded-2xl p-6 shadow-2xl space-y-4 text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
@@ -284,6 +336,69 @@ export default function SafetyPage() {
                 Start Guardian Safety Timer ({guardianMinutes} mins)
               </Button>
             </div>
+          )}
+        </div>
+
+        {/* Report Misbehavior Modal Trigger */}
+        <div className="bg-[#111218] border border-[#d4af37]/30 rounded-2xl p-6 shadow-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                <Flag size={22} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Report Bad Behavior / Policy Strike</h3>
+                <p className="text-xs text-muted-foreground">3 strikes result in an automatic 24-hour mute ban</p>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => setShowReportModal(true)}
+              variant="outline"
+              size="sm"
+              className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10 text-xs font-bold"
+            >
+              Report User 🚩
+            </Button>
+          </div>
+
+          {showReportModal && (
+            <form onSubmit={handleReportUserSubmit} className="bg-[#161822] border border-amber-500/30 rounded-xl p-4 space-y-3">
+              <h4 className="text-xs font-mono uppercase tracking-wider text-amber-400 font-bold">Report Misconduct</h4>
+              <div className="space-y-3">
+                <Input
+                  placeholder="User Name or ID to Report"
+                  value={reportTargetName}
+                  onChange={(e) => setReportTargetName(e.target.value)}
+                  className="bg-[#0c0d12] border-[#222533] text-white text-xs"
+                />
+                <select
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  className="w-full bg-[#0c0d12] border border-[#222533] rounded-lg p-2.5 text-xs text-white outline-none"
+                >
+                  <option value="Inappropriate behavior">Inappropriate / Disrespectful behavior</option>
+                  <option value="Fake location">Fake location or impersonation</option>
+                  <option value="Harassment">Harassment or abusive language</option>
+                  <option value="Spam">Spam or commercial promotion</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowReportModal(false)}
+                  className="text-muted-foreground text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" className="bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs">
+                  Submit Incident Report
+                </Button>
+              </div>
+            </form>
           )}
         </div>
 

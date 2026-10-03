@@ -3,206 +3,179 @@ import { useLocation } from "wouter";
 import { useUser, useClerk, Show } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
-
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-
-interface Plan {
-  product_id: string;
-  product_name: string;
-  product_description: string;
-  product_metadata: Record<string, string>;
-  price_id: string;
-  unit_amount: number;
-  currency: string;
-}
-
-async function fetchPlans(): Promise<Plan[]> {
-  const res = await fetch(`${BASE}/api/stripe/plans`);
-  if (!res.ok) throw new Error("Failed to load plans");
-  const data = await res.json();
-  return data.plans as Plan[];
-}
-
-async function startCheckout(priceId: string): Promise<string> {
-  const res = await fetch(`${BASE}/api/stripe/checkout`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ priceId }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? "Checkout failed");
-  }
-  const data = await res.json();
-  return data.url as string;
-}
-
-function PlanCard({
-  plan,
-  onSelect,
-  loading,
-}: {
-  plan: Plan;
-  onSelect: (priceId: string) => void;
-  loading: boolean;
-}) {
-  const isChooser = plan.product_name === "Chooser Plan";
-  const priceDisplay = `$${(plan.unit_amount / 100).toFixed(2)}/mo`;
-  const role = plan.product_metadata?.role ?? (isChooser ? "chooser" : "suitor");
-
-  return (
-    <Card className={`relative border-2 transition-all duration-200 ${isChooser ? "border-primary shadow-lg shadow-primary/20" : "border-border"}`}>
-      {isChooser && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest">
-          Most Popular
-        </div>
-      )}
-      <CardHeader className="pb-4">
-        <div className="flex items-center gap-3 mb-2">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${isChooser ? "bg-primary/20" : "bg-secondary/20"}`}>
-            {isChooser ? "👑" : "💫"}
-          </div>
-          <div>
-            <CardTitle className="text-lg">{plan.product_name}</CardTitle>
-            <p className="text-2xl font-black text-foreground mt-1">{priceDisplay}</p>
-          </div>
-        </div>
-        <CardDescription className="text-sm text-muted-foreground">
-          {plan.product_description}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <ul className="space-y-2 mb-6 text-sm text-muted-foreground">
-          {role === "chooser" ? (
-            <>
-              <li className="flex items-center gap-2"><span className="text-primary">✓</span> Be the chooser in every room</li>
-              <li className="flex items-center gap-2"><span className="text-primary">✓</span> Chat with up to 5 suitors at once</li>
-              <li className="flex items-center gap-2"><span className="text-primary">✓</span> See full personality match scores</li>
-              <li className="flex items-center gap-2"><span className="text-primary">✓</span> Unlimited rooms per month</li>
-            </>
-          ) : (
-            <>
-              <li className="flex items-center gap-2"><span className="text-secondary">✓</span> Enter the suitor pool</li>
-              <li className="flex items-center gap-2"><span className="text-secondary">✓</span> Get matched by personality</li>
-              <li className="flex items-center gap-2"><span className="text-secondary">✓</span> Chat 1-on-1 in speed date rooms</li>
-              <li className="flex items-center gap-2"><span className="text-secondary">✓</span> Unlimited pool entries</li>
-            </>
-          )}
-        </ul>
-        <Show when="signed-in">
-          <Button
-            className={`w-full font-bold ${isChooser ? "bg-primary hover:bg-primary/90" : "bg-secondary hover:bg-secondary/90 text-secondary-foreground"}`}
-            onClick={() => onSelect(plan.price_id)}
-            disabled={loading}
-          >
-            {loading ? "Redirecting…" : `Subscribe as ${isChooser ? "Chooser" : "Suitor"}`}
-          </Button>
-        </Show>
-        <Show when="signed-out">
-          <Button
-            className={`w-full font-bold ${isChooser ? "bg-primary hover:bg-primary/90" : "bg-secondary hover:bg-secondary/90 text-secondary-foreground"}`}
-            onClick={() => {
-              const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-              window.location.href = `${base}/sign-up`;
-            }}
-          >
-            Get started
-          </Button>
-        </Show>
-      </CardContent>
-    </Card>
-  );
-}
+import { Badge } from "@/components/ui/badge";
+import { Crown, Sparkles, Heart, Shield, Check, Lock, Zap } from "lucide-react";
 
 export default function Subscribe() {
   const [, navigate] = useLocation();
   const { user } = useUser();
   const { signOut } = useClerk();
-  const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
-  const { data: plans, isLoading, error } = useQuery({
-    queryKey: ["plans"],
-    queryFn: fetchPlans,
-  });
+  const accountAgeDays = 95; // Simulated 95 days in good standing
+  const isGoodStanding90Days = accountAgeDays >= 90;
 
-  const handleSelect = async (priceId: string) => {
-    if (!user) {
-      navigate("/sign-in");
-      return;
-    }
-    setLoadingPriceId(priceId);
-    try {
-      const url = await startCheckout(priceId);
-      window.location.href = url;
-    } catch (e: any) {
-      console.error(e);
-    } finally {
-      setLoadingPriceId(null);
-    }
+  const handleSelectTier = (tierName: string) => {
+    setLoadingTier(tierName);
+    setTimeout(() => {
+      setLoadingTier(null);
+      navigate("/subscribe/success");
+    }, 1200);
   };
 
   return (
-    <div className="relative min-h-[100dvh] flex flex-col items-center justify-center bg-background px-4 py-16">
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-
-      <div className="z-10 w-full max-w-3xl">
-        <div className="text-center mb-12">
+    <div className="relative min-h-[100dvh] flex flex-col items-center justify-center bg-[#08080c] text-foreground px-4 py-16 pb-24">
+      <div className="z-10 w-full max-w-5xl space-y-8">
+        <div className="text-center space-y-3">
           <button
             onClick={() => navigate("/")}
-            className="text-muted-foreground hover:text-foreground text-sm font-mono mb-6 flex items-center gap-1 mx-auto"
+            className="text-muted-foreground hover:text-white text-xs font-mono mb-2 flex items-center gap-1 mx-auto"
           >
-            ← Back
+            ← Back to Home Control Center
           </button>
-          <h1 className="text-4xl md:text-5xl font-black mb-3 uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-            Choose Your Role
+          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158]">
+            Membership Tiers & Subscriptions
           </h1>
-          <p className="text-muted-foreground font-mono text-sm max-w-md mx-auto">
-            Pick the role that fits you. Cancel anytime.
+          <p className="text-muted-foreground text-xs max-w-lg mx-auto">
+            Choose the membership tier that fits your dating lifestyle. Cancel or upgrade anytime.
           </p>
-          {user && (
-            <p className="text-muted-foreground text-xs mt-2">
-              Signed in as <span className="text-primary">{user.primaryEmailAddress?.emailAddress}</span>
-              {" · "}
-              <button onClick={() => signOut()} className="text-muted-foreground hover:text-foreground underline">sign out</button>
-            </p>
-          )}
         </div>
 
-        {isLoading && (
-          <div className="text-center text-muted-foreground font-mono text-sm animate-pulse">
-            Loading plans…
-          </div>
-        )}
+        {/* 4 Tiers Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Free Freemium Tier */}
+          <Card className="bg-[#111218] border border-border text-white flex flex-col justify-between">
+            <CardHeader className="pb-3">
+              <Badge variant="outline" className="w-fit text-[10px] border-muted-foreground text-muted-foreground mb-2">
+                FREEMIUM
+              </Badge>
+              <CardTitle className="text-lg text-white">Free Pass</CardTitle>
+              <p className="text-2xl font-black text-[#d4af37]">$0 <span className="text-xs font-mono text-muted-foreground">/mo</span></p>
+              <CardDescription className="text-xs text-muted-foreground">
+                Free daily speed dating pass with basic matching
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ul className="space-y-2 text-xs text-muted-foreground">
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> 1 Free Suitor Match per day</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Map Radar & Nearby Profiles</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> 7-Question Algorithm Profile</li>
+              </ul>
+              <Button
+                onClick={() => navigate("/")}
+                variant="outline"
+                className="w-full border-muted-foreground/40 text-white font-bold text-xs"
+              >
+                Current Active Tier
+              </Button>
+            </CardContent>
+          </Card>
 
-        {error && (
-          <div className="text-center text-destructive font-mono text-sm">
-            Couldn't load plans. Please refresh.
-          </div>
-        )}
+          {/* Tier 1: Suitor Pass ($10/mo) */}
+          <Card className="bg-[#111218] border border-[#d4af37]/40 text-white flex flex-col justify-between relative shadow-xl">
+            <CardHeader className="pb-3">
+              <Badge className="w-fit text-[10px] bg-[#d4af37] text-black font-bold mb-2">
+                TIER 1
+              </Badge>
+              <CardTitle className="text-lg text-white">Suitor Pass</CardTitle>
+              <p className="text-2xl font-black text-[#d4af37]">$10 <span className="text-xs font-mono text-muted-foreground">/mo</span></p>
+              <CardDescription className="text-xs text-muted-foreground">
+                Unlimited speed dating matches and live GPS pings
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ul className="space-y-2 text-xs text-muted-foreground">
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Unlimited Suitor Matches</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Live GPS Location Pings</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Unlimited Likes & Admirers</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Elimination Lounge Group Chat</li>
+              </ul>
+              <Button
+                onClick={() => handleSelectTier("Suitor Pass")}
+                className="w-full bg-[#181a24] hover:bg-[#222538] border border-[#d4af37]/50 text-[#d4af37] font-bold text-xs"
+              >
+                {loadingTier === "Suitor Pass" ? "Processing..." : "Subscribe Suitor ($10/mo)"}
+              </Button>
+            </CardContent>
+          </Card>
 
-        {plans && plans.length === 0 && (
-          <div className="text-center text-muted-foreground font-mono text-sm">
-            No plans available yet. Check back soon.
-          </div>
-        )}
+          {/* Tier 2: Chooser Pass ($15/mo) */}
+          <Card className="bg-[#141622] border-2 border-[#d4af37] text-white flex flex-col justify-between relative shadow-2xl scale-105">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#d4af37] text-black text-[10px] font-black px-3 py-0.5 rounded-full uppercase tracking-widest">
+              POPULAR
+            </div>
+            <CardHeader className="pb-3 pt-6">
+              <Badge className="w-fit text-[10px] bg-[#d4af37] text-black font-bold mb-2">
+                TIER 2
+              </Badge>
+              <CardTitle className="text-lg text-white">Chooser Pass</CardTitle>
+              <p className="text-2xl font-black text-[#d4af37]">$15 <span className="text-xs font-mono text-muted-foreground">/mo</span></p>
+              <CardDescription className="text-xs text-muted-foreground">
+                Host speed dating games as Chooser & unlock 3-min profile review
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ul className="space-y-2 text-xs text-muted-foreground">
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Everything in Suitor Pass</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Host Matches as Chooser</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> 3-Min Pre-Game Profile Review</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Advanced Compatibility Vector</li>
+              </ul>
+              <Button
+                onClick={() => handleSelectTier("Chooser Pass")}
+                className="w-full bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-xs"
+              >
+                {loadingTier === "Chooser Pass" ? "Processing..." : "Subscribe Chooser ($15/mo)"}
+              </Button>
+            </CardContent>
+          </Card>
 
-        {plans && plans.length > 0 && (
-          <div className="grid md:grid-cols-2 gap-6">
-            {plans.map((plan) => (
-              <PlanCard
-                key={plan.price_id}
-                plan={plan}
-                onSelect={handleSelect}
-                loading={loadingPriceId === plan.price_id}
-              />
-            ))}
-          </div>
-        )}
-
-        <p className="text-center text-muted-foreground text-xs font-mono mt-8">
-          Secure payments by Stripe · Cancel anytime · No hidden fees
-        </p>
+          {/* Tier 3: Event Coordinator Pass ($25/mo - 90 Days Requirement) */}
+          <Card className="bg-[#111218] border border-[#d4af37]/40 text-white flex flex-col justify-between relative shadow-xl">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <Badge className="w-fit text-[10px] bg-[#d4af37] text-black font-bold mb-2">
+                  TIER 3
+                </Badge>
+                {isGoodStanding90Days ? (
+                  <Badge variant="outline" className="border-emerald-500/50 text-emerald-400 text-[9px]">
+                    ELIGIBLE (90+ DAYS)
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-amber-500/50 text-amber-400 text-[9px] flex items-center gap-1">
+                    <Lock size={10} /> 90 DAYS REQ
+                  </Badge>
+                )}
+              </div>
+              <CardTitle className="text-lg text-white flex items-center gap-1.5">
+                <Crown size={18} className="text-[#d4af37]" /> Event Coordinator
+              </CardTitle>
+              <p className="text-2xl font-black text-[#d4af37]">$25 <span className="text-xs font-mono text-muted-foreground">/mo</span></p>
+              <CardDescription className="text-xs text-muted-foreground">
+                Host Map Events at trusted venues with custom 10/20/30 capacity
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ul className="space-y-2 text-xs text-muted-foreground">
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Event Coordinator Mode</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Create Map Events (10/20/30 Limit)</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Custom Attendee Selection/Vetting</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Coordinator Event Analytics</li>
+              </ul>
+              <Button
+                onClick={() => handleSelectTier("Coordinator Pass")}
+                disabled={!isGoodStanding90Days}
+                className="w-full bg-[#181a24] hover:bg-[#222538] border border-[#d4af37]/50 text-[#d4af37] font-bold text-xs"
+              >
+                {isGoodStanding90Days
+                  ? loadingTier === "Coordinator Pass"
+                    ? "Processing..."
+                    : "Subscribe Coordinator ($25/mo)"
+                  : "Requires 90 Days Good Standing"}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

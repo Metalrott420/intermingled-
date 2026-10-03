@@ -675,97 +675,213 @@ export default function Home() {
     );
   }
 
-  // ── ROLE SELECTION ────────────────────────────────────────────────────────────
+  // ── HOMEPAGE USER PROFILE CONTROL CENTER & SHORTCUT DASHBOARD ─────────────────
+  const [isPublicProfile, setIsPublicProfile] = useState(true);
+  const [showLocationPing, setShowLocationPing] = useState(true);
+  const [prefGender, setPrefGender] = useState<"everyone" | "men" | "women">("everyone");
+
   return (
-    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 bg-background text-foreground bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-secondary/20 via-background to-background relative overflow-hidden">
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-start p-4 md:p-6 bg-[#08080c] text-foreground relative overflow-hidden pb-24">
       <NavBar base={base} signOut={signOut} isAdmin={isAdmin} />
 
-      <div className="z-10 w-full max-w-md">
-        <h1 className="text-4xl md:text-5xl font-black mb-2 uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary text-center">
-          Intermingled
-        </h1>
-        <p className="text-center font-mono text-muted-foreground mb-8 text-sm">
-          {storedQuiz
-            ? <>Welcome back, <span className="text-primary font-bold">{storedQuiz.name}</span>! Pick your role.</>
-            : "Quiz complete! Now choose your role."}
-        </p>
-
-        <div className="bg-card/80 backdrop-blur border border-secondary/20 rounded-xl p-8 shadow-[0_0_30px_hsl(var(--secondary)/0.15)] space-y-5">
-          {/* Session display name */}
-          <div className="space-y-2">
-            <label className="text-xs uppercase font-mono text-muted-foreground">Your name in this session</label>
-            <input
-              value={sessionName}
-              onChange={(e) => setSessionName(e.target.value)}
-              className="w-full bg-input border border-border rounded-md h-12 px-4 text-lg focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-            />
-          </div>
-
-          {/* Cooldown notice */}
-          {isOnCooldown && (
-            <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-              <Clock size={16} className="text-amber-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">Chooser Cooldown Active</p>
-                <p className="text-muted-foreground text-xs leading-relaxed">
-                  You've used {cooldownInfo!.sessionsToday}/{cooldownInfo!.limit} chooser sessions today.
-                  Resets in <span className="text-amber-400 font-bold">{countdown}</span> at midnight UTC.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-3">
-            <div className="text-xs uppercase font-mono text-muted-foreground">What's your role today?</div>
-
-            <button
-              onClick={() => handleSubmit("suitor")}
-              disabled={isSubmitting || !sessionName.trim()}
-              className={`w-full h-16 rounded-lg border-2 font-bold uppercase tracking-widest text-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
-                isOnCooldown
-                  ? "border-secondary bg-secondary/20 text-secondary hover:bg-secondary/30 shadow-[0_0_15px_hsl(var(--secondary)/0.2)]"
-                  : "border-secondary bg-secondary/10 text-secondary hover:bg-secondary/20 hover:shadow-[0_0_20px_hsl(var(--secondary)/0.3)]"
-              }`}
-            >
-              I Want to Be Chosen
-              <div className="text-xs font-normal font-mono mt-0.5 opacity-70">
-                {isOnCooldown ? "← Your role while on cooldown" : "Enter the suitor pool"}
-              </div>
-            </button>
-
-            <button
-              onClick={() => !isOnCooldown && handleSubmit("chooser")}
-              disabled={isSubmitting || !sessionName.trim() || isOnCooldown}
-              className={`w-full h-16 rounded-lg border-2 font-bold uppercase tracking-widest text-lg transition-all active:scale-[0.98] ${
-                isOnCooldown
-                  ? "border-border bg-card/30 text-muted-foreground cursor-not-allowed opacity-50"
-                  : "border-primary bg-primary/10 text-primary hover:bg-primary/20 hover:shadow-[0_0_20px_hsl(var(--primary)/0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
-              }`}
-            >
-              {isOnCooldown && <Lock size={14} className="inline mr-2 -mt-0.5" />}
-              I Want to Choose
-              <div className="text-xs font-normal font-mono mt-0.5 opacity-70">
-                {isOnCooldown
-                  ? `On cooldown · ${cooldownInfo!.sessionsToday}/${cooldownInfo!.limit} sessions used`
-                  : "Find your 5 matches"}
-              </div>
-            </button>
-          </div>
-
-          {!isOnCooldown && (
-            <p className="text-center text-[11px] font-mono text-muted-foreground/50">
-              Choosers get 3 sessions · resets daily at midnight UTC
-            </p>
-          )}
+      <div className="z-10 w-full max-w-2xl space-y-6 pt-4">
+        {/* Brand Header */}
+        <div className="text-center space-y-1">
+          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158]">
+            INTERMINGLED
+          </h1>
+          <p className="text-[11px] font-mono text-[#d4af37] uppercase tracking-widest font-bold">
+            5 ROUNDS. 2 WINNERS. 1 PERFECT MATCH.
+          </p>
         </div>
 
-        <button
-          onClick={handleRetakeQuiz}
-          className="mt-4 w-full text-center text-xs text-muted-foreground font-mono hover:text-foreground transition-colors"
-        >
-          RETAKE QUIZ
-        </button>
+        {/* User Profile Control Center Card */}
+        <div className="bg-[#111218] border border-[#d4af37]/40 rounded-2xl p-6 shadow-2xl space-y-5 relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+            {/* Avatar Photo */}
+            <div className="relative">
+              <div className="w-24 h-24 rounded-2xl bg-[#1d2030] border-2 border-[#d4af37] overflow-hidden shadow-xl flex items-center justify-center">
+                <img
+                  src={user?.imageUrl || "/logo-192.png"}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#d4af37] text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 shadow-md">
+                VERIFIED 18+
+              </Badge>
+            </div>
+
+            {/* Profile Info & Bio */}
+            <div className="flex-1 space-y-1">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <h2 className="text-2xl font-black text-white">
+                  {sessionName || user?.firstName || "Ivan Maldonado"}
+                </h2>
+                <Badge variant="outline" className="border-[#d4af37]/40 text-[#d4af37] text-[10px] font-mono">
+                  COORDINATOR L2
+                </Badge>
+              </div>
+
+              <p className="text-xs text-muted-foreground font-mono">
+                {user?.primaryEmailAddress?.emailAddress || "metalrott.7@gmail.com"}
+              </p>
+
+              <div className="flex flex-wrap gap-2 pt-2 justify-center sm:justify-start">
+                <a
+                  href={`${base}/profile`}
+                  className="text-[11px] font-bold text-[#d4af37] hover:underline flex items-center gap-1"
+                >
+                  <User size={12} /> Edit Profile & Photos →
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Live Profile Stats Dashboard */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[#d4af37]/20 text-center text-xs">
+            <div className="bg-[#181a24] p-3 rounded-xl border border-[#222538]">
+              <p className="text-[10px] text-muted-foreground font-mono uppercase">Matches</p>
+              <p className="text-lg font-black text-[#d4af37]">14</p>
+            </div>
+            <div className="bg-[#181a24] p-3 rounded-xl border border-[#222538]">
+              <p className="text-[10px] text-muted-foreground font-mono uppercase">Likes Received</p>
+              <p className="text-lg font-black text-pink-400">28</p>
+            </div>
+            <div className="bg-[#181a24] p-3 rounded-xl border border-[#222538]">
+              <p className="text-[10px] text-muted-foreground font-mono uppercase">Match Score</p>
+              <p className="text-lg font-black text-emerald-400">96%</p>
+            </div>
+            <div className="bg-[#181a24] p-3 rounded-xl border border-[#222538]">
+              <p className="text-[10px] text-muted-foreground font-mono uppercase">Strikes Status</p>
+              <p className="text-lg font-black text-emerald-400">0 / 3</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Action Shortcuts Grid */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-mono uppercase text-[#d4af37] tracking-wider font-bold">
+            Control Center Shortcuts
+          </h3>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <a
+              href={`${base}/map`}
+              className="bg-[#111218] hover:bg-[#181a24] border border-[#d4af37]/30 rounded-xl p-4 flex flex-col items-center text-center gap-2 transition-all hover:scale-[1.02] shadow-lg group"
+            >
+              <div className="p-2.5 rounded-xl bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/30 group-hover:bg-[#d4af37] group-hover:text-black transition-colors">
+                <MapPin size={22} />
+              </div>
+              <span className="font-bold text-xs text-white">Speed-Dating Map</span>
+            </a>
+
+            <a
+              href={`${base}/inbox`}
+              className="bg-[#111218] hover:bg-[#181a24] border border-[#d4af37]/30 rounded-xl p-4 flex flex-col items-center text-center gap-2 transition-all hover:scale-[1.02] shadow-lg group"
+            >
+              <div className="p-2.5 rounded-xl bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/30 group-hover:bg-[#d4af37] group-hover:text-black transition-colors">
+                <MessageCircle size={22} />
+              </div>
+              <span className="font-bold text-xs text-white">Messages & Inbox</span>
+            </a>
+
+            <a
+              href={`${base}/safety`}
+              className="bg-[#111218] hover:bg-[#181a24] border border-[#d4af37]/30 rounded-xl p-4 flex flex-col items-center text-center gap-2 transition-all hover:scale-[1.02] shadow-lg group"
+            >
+              <div className="p-2.5 rounded-xl bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/30 group-hover:bg-[#d4af37] group-hover:text-black transition-colors">
+                <ShieldCheck size={22} />
+              </div>
+              <span className="font-bold text-xs text-white">Trusted Contacts</span>
+            </a>
+
+            <a
+              href={`${base}/who-liked-me`}
+              className="bg-[#111218] hover:bg-[#181a24] border border-[#d4af37]/30 rounded-xl p-4 flex flex-col items-center text-center gap-2 transition-all hover:scale-[1.02] shadow-lg group"
+            >
+              <div className="p-2.5 rounded-xl bg-pink-500/10 text-pink-400 border border-pink-500/30 group-hover:bg-pink-500 group-hover:text-black transition-colors">
+                <User size={22} />
+              </div>
+              <span className="font-bold text-xs text-white">Who Liked Me</span>
+            </a>
+
+            <a
+              href={`${base}/lobby`}
+              className="bg-[#111218] hover:bg-[#181a24] border border-[#d4af37]/30 rounded-xl p-4 flex flex-col items-center text-center gap-2 transition-all hover:scale-[1.02] shadow-lg group"
+            >
+              <div className="p-2.5 rounded-xl bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/30 group-hover:bg-[#d4af37] group-hover:text-black transition-colors">
+                <MessageCircle size={22} />
+              </div>
+              <span className="font-bold text-xs text-white">Elimination Lounge</span>
+            </a>
+
+            <a
+              href={`${base}/subscribe`}
+              className="bg-[#111218] hover:bg-[#181a24] border border-[#d4af37]/30 rounded-xl p-4 flex flex-col items-center text-center gap-2 transition-all hover:scale-[1.02] shadow-lg group"
+            >
+              <div className="p-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black">
+                <Lock size={22} />
+              </div>
+              <span className="font-bold text-xs text-[#d4af37]">Subscription Tiers</span>
+            </a>
+          </div>
+        </div>
+
+        {/* Public Profile Visibility & Preferences Controls */}
+        <div className="bg-[#111218] border border-[#d4af37]/30 rounded-2xl p-5 space-y-4 shadow-xl">
+          <h3 className="text-xs font-mono uppercase text-[#d4af37] tracking-wider font-bold">
+            Personality & Public Visibility Controls
+          </h3>
+
+          <div className="space-y-3 text-xs">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-[#161822] border border-[#222538]">
+              <div>
+                <p className="font-bold text-white">Public Profile Visibility</p>
+                <p className="text-[10px] text-muted-foreground">Allow speed-daters to discover your profile on the map</p>
+              </div>
+              <button
+                onClick={() => setIsPublicProfile(!isPublicProfile)}
+                className={`px-3 py-1.5 rounded-lg font-bold uppercase text-[10px] transition-colors ${
+                  isPublicProfile ? "bg-emerald-500 text-black" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {isPublicProfile ? "Public ✓" : "Private"}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl bg-[#161822] border border-[#222538]">
+              <div>
+                <p className="font-bold text-white">Live Location Ping</p>
+                <p className="text-[10px] text-muted-foreground">Show live GPS coordinates on map during local pings</p>
+              </div>
+              <button
+                onClick={() => setShowLocationPing(!showLocationPing)}
+                className={`px-3 py-1.5 rounded-lg font-bold uppercase text-[10px] transition-colors ${
+                  showLocationPing ? "bg-[#d4af37] text-black" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {showLocationPing ? "Visible 📍" : "Hidden"}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl bg-[#161822] border border-[#222538]">
+              <div>
+                <p className="font-bold text-white">Match Preference</p>
+                <p className="text-[10px] text-muted-foreground">Show matches based on gender preference</p>
+              </div>
+              <select
+                value={prefGender}
+                onChange={(e) => setPrefGender(e.target.value as any)}
+                className="bg-[#0c0d12] border border-[#222533] text-white text-xs font-bold rounded-lg px-2.5 py-1.5 outline-none"
+              >
+                <option value="everyone">Everyone</option>
+                <option value="women">Women</option>
+                <option value="men">Men</option>
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

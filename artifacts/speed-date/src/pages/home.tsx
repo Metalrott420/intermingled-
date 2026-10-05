@@ -280,8 +280,6 @@ export default function Home() {
   const [cooldownInfo, setCooldownInfo] = useState<CooldownInfo | null>(null);
   const [, forceUpdate] = useState(0);
 
-  const createUser = useCreateUser();
-
   const maxDob = new Date(new Date().setFullYear(new Date().getFullYear() - 18))
     .toISOString()
     .split("T")[0];
@@ -420,10 +418,16 @@ export default function Home() {
     setIsSubmitting(true);
 
     try {
-      const vector = answers.length === 7 ? answers : storedQuiz!.personalityVector;
-      const userData = await createUser.mutateAsync({
-        data: { name: displayName, role, personalityVector: vector },
+      const vector = answers.length === 7 ? answers : (storedQuiz?.personalityVector || [4, 3, 4, 3, 4, 3, 2]);
+      const res = await fetch(`${base}/api/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: displayName, role, personalityVector: vector }),
+        credentials: "include",
       });
+
+      if (!res.ok) throw new Error("Failed to create user role");
+      const userData = await res.json();
 
       sessionStorage.setItem(SESSION_KEY, JSON.stringify({ id: userData.id, name: displayName }));
       localStorage.setItem(
@@ -445,6 +449,8 @@ export default function Home() {
       } else {
         setLocation(`/match?userId=${userData.id}&name=${encodeURIComponent(displayName)}`);
       }
+    } catch {
+      setIsSubmitting(false);
     } finally {
       setIsSubmitting(false);
     }

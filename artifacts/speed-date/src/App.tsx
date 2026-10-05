@@ -117,20 +117,18 @@ function SignUpPage() {
 }
 
 function ClerkQueryClientCacheInvalidator() {
-  const { addListener } = useClerk();
+  const { user, isLoaded } = useUser();
   const qc = useQueryClient();
   const prevUserIdRef = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
-    const unsubscribe = addListener(({ user }) => {
-      const userId = user?.id ?? null;
-      if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
-        qc.clear();
-      }
-      prevUserIdRef.current = userId;
-    });
-    return unsubscribe;
-  }, [addListener, qc]);
+    if (!isLoaded) return;
+    const userId = user?.id ?? null;
+    if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
+      qc.clear();
+    }
+    prevUserIdRef.current = userId;
+  }, [user?.id, isLoaded, qc]);
 
   return null;
 }

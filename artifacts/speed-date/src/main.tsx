@@ -2,6 +2,15 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
+// Unregister stale service workers to prevent cached old bundle loads
+if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (let registration of registrations) {
+      registration.unregister();
+    }
+  });
+}
+
 // Prevent infinite reload loop if offline or persistent network error
 function autoReloadOnDeploymentError(errorMsg?: string) {
   const LAST_RELOAD_KEY = "intermingled_last_reload";

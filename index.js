@@ -33,7 +33,13 @@ function handleRequest(req, res) {
   if (ext) {
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       const mime = mimeTypes[ext] || 'application/octet-stream';
-      res.writeHead(200, { 'Content-Type': mime });
+      const headers = { 'Content-Type': mime };
+      if (ext === '.html') {
+        headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+        headers['Pragma'] = 'no-cache';
+        headers['Expires'] = '0';
+      }
+      res.writeHead(200, headers);
       return fs.createReadStream(filePath).pipe(res);
     } else {
       res.writeHead(404, { 'Content-Type': 'text/plain' });

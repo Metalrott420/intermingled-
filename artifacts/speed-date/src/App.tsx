@@ -125,7 +125,10 @@ function ClerkQueryClientCacheInvalidator() {
     if (!isLoaded) return;
     const userId = user?.id ?? null;
     if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
-      qc.clear();
+      // Defer query cache invalidation to next macro-tick so React completes current render pass
+      setTimeout(() => {
+        qc.clear();
+      }, 0);
     }
     prevUserIdRef.current = userId;
   }, [user?.id, isLoaded, qc]);

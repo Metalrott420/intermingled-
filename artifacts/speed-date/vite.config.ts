@@ -39,12 +39,22 @@ export default defineConfig({
       "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
       "@workspace/api-client-react": path.resolve(import.meta.dirname, "src/lib/api-client-react.ts"),
     },
-    dedupe: ["react", "react-dom"],
+    dedupe: ["react", "react-dom", "@clerk/react"],
+  },
+  optimizeDeps: {
+    include: ["@clerk/react"],
   },
   root: path.resolve(import.meta.dirname),
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          clerk: ["@clerk/react"],
+        },
+      },
+    },
   },
   server: {
     port,

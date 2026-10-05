@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from "@clerk/react";
+import { ClerkProvider, ClerkLoaded, ClerkLoading, SignIn, SignUp, Show, useClerk, useUser } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
@@ -238,9 +238,17 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
         <TooltipProvider>
-          <AppRoutes />
-          <GlobalGoldNavbar />
-          <Toaster />
+          <ClerkLoading>
+            <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center bg-[#08080c] text-[#d4af37]">
+              <div className="w-10 h-10 border-2 border-[#d4af37] border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-xs font-mono uppercase tracking-widest font-bold">Connecting Intermingled Security...</p>
+            </div>
+          </ClerkLoading>
+          <ClerkLoaded>
+            <AppRoutes />
+            <GlobalGoldNavbar />
+            <Toaster />
+          </ClerkLoaded>
         </TooltipProvider>
       </QueryClientProvider>
     </ClerkProvider>

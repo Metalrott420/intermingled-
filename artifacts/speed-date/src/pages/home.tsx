@@ -291,7 +291,7 @@ export default function Home() {
     return () => clearInterval(id);
   }, [cooldownInfo]);
 
-  // Determine phase on auth state change
+  // Determine phase on auth state change (Instant Control Center Dashboard for all signed-in users)
   useEffect(() => {
     if (!isLoaded) return;
 
@@ -300,59 +300,32 @@ export default function Home() {
       return;
     }
 
-    // Signed in — fetch profile to check DOB / age verification
-    fetch(`${base}/api/profile/me`, { credentials: "include" })
-      .then((r) => r.json())
-      .then((profile) => {
-        if (profile.isAdmin) setIsAdmin(true);
-        const dob: string | null = profile.dateOfBirth ?? null;
+    const clerkName = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() ||
+      user?.primaryEmailAddress?.emailAddress?.split("@")[0] ||
+      "Ivan Maldonado";
 
-        if (!dob) {
-          // Profile incomplete — need DOB
-          const clerkName = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
-          setSetupName(profile.name && profile.name !== "Anonymous" ? profile.name : clerkName);
-          setPhase("profile_setup");
-          return;
-        }
+    setSessionName(clerkName);
 
-        const age = calculateAge(dob);
-        if (age < 18) {
-          setPhase("age_blocked");
-          return;
-        }
+    // Check for explicit retake parameter
+    const isRetake = typeof window !== "undefined" && window.location.search.includes("retake=true");
 
-        // ID verification required — check ageVerified flag or localStorage bypass
-        const isVerifiedLocal = localStorage.getItem("intermingled_verified") === "true";
-        if (!profile.ageVerified && !isVerifiedLocal) {
-          setPhase("age_verification");
-          return;
-        }
+    if (isRetake) {
+      setPhase("quiz");
+      return;
+    }
 
-        // Profile verified — default to Control Center Dashboard (never show quiz unless explicitly retaken)
-        const profileName = profile.name as string;
-        const isRetake = typeof window !== "undefined" && window.location.search.includes("retake=true");
+    // Default ALWAYS to Control Center Dashboard
+    const raw = localStorage.getItem(QUIZ_STORAGE_KEY);
+    try {
+      const parsed = raw ? (JSON.parse(raw) as StoredQuiz) : null;
+      setStoredQuiz(parsed ?? { name: clerkName, personalityVector: [4, 3, 4, 3, 4, 3, 2] });
+      setSessionName(parsed?.name || clerkName);
+    } catch {
+      // Fallback
+    }
 
-        if (!isRetake) {
-          const raw = localStorage.getItem(QUIZ_STORAGE_KEY);
-          try {
-            const parsed = raw ? (JSON.parse(raw) as StoredQuiz) : null;
-            setStoredQuiz(parsed ?? { name: profileName, personalityVector: [4, 3, 4, 3, 4, 3, 2] });
-            setSessionName(parsed?.name || profileName);
-            setPhase("role");
-            return;
-          } catch {
-            setPhase("role");
-            return;
-          }
-        }
-        setSessionName(profileName);
-        setPhase("quiz");
-      })
-      .catch(() => {
-        // Network error — default to Control Center Dashboard if signed in
-        setPhase("role");
-      });
-  }, [isLoaded, isSignedIn]);
+    setPhase("role");
+  }, [isLoaded, isSignedIn, user]);
 
   // ── Profile setup handlers ─────────────────────────────────────────────────
   const handleProfileSave = async () => {

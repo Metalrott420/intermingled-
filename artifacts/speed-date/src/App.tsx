@@ -34,8 +34,8 @@ const queryClient = new QueryClient();
 const hostForClerk = typeof window !== "undefined" ? window.location.hostname.replace(/^www\./, "") : "";
 
 const clerkPubKey =
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ||
-  (hostForClerk ? publishableKeyFromHost(hostForClerk) : "");
+  (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ||
+  "pk_test_aGVscGZ1bC1ib2FyLTk4LmNsZXJrLmFjY291bnRzLmRldiQ").trim();
 
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 

@@ -236,23 +236,22 @@ function AgeVerificationGate({
   );
 }
 
-function NavBar({ base, signOut, isAdmin }: { base: string; signOut: () => void; isAdmin?: boolean }) {
+function NavBar({ base, signOut, isAdmin, isSignedIn }: { base: string; signOut: () => void; isAdmin?: boolean; isSignedIn?: boolean }) {
+  if (!isSignedIn) return null;
   return (
     <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-      <Show when="signed-in">
-        {isAdmin && (
-          <a href={`${base}/admin`} className="p-1.5 text-secondary hover:text-secondary/80 transition-colors" title="Admin Panel">
-            <Shield size={18} />
-          </a>
-        )}
-        <a href={`${base}/inbox`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="Messages">
-          <MessageCircle size={18} />
+      {isAdmin && (
+        <a href={`${base}/admin`} className="p-1.5 text-secondary hover:text-secondary/80 transition-colors" title="Admin Panel">
+          <Shield size={18} />
         </a>
-        <a href={`${base}/profile`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="My Profile">
-          <User size={18} />
-        </a>
-        <button onClick={signOut} className="text-xs font-mono text-muted-foreground hover:text-foreground px-3 py-1.5 border border-border rounded-md transition-colors">Sign out</button>
-      </Show>
+      )}
+      <a href={`${base}/inbox`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="Messages">
+        <MessageCircle size={18} />
+      </a>
+      <a href={`${base}/profile`} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="My Profile">
+        <User size={18} />
+      </a>
+      <button onClick={signOut} className="text-xs font-mono text-muted-foreground hover:text-foreground px-3 py-1.5 border border-border rounded-md transition-colors">Sign out</button>
     </div>
   );
 }
@@ -679,7 +678,7 @@ export default function Home() {
 
   return (
     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-start p-4 md:p-6 bg-[#08080c] text-foreground relative overflow-hidden pb-24">
-      <NavBar base={base} signOut={signOut} isAdmin={isAdmin} />
+      <NavBar base={base} signOut={signOut} isAdmin={isAdmin} isSignedIn={isSignedIn} />
 
       <div className="z-10 w-full max-w-2xl space-y-6 pt-4">
         {/* Brand Header */}

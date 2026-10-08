@@ -280,6 +280,11 @@ export default function Home() {
   const [cooldownInfo, setCooldownInfo] = useState<CooldownInfo | null>(null);
   const [, forceUpdate] = useState(0);
 
+  // Visibility and Preferences Controls (Declared at top level before any early returns)
+  const [isPublicProfile, setIsPublicProfile] = useState(true);
+  const [showLocationPing, setShowLocationPing] = useState(true);
+  const [prefGender, setPrefGender] = useState<"everyone" | "men" | "women">("everyone");
+
   const maxDob = new Date(new Date().setFullYear(new Date().getFullYear() - 18))
     .toISOString()
     .split("T")[0];
@@ -651,10 +656,6 @@ export default function Home() {
   }
 
   // ── HOMEPAGE USER PROFILE CONTROL CENTER & SHORTCUT DASHBOARD ─────────────────
-  const [isPublicProfile, setIsPublicProfile] = useState(true);
-  const [showLocationPing, setShowLocationPing] = useState(true);
-  const [prefGender, setPrefGender] = useState<"everyone" | "men" | "women">("everyone");
-
   return (
     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-start p-4 md:p-6 bg-[#08080c] text-foreground relative overflow-hidden pb-24">
       <NavBar base={base} signOut={signOut} isAdmin={isAdmin} isSignedIn={isSignedIn} />

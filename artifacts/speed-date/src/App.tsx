@@ -193,6 +193,8 @@ function GlobalGoldNavbar() {
           <button
             key={item.path}
             onClick={() => setLocation(item.path)}
+            aria-label={`Navigate to ${item.label}`}
+            aria-current={isActive ? "page" : undefined}
             className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
               isActive
                 ? "bg-[#d4af37] text-[#08080c] font-black scale-105 shadow-md shadow-[#d4af37]/20"

@@ -679,7 +679,7 @@ export default function Home() {
               <div className="w-24 h-24 rounded-2xl bg-[#1d2030] border-2 border-[#d4af37] overflow-hidden shadow-xl flex items-center justify-center">
                 <img
                   src={user?.imageUrl || "/logo-192.png"}
-                  alt="Profile"
+                  alt="Verified User Profile Photo"
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -706,6 +706,7 @@ export default function Home() {
               <div className="flex flex-wrap gap-2 pt-2 justify-center sm:justify-start">
                 <a
                   href={`${base}/profile`}
+                  aria-label="Edit Profile and Photos"
                   className="text-[11px] font-bold text-[#d4af37] hover:underline flex items-center gap-1"
                 >
                   <User size={12} /> Edit Profile & Photos →

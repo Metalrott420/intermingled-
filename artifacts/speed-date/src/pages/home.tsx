@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useCreateUser } from "@workspace/api-client-react";
 import { useUser, useClerk, Show } from "@clerk/react";
-import { User, MessageCircle, Lock, Clock, ArrowRight, ShieldCheck, Shield, Fingerprint, Loader2 } from "lucide-react";
+import { User, MessageCircle, Lock, Clock, ArrowRight, ShieldCheck, Shield, Fingerprint, Loader2, MapPin } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const QUIZ_QUESTIONS = [
   {

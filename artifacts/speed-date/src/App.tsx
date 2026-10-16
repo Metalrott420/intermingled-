@@ -206,7 +206,7 @@ function GlobalGoldNavbar() {
   const navItems = [
     { label: "Home", path: "/", icon: HomeIcon },
     { label: "Map", path: "/map", icon: MapPin },
-    { label: "Pool", path: "/pool", icon: Sparkles },
+    { label: "MATCH", path: "/match", icon: Sparkles },
     { label: "Inbox", path: "/inbox", icon: MessageSquare },
     { label: "Likes", path: "/who-liked-me", icon: Heart },
     { label: "Safety", path: "/safety", icon: Shield },

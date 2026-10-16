@@ -806,6 +806,41 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Core 5-Round Elimination Matchmaking Hero Launcher */}
+        <div className="bg-[#111218] border-2 border-[#d4af37]/50 rounded-2xl p-6 shadow-[0_0_50px_rgba(212,175,55,0.2)] space-y-4 text-center">
+          <div className="flex flex-col items-center gap-1">
+            <Badge className="bg-[#d4af37] text-black font-black uppercase text-[10px] tracking-wider px-3 py-0.5">
+              CORE GAMESHOW ENGINE
+            </Badge>
+            <h3 className="text-xl md:text-2xl font-black text-gold-hd-3d uppercase tracking-widest pt-1">
+              5-Round Elimination Matchmaking
+            </h3>
+            <p className="text-xs text-slate-300 font-sans max-w-md">
+              Select your role today and launch directly into real-time speed dating session!
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <button
+              onClick={() => handleSubmit("chooser")}
+              disabled={isSubmitting}
+              className="w-full py-4 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] hover:from-[#b5952f] hover:to-[#d97706] text-black font-black uppercase tracking-wider text-xs shadow-lg shadow-[#d4af37]/25 flex flex-col items-center justify-center gap-1 transition-all hover:scale-[1.02]"
+            >
+              <span className="text-sm">I WANT TO CHOOSE 👑</span>
+              <span className="text-[10px] font-sans opacity-80 font-bold">FIND YOUR 5 MATCHES</span>
+            </button>
+
+            <button
+              onClick={() => handleSubmit("suitor")}
+              disabled={isSubmitting}
+              className="w-full py-4 px-4 rounded-xl border-2 border-[#d4af37]/60 bg-[#181a24] hover:bg-[#222538] text-white font-black uppercase tracking-wider text-xs flex flex-col items-center justify-center gap-1 transition-all hover:scale-[1.02]"
+            >
+              <span className="text-sm text-[#d4af37]">I WANT TO BE CHOSEN 💖</span>
+              <span className="text-[10px] font-sans text-slate-300 font-semibold">ENTER THE SUITOR POOL</span>
+            </button>
+          </div>
+        </div>
+
         {/* Quick Action Shortcuts Grid */}
         <div className="space-y-3">
           <h3 className="text-xs font-mono uppercase text-[#d4af37] tracking-wider font-bold">

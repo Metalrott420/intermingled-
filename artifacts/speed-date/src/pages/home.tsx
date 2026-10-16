@@ -534,7 +534,7 @@ export default function Home() {
               INTERMINGLED
             </h1>
             <p className="text-xs md:text-sm font-sans text-[#e5c158] uppercase tracking-widest font-extrabold max-w-md leading-relaxed">
-              5 ROUNDS · 2 WINNERS · 1 PERFECT MATCH
+              3 ROUNDS · 4 SUITORS · 1 PERFECT MATCH
               <span className="block text-[11px] text-slate-300 tracking-wider font-semibold mt-1">FIND THE ONE WHO COMPLETES YOU</span>
             </p>
           </div>
@@ -551,7 +551,7 @@ export default function Home() {
             </div>
             <div className="flex items-start gap-3 text-xs font-sans font-semibold text-slate-200">
               <ArrowRight size={16} className="text-[#d4af37] mt-0.5 shrink-0" />
-              <span>5-ROUND ELIMINATION GAMESHOW SPEED DATING</span>
+              <span>3-ROUND ELIMINATION GAMESHOW SPEED DATING</span>
             </div>
           </div>
 
@@ -806,14 +806,14 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Core 5-Round Elimination Matchmaking Hero Launcher */}
+        {/* Core 3-Round Elimination Matchmaking Hero Launcher */}
         <div className="bg-[#111218] border-2 border-[#d4af37]/50 rounded-2xl p-6 shadow-[0_0_50px_rgba(212,175,55,0.2)] space-y-4 text-center">
           <div className="flex flex-col items-center gap-1">
             <Badge className="bg-[#d4af37] text-black font-black uppercase text-[10px] tracking-wider px-3 py-0.5">
               CORE GAMESHOW ENGINE
             </Badge>
             <h3 className="text-xl md:text-2xl font-black text-gold-hd-3d uppercase tracking-widest pt-1">
-              5-Round Elimination Matchmaking
+              3-Round Elimination Matchmaking
             </h3>
             <p className="text-xs text-slate-300 font-sans max-w-md">
               Select your role today and launch directly into real-time speed dating session!
@@ -827,7 +827,7 @@ export default function Home() {
               className="w-full py-4 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] hover:from-[#b5952f] hover:to-[#d97706] text-black font-black uppercase tracking-wider text-xs shadow-lg shadow-[#d4af37]/25 flex flex-col items-center justify-center gap-1 transition-all hover:scale-[1.02]"
             >
               <span className="text-sm">I WANT TO CHOOSE 👑</span>
-              <span className="text-[10px] font-sans opacity-80 font-bold">FIND YOUR 5 MATCHES</span>
+              <span className="text-[10px] font-sans opacity-80 font-bold">FIND YOUR 4 SUITORS</span>
             </button>
 
             <button

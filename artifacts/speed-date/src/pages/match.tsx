@@ -41,7 +41,7 @@ export default function Match() {
         if (prev.some((s) => s.slot === slot)) return prev;
         const next = [...prev, { slot, suitorName }];
         if (
-          next.length >= 5 &&
+          next.length >= 4 &&
           roomIdRef.current &&
           chooserParticipantIdRef.current &&
           !redirectedRef.current
@@ -120,7 +120,7 @@ export default function Match() {
           </p>
 
           <div className="flex justify-center gap-2 sm:gap-3 mb-8">
-            {Array.from({ length: 5 }).map((_, i) => {
+            {Array.from({ length: 4 }).map((_, i) => {
               const filled = filledSlots.find((s) => s.slot === i + 1);
               return (
                 <div
@@ -154,7 +154,7 @@ export default function Match() {
           )}
 
           <div className="text-xs font-mono text-muted-foreground animate-pulse">
-            {filledSlots.length >= 5 ? "ALL MATCHED — ENTERING ROOM..." : "WAITING FOR CONFIRMATIONS..."}
+            {filledSlots.length >= 4 ? "ALL MATCHED — ENTERING ROOM..." : "WAITING FOR CONFIRMATIONS..."}
           </div>
         </div>
       </div>
@@ -162,7 +162,7 @@ export default function Match() {
   }
 
   const liveCount = poolCount ?? 0;
-  const enoughPlayers = liveCount >= 5;
+  const enoughPlayers = liveCount >= 4;
 
   return (
     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 sm:p-6 bg-background text-foreground bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background relative overflow-hidden">
@@ -179,9 +179,9 @@ export default function Match() {
         )}
 
         <div className="bg-card/80 backdrop-blur border border-primary/20 rounded-xl p-6 sm:p-8 shadow-[0_0_30px_hsl(var(--primary)/0.15)] space-y-5">
-          <h2 className="text-lg sm:text-xl font-bold uppercase tracking-wider">Find Your 5 Matches</h2>
+          <h2 className="text-lg sm:text-xl font-bold uppercase tracking-wider">Find Your 4 Suitor Matches</h2>
           <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-            We rank all live suitors by personality compatibility and instantly connect you with your top 5.
+            We rank all live suitors by personality compatibility and instantly connect you with your top 4.
           </p>
 
           {/* Live suitor pool count */}
@@ -197,7 +197,7 @@ export default function Match() {
               SUITOR{liveCount !== 1 ? "S" : ""} IN POOL RIGHT NOW
             </div>
             <div className="mt-2 flex justify-center gap-1">
-              {Array.from({ length: 5 }).map((_, i) => (
+              {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
                   className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${

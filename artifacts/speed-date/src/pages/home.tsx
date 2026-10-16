@@ -471,25 +471,26 @@ export default function Home() {
               alt="Intermingled Logo"
               className="h-24 w-auto filter drop-shadow-[0_0_25px_rgba(212,175,55,0.6)] animate-pulse"
             />
-            <h1 className="text-4xl md:text-5xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] text-shadow-gold-3d">
+            <h1 className="text-4xl md:text-5xl font-black uppercase tracking-widest text-gold-hd-3d">
               INTERMINGLED
             </h1>
-            <p className="text-[11px] md:text-xs font-mono text-[#d4af37] uppercase tracking-widest font-extrabold max-w-sm">
-              5 ROUNDS. 2 WINNERS. 1 PERFECT MATCH. FIND THE ONE WHO COMPLETES YOU.
+            <p className="text-xs md:text-sm font-sans text-[#e5c158] uppercase tracking-widest font-extrabold max-w-md leading-relaxed">
+              5 ROUNDS · 2 WINNERS · 1 PERFECT MATCH
+              <span className="block text-[11px] text-slate-300 tracking-wider font-semibold mt-1">FIND THE ONE WHO COMPLETES YOU</span>
             </p>
           </div>
 
           {/* Luxury Obsidian Glassmorphism Info Card */}
           <div className="bg-[#111218]/90 backdrop-blur-xl border-2 border-[#d4af37]/40 rounded-2xl p-6 space-y-4 text-left shadow-[0_0_50px_rgba(212,175,55,0.25)] w-full">
-            <div className="flex items-start gap-3 text-xs font-mono text-slate-300">
+            <div className="flex items-start gap-3 text-xs font-sans font-semibold text-slate-200">
               <ShieldCheck size={16} className="text-[#d4af37] mt-0.5 shrink-0" />
               <span>18+ ONLY · AGE-VERIFIED VIA GOVERNMENT ID</span>
             </div>
-            <div className="flex items-start gap-3 text-xs font-mono text-slate-300">
+            <div className="flex items-start gap-3 text-xs font-sans font-semibold text-slate-200">
               <User size={16} className="text-[#d4af37] mt-0.5 shrink-0" />
               <span>AUTHENTIC PROFILES · MATCHES & LIVE GPS MAP</span>
             </div>
-            <div className="flex items-start gap-3 text-xs font-mono text-slate-300">
+            <div className="flex items-start gap-3 text-xs font-sans font-semibold text-slate-200">
               <ArrowRight size={16} className="text-[#d4af37] mt-0.5 shrink-0" />
               <span>5-ROUND ELIMINATION GAMESHOW SPEED DATING</span>
             </div>

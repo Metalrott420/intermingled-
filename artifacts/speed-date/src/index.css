@@ -135,11 +135,11 @@
   --chart-4: 190 90% 44%;
   --chart-5: 280 70% 62%;
 
-  /* Barlow Condensed for gameshow drama */
-  --app-font-sans: 'Barlow', 'Inter', system-ui, sans-serif;
+  /* Ultra-High-Definition Luxury Fonts */
+  --app-font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  --app-font-display: 'Barlow Condensed', 'Impact', system-ui, sans-serif;
+  --app-font-display: 'Cinzel', 'Playfair Display', serif;
 
   --radius: 0.625rem;
 
@@ -324,9 +324,13 @@
     inset: -1px;
   }
 
-  /* ── Gameshow-specific utilities ── */
-  .text-shadow-gold-3d {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 20px rgba(212, 175, 55, 0.5), 0 0 30px rgba(245, 158, 11, 0.3);
+  /* ── Ultra-HD High Definition Gold Utilities ── */
+  .text-gold-hd-3d {
+    font-family: var(--app-font-display);
+    background: linear-gradient(180deg, #fff3b0 0%, #f5d061 30%, #d4af37 65%, #9a7218 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 15px rgba(212, 175, 55, 0.35));
   }
 
   .neon-glow {

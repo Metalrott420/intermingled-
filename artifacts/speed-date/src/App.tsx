@@ -68,7 +68,7 @@ const clerkAppearance = {
     colorInput: "#181a24",
     colorInputForeground: "#ffffff",
     colorNeutral: "#1f2232",
-    fontFamily: "Barlow, Inter, system-ui, sans-serif",
+    fontFamily: "'Plus Jakarta Sans', Inter, system-ui, sans-serif",
     borderRadius: "1rem",
   },
   elements: {
@@ -76,8 +76,8 @@ const clerkAppearance = {
     cardBox: "bg-[#111218]/95 backdrop-blur-2xl border-2 border-[#d4af37]/50 rounded-2xl w-[460px] max-w-full overflow-hidden shadow-[0_0_60px_rgba(212,175,55,0.3)]",
     card: "!shadow-none !border-0 !bg-transparent !rounded-none p-6",
     footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    headerTitle: "text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] font-display font-black text-2xl uppercase tracking-widest text-shadow-gold-3d",
-    headerSubtitle: "text-slate-400 text-xs font-mono uppercase tracking-wider",
+    headerTitle: "text-gold-hd-3d font-display font-black text-2xl uppercase tracking-widest",
+    headerSubtitle: "text-slate-300 text-xs font-sans uppercase tracking-wider font-medium",
     socialButtonsBlockButtonText: "text-white font-bold text-xs uppercase tracking-wider",
     formFieldLabel: "text-[#d4af37] text-xs font-mono uppercase tracking-wider font-bold",
     footerActionLink: "text-[#d4af37] hover:text-[#f59e0b] font-black uppercase text-xs tracking-wider",
@@ -108,11 +108,12 @@ function AuthHeroHeader() {
         alt="Intermingled Logo"
         className="h-24 w-auto filter drop-shadow-[0_0_25px_rgba(212,175,55,0.6)] animate-pulse"
       />
-      <h1 className="text-4xl md:text-5xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] text-shadow-gold-3d">
+      <h1 className="text-4xl md:text-5xl font-black uppercase tracking-widest text-gold-hd-3d">
         INTERMINGLED
       </h1>
-      <p className="text-[11px] md:text-xs font-mono text-[#d4af37] uppercase tracking-widest font-extrabold max-w-sm">
-        5 ROUNDS. 2 WINNERS. 1 PERFECT MATCH. FIND THE ONE WHO COMPLETES YOU.
+      <p className="text-xs md:text-sm font-sans text-[#e5c158] uppercase tracking-widest font-extrabold max-w-md leading-relaxed">
+        5 ROUNDS · 2 WINNERS · 1 PERFECT MATCH
+        <span className="block text-[11px] text-slate-300 tracking-wider font-semibold mt-1">FIND THE ONE WHO COMPLETES YOU</span>
       </p>
     </div>
   );

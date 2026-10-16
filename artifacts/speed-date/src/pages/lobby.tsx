@@ -26,8 +26,9 @@ export default function Lobby() {
   // Dynamic User & Spectator State
   const currentNick = user?.firstName || user?.primaryEmailAddress?.emailAddress?.split("@")[0] || "Alex";
   const [spectatorsCount, setSpectatorsCount] = useState<number>(1);
-  const [topContender, setTopContender] = useState<string>("Marcus K. (94%)");
-  const [runnerUp, setRunnerUp] = useState<string>("Elena V. (88%)");
+  const [topContender, setTopContender] = useState<string>("None Yet");
+  const [runnerUp, setRunnerUp] = useState<string>("None Yet");
+  const [liveMatchBadge, setLiveMatchBadge] = useState<string>("NO MATCHES YET");
 
   // mIRC Chat Feed State
   const [messages, setMessages] = useState<IRCMessage[]>([
@@ -96,17 +97,65 @@ export default function Lobby() {
       setSpectatorsCount((prev) => Math.max(1, prev + (Math.random() > 0.5 ? 1 : -1) * randomFluctuation));
     }, 12000);
 
-    // Fetch active game contenders from API
+    // Fetch active game contenders & count matches from API and local storage
     fetch(`${base}/api/history`, { credentials: "include" })
       .then((r) => r.ok ? r.json() : [])
       .then((history) => {
-        if (Array.isArray(history) && history.length > 0) {
-          const topGame = history[0];
-          if (topGame.suitorName) setTopContender(`${topGame.suitorName} (96%)`);
-          if (topGame.chooserName) setRunnerUp(`${topGame.chooserName} (91%)`);
+        const localMatchesRaw = localStorage.getItem("intermingled_matches");
+        let localMatches = [];
+        try { localMatches = localMatchesRaw ? JSON.parse(localMatchesRaw) : []; } catch {}
+
+        const allMatches: Array<{ name: string }> = [];
+
+        if (Array.isArray(history)) {
+          history.forEach((h: any) => {
+            if (h.suitorName) allMatches.push({ name: h.suitorName });
+            if (h.chooserName) allMatches.push({ name: h.chooserName });
+          });
+        }
+
+        if (Array.isArray(localMatches)) {
+          localMatches.forEach((m: any) => {
+            if (m.name) allMatches.push({ name: m.name });
+          });
+        }
+
+        if (allMatches.length === 0) {
+          setTopContender("None Yet");
+          setRunnerUp("None Yet");
+          setLiveMatchBadge("NO MATCHES YET");
+          return;
+        }
+
+        // Tally match frequencies per dater name
+        const matchCounts: Record<string, number> = {};
+        allMatches.forEach((m) => {
+          matchCounts[m.name] = (matchCounts[m.name] || 0) + 1;
+        });
+
+        // Sort names by match count
+        const sortedDaters = Object.entries(matchCounts).sort((a, b) => b[1] - a[1]);
+
+        if (sortedDaters.length > 0) {
+          const [topName, topCount] = sortedDaters[0];
+          setTopContender(`${topName} (${topCount} Match${topCount > 1 ? "es" : ""})`);
+          setLiveMatchBadge("LIVE LEADERBOARD");
+        } else {
+          setTopContender("None Yet");
+        }
+
+        if (sortedDaters.length > 1) {
+          const [runnerName, runnerCount] = sortedDaters[1];
+          setRunnerUp(`${runnerName} (${runnerCount} Match${runnerCount > 1 ? "es" : ""})`);
+        } else {
+          setRunnerUp("None Yet");
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setTopContender("None Yet");
+        setRunnerUp("None Yet");
+        setLiveMatchBadge("NO MATCHES YET");
+      });
 
     return () => clearInterval(interval);
   }, [base]);
@@ -188,7 +237,7 @@ export default function Lobby() {
               </span>
             </div>
             <Badge variant="outline" className="text-[10px] font-mono border-[#d4af37]/50 text-[#d4af37] bg-[#d4af37]/10">
-              ROUND 4 OF 5 IN PROGRESS
+              {liveMatchBadge}
             </Badge>
           </div>
 

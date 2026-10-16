@@ -27,6 +27,7 @@ import TermsOfService from "@/pages/terms";
 import AdminPage from "@/pages/admin";
 import VerifyAgeResult from "@/pages/verify-age-result";
 import SafetyPage from "@/pages/safety";
+import Lobby from "@/pages/lobby";
 import { MapPin, MessageSquare, Heart, Shield, User as UserIcon, Sparkles, Home as HomeIcon } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -183,6 +184,7 @@ function AppRoutes() {
       <Route path="/history/:gameId" component={HistoryGamePage} />
       <Route path="/insights" component={InsightsPage} />
       <Route path="/safety" component={SafetyPage} />
+      <Route path="/lobby" component={Lobby} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/terms" component={TermsOfService} />

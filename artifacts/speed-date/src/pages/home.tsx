@@ -460,43 +460,52 @@ export default function Home() {
   // ── AUTH GATE ────────────────────────────────────────────────────────────────
   if (phase === "auth") {
     return (
-      <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 bg-background text-foreground bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background relative overflow-hidden">
-        <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-        <div className="z-10 w-full max-w-sm text-center space-y-6">
-          <div>
-            <h1 className="text-5xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-              Intermingled
+      <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 bg-[#08080c] text-foreground relative overflow-hidden">
+        <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(212,175,55,0.15)_0%,transparent_70%)] pointer-events-none" />
+
+        <div className="z-10 w-full max-w-md text-center space-y-6 flex flex-col items-center">
+          {/* 3D Metallic Gold Brand Hero Header */}
+          <div className="text-center space-y-3 flex flex-col items-center">
+            <img
+              src="/logo.svg"
+              alt="Intermingled Logo"
+              className="h-24 w-auto filter drop-shadow-[0_0_25px_rgba(212,175,55,0.6)] animate-pulse"
+            />
+            <h1 className="text-4xl md:text-5xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] text-shadow-gold-3d">
+              INTERMINGLED
             </h1>
-            <p className="text-muted-foreground font-mono text-sm mt-2">
-              Real-time speed dating · 5-round elimination · find your match
+            <p className="text-[11px] md:text-xs font-mono text-[#d4af37] uppercase tracking-widest font-extrabold max-w-sm">
+              5 ROUNDS. 2 WINNERS. 1 PERFECT MATCH. FIND THE ONE WHO COMPLETES YOU.
             </p>
           </div>
 
-          <div className="bg-card/80 backdrop-blur border border-primary/20 rounded-xl p-6 space-y-4 text-left">
-            <div className="flex items-start gap-3 text-sm text-muted-foreground">
-              <ShieldCheck size={16} className="text-primary mt-0.5 shrink-0" />
-              <span>18+ only · age-verified via date of birth</span>
+          {/* Luxury Obsidian Glassmorphism Info Card */}
+          <div className="bg-[#111218]/90 backdrop-blur-xl border-2 border-[#d4af37]/40 rounded-2xl p-6 space-y-4 text-left shadow-[0_0_50px_rgba(212,175,55,0.25)] w-full">
+            <div className="flex items-start gap-3 text-xs font-mono text-slate-300">
+              <ShieldCheck size={16} className="text-[#d4af37] mt-0.5 shrink-0" />
+              <span>18+ ONLY · AGE-VERIFIED VIA GOVERNMENT ID</span>
             </div>
-            <div className="flex items-start gap-3 text-sm text-muted-foreground">
-              <User size={16} className="text-primary mt-0.5 shrink-0" />
-              <span>Create a profile before you start matching</span>
+            <div className="flex items-start gap-3 text-xs font-mono text-slate-300">
+              <User size={16} className="text-[#d4af37] mt-0.5 shrink-0" />
+              <span>AUTHENTIC PROFILES · MATCHES & LIVE GPS MAP</span>
             </div>
-            <div className="flex items-start gap-3 text-sm text-muted-foreground">
-              <ArrowRight size={16} className="text-primary mt-0.5 shrink-0" />
-              <span>Answer 7 questions, then choose your role</span>
+            <div className="flex items-start gap-3 text-xs font-mono text-slate-300">
+              <ArrowRight size={16} className="text-[#d4af37] mt-0.5 shrink-0" />
+              <span>5-ROUND ELIMINATION GAMESHOW SPEED DATING</span>
             </div>
           </div>
 
-          <div className="space-y-3">
+          {/* 3D Metallic Gold Action Buttons */}
+          <div className="space-y-3 w-full">
             <a
               href={`${base}/sign-up`}
-              className="block w-full h-14 rounded-xl bg-primary text-primary-foreground font-bold uppercase tracking-widest text-base flex items-center justify-center hover:bg-primary/90 hover:shadow-[0_0_25px_hsl(var(--primary)/0.4)] transition-all"
+              className="block w-full h-14 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] hover:from-[#b5952f] hover:to-[#d97706] text-black font-black uppercase tracking-wider text-sm flex items-center justify-center shadow-lg shadow-[#d4af37]/25 transition-all hover:scale-[1.02]"
             >
               Create Account
             </a>
             <a
               href={`${base}/sign-in`}
-              className="block w-full h-12 rounded-xl border-2 border-border text-muted-foreground font-bold uppercase tracking-widest text-sm flex items-center justify-center hover:border-primary/50 hover:text-foreground transition-all"
+              className="block w-full h-12 rounded-xl border-2 border-[#2d3142] bg-[#181a24] hover:border-[#d4af37] text-white font-black uppercase tracking-wider text-xs flex items-center justify-center transition-all hover:scale-[1.01]"
             >
               Sign In
             </a>

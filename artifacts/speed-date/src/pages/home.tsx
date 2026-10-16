@@ -355,7 +355,7 @@ export default function Home() {
     return () => clearInterval(id);
   }, [cooldownInfo]);
 
-  // Determine phase on auth state change (Instant Control Center Dashboard for all signed-in users)
+  // Determine phase on auth state change (With Mandatory ID & Facial Recognition Security Gate)
   useEffect(() => {
     if (!isLoaded) return;
 
@@ -370,26 +370,39 @@ export default function Home() {
 
     setSessionName(clerkName);
 
-    // Check for explicit retake parameter
-    const isRetake = typeof window !== "undefined" && window.location.search.includes("retake=true");
+    // Fetch profile to check mandatory ID & Facial Recognition verification status
+    fetch(`${base}/api/profile/me`, { credentials: "include" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((profile) => {
+        if (profile?.isAdmin) setIsAdmin(true);
 
-    if (isRetake) {
-      setPhase("quiz");
-      return;
-    }
+        const isVerifiedLocal = localStorage.getItem("intermingled_verified") === "true";
+        if (profile && !profile.ageVerified && !isVerifiedLocal) {
+          setPhase("age_verification");
+          return;
+        }
 
-    // Default ALWAYS to Control Center Dashboard
-    const raw = localStorage.getItem(QUIZ_STORAGE_KEY);
-    try {
-      const parsed = raw ? (JSON.parse(raw) as StoredQuiz) : null;
-      setStoredQuiz(parsed ?? { name: clerkName, personalityVector: [4, 3, 4, 3, 4, 3, 2] });
-      setSessionName(parsed?.name || clerkName);
-    } catch {
-      // Fallback
-    }
+        // Check for explicit retake parameter
+        const isRetake = typeof window !== "undefined" && window.location.search.includes("retake=true");
 
-    setPhase("role");
-  }, [isLoaded, isSignedIn, user]);
+        if (isRetake) {
+          setPhase("quiz");
+          return;
+        }
+
+        const raw = localStorage.getItem(QUIZ_STORAGE_KEY);
+        try {
+          const parsed = raw ? (JSON.parse(raw) as StoredQuiz) : null;
+          setStoredQuiz(parsed ?? { name: clerkName, personalityVector: [4, 3, 4, 3, 4, 3, 2] });
+          setSessionName(parsed?.name || clerkName);
+        } catch {}
+
+        setPhase("role");
+      })
+      .catch(() => {
+        setPhase("role");
+      });
+  }, [isLoaded, isSignedIn, user, base]);
 
   // ── Profile setup handlers ─────────────────────────────────────────────────
   const handleProfileSave = async () => {

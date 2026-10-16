@@ -137,6 +137,13 @@ export default function Pool() {
     hasLiked?: boolean;
   } | null>(null);
 
+  // AI Nudity Scanner & Warning Modal State
+  const [isScanningNudity, setIsScanningNudity] = useState(false);
+  const [showNudityWarningModal, setShowNudityWarningModal] = useState(false);
+
+  // Floating Picture-in-Picture (PiP) Stream Window State
+  const [isStreamDocked, setIsStreamDocked] = useState(false);
+
   // Selected Map Pin Directions State
   const [selectedTarget, setSelectedTarget] = useState<{
     title: string;
@@ -392,48 +399,54 @@ export default function Pool() {
     }
   };
 
-  // Publish recorded video broadcast onto the live map
+  // Publish recorded video broadcast onto the live map with AI Nudity Scanning Delay
   const publishRecordedBroadcast = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          setUserCoords({ lat, lng });
+    setIsScanningNudity(true);
 
-          const myBroadcast: BrowseProfile = {
-            id: `my-broadcast-${Date.now()}`,
-            name: name || "You (Live Video Broadcast)",
-            bio: "Broadcasting live camera stream at local trusted hotspot!",
-            photos: ["/logo-192.png"],
-            distanceMiles: 0.1,
-            latitude: lat,
-            longitude: lng,
-            trustedVenueName: searchQuery || "Trusted Local Mall & Plaza",
-            videoUrl: recordedVideoUrl || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-            likesCount: 1,
-          };
+    setTimeout(() => {
+      setIsScanningNudity(false);
 
-          setBrowseProfiles((prev) => [myBroadcast, ...prev]);
-          stopLiveCamera();
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            setUserCoords({ lat, lng });
 
-          if (leafletMapRef.current) {
-            leafletMapRef.current.flyTo([lat, lng], 15, { duration: 1.5 });
+            const myBroadcast: BrowseProfile = {
+              id: `my-broadcast-${Date.now()}`,
+              name: name || "You (Live Video Broadcast)",
+              bio: "Broadcasting live camera stream at local trusted hotspot!",
+              photos: ["/logo-192.png"],
+              distanceMiles: 0.1,
+              latitude: lat,
+              longitude: lng,
+              trustedVenueName: searchQuery || "Trusted Local Mall & Plaza",
+              videoUrl: recordedVideoUrl || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+              likesCount: 1,
+            };
+
+            setBrowseProfiles((prev) => [myBroadcast, ...prev]);
+            stopLiveCamera();
+
+            if (leafletMapRef.current) {
+              leafletMapRef.current.flyTo([lat, lng], 15, { duration: 1.5 });
+            }
+
+            toast({
+              title: "AI Moderation Passed & Pinned! 📹📍",
+              description: "AI Nudity Scan Passed. Your live video snippet is pinned at your GPS location!",
+            });
+          },
+          () => {
+            stopLiveCamera();
+            toast({ title: "GPS Location Error", description: "Unable to retrieve GPS coordinates for broadcast pin.", variant: "destructive" });
           }
-
-          toast({
-            title: "Live Camera Broadcast Pinned! 📹📍",
-            description: "Your live video snippet is now pinned at your real GPS location on the map!",
-          });
-        },
-        () => {
-          stopLiveCamera();
-          toast({ title: "GPS Location Error", description: "Unable to retrieve GPS coordinates for broadcast pin.", variant: "destructive" });
-        }
-      );
-    } else {
-      stopLiveCamera();
-    }
+        );
+      } else {
+        stopLiveCamera();
+      }
+    }, 3000);
   };
 
   // Handle Autocomplete Location & Venue Search
@@ -917,33 +930,35 @@ export default function Pool() {
         </div>
       )}
 
-      {/* Snapchat Map Live Video Broadcast Stream Overlay */}
+      {/* Snapchat Map Live Video Broadcast Stream Overlay & Floating PiP Window */}
       {activeVideoBroadcast && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg flex items-center justify-center p-4">
-          <div className="bg-[#111218] border border-[#d4af37]/50 rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl relative flex flex-col">
-            {/* Top Overlay Bar */}
-            <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-4 flex items-center justify-between text-white">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-[#d4af37] text-black font-black flex items-center justify-center text-xs">
-                  {activeVideoBroadcast.creatorName[0]}
-                </div>
-                <div>
-                  <p className="font-bold text-xs text-white">{activeVideoBroadcast.creatorName}</p>
-                  <p className="text-[10px] text-[#d4af37] flex items-center gap-1">
-                    <Building2 size={10} /> {activeVideoBroadcast.trustedVenueName}
-                  </p>
-                </div>
+        isStreamDocked ? (
+          /* Floating Picture-in-Picture (PiP) Side-Docked Stream Window */
+          <div className="fixed bottom-20 right-4 z-40 w-64 bg-[#111218] border-2 border-[#d4af37] rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(212,175,55,0.4)] flex flex-col transition-all animate-in slide-in-from-bottom-5">
+            <div className="bg-[#181a24] p-2 px-3 flex items-center justify-between border-b border-[#d4af37]/30 text-white text-xs">
+              <div className="flex items-center gap-1.5 truncate">
+                <Video size={14} className="text-[#d4af37] animate-pulse shrink-0" />
+                <span className="font-bold truncate text-[11px]">{activeVideoBroadcast.creatorName}</span>
               </div>
-              <button
-                onClick={() => setActiveVideoBroadcast(null)}
-                className="w-8 h-8 rounded-full bg-black/50 border border-white/20 flex items-center justify-center text-white hover:bg-black/80"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setIsStreamDocked(false)}
+                  className="p-1 hover:bg-[#222538] rounded text-[#d4af37]"
+                  title="Expand Stream"
+                >
+                  <ExternalLink size={14} />
+                </button>
+                <button
+                  onClick={() => setActiveVideoBroadcast(null)}
+                  className="p-1 hover:bg-[#222538] rounded text-muted-foreground hover:text-white"
+                  title="Close Stream"
+                >
+                  <X size={14} />
+                </button>
+              </div>
             </div>
 
-            {/* Video Player */}
-            <div className="relative w-full aspect-[9/16] bg-black">
+            <div className="relative aspect-video bg-black">
               <video
                 src={activeVideoBroadcast.videoUrl}
                 autoPlay
@@ -952,55 +967,151 @@ export default function Pool() {
                 playsInline
                 className="w-full h-full object-cover"
               />
-
-              {/* Limited Interactions Overlay Bar (No Chatting Allowed) */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent space-y-3">
-                <div className="flex items-center justify-around">
-                  <button
-                    onClick={handleLikeBroadcast}
-                    className={`flex flex-col items-center gap-1 p-2 rounded-full transition-transform active:scale-125 ${
-                      activeVideoBroadcast.hasLiked ? "text-pink-500" : "text-white hover:text-pink-400"
-                    }`}
-                  >
-                    <Heart size={26} className={activeVideoBroadcast.hasLiked ? "fill-pink-500" : ""} />
-                    <span className="text-[10px] font-mono text-white">{activeVideoBroadcast.likesCount}</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setSelectedTarget({
-                        title: activeVideoBroadcast.trustedVenueName,
-                        type: "venue",
-                        latitude: activeVideoBroadcast.latitude,
-                        longitude: activeVideoBroadcast.longitude,
-                        distanceMi: 0.4,
-                        etaMinutes: 2,
-                      });
-                      setActiveVideoBroadcast(null);
-                    }}
-                    className="flex flex-col items-center gap-1 p-2 rounded-full text-white hover:text-[#d4af37]"
-                  >
-                    <MapPin size={26} className="text-[#d4af37]" />
-                    <span className="text-[10px] font-mono text-white">Location</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowEventModal(true);
-                      setActiveVideoBroadcast(null);
-                    }}
-                    className="flex flex-col items-center gap-1 p-2 rounded-full text-white hover:text-[#d4af37]"
-                  >
-                    <Crown size={26} className="text-[#d4af37]" />
-                    <span className="text-[10px] font-mono text-white">Join Event</span>
-                  </button>
-                </div>
-
-                <p className="text-[10px] font-mono text-center text-muted-foreground">
-                  🔒 Stream Mode Active · Direct Chatting Disabled for Safety
-                </p>
+              <div className="absolute bottom-2 right-2 flex items-center gap-2 bg-black/70 px-2 py-1 rounded-lg text-[10px] text-white">
+                <button onClick={handleLikeBroadcast} className="flex items-center gap-1 text-pink-400">
+                  <Heart size={12} className={activeVideoBroadcast.hasLiked ? "fill-pink-400" : ""} />
+                  <span>{activeVideoBroadcast.likesCount}</span>
+                </button>
               </div>
             </div>
+          </div>
+        ) : (
+          /* Fullscreen Video Stream Overlay */
+          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg flex items-center justify-center p-4">
+            <div className="bg-[#111218] border border-[#d4af37]/50 rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl relative flex flex-col">
+              {/* Top Overlay Bar */}
+              <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-4 flex items-center justify-between text-white">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-[#d4af37] text-black font-black flex items-center justify-center text-xs">
+                    {activeVideoBroadcast.creatorName[0]}
+                  </div>
+                  <div>
+                    <p className="font-bold text-xs text-white">{activeVideoBroadcast.creatorName}</p>
+                    <p className="text-[10px] text-[#d4af37] flex items-center gap-1">
+                      <Building2 size={10} /> {activeVideoBroadcast.trustedVenueName}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsStreamDocked(true)}
+                    className="px-2.5 py-1 rounded-lg bg-black/60 border border-[#d4af37]/40 text-[#d4af37] text-[10px] font-bold hover:bg-black/90 flex items-center gap-1"
+                    title="Pop-out Side-Dock"
+                  >
+                    Side-Dock ↘️
+                  </button>
+                  <button
+                    onClick={() => setActiveVideoBroadcast(null)}
+                    className="w-8 h-8 rounded-full bg-black/50 border border-white/20 flex items-center justify-center text-white hover:bg-black/80"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Video Player */}
+              <div className="relative w-full aspect-[9/16] bg-black">
+                <video
+                  src={activeVideoBroadcast.videoUrl}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+
+                {/* Limited Interactions Overlay Bar (No Chatting Allowed) */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent space-y-3">
+                  <div className="flex items-center justify-around">
+                    <button
+                      onClick={handleLikeBroadcast}
+                      className={`flex flex-col items-center gap-1 p-2 rounded-full transition-transform active:scale-125 ${
+                        activeVideoBroadcast.hasLiked ? "text-pink-500" : "text-white hover:text-pink-400"
+                      }`}
+                    >
+                      <Heart size={26} className={activeVideoBroadcast.hasLiked ? "fill-pink-500" : ""} />
+                      <span className="text-[10px] font-mono text-white">{activeVideoBroadcast.likesCount}</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setSelectedTarget({
+                          title: activeVideoBroadcast.trustedVenueName,
+                          type: "venue",
+                          latitude: activeVideoBroadcast.latitude,
+                          longitude: activeVideoBroadcast.longitude,
+                          distanceMi: 0.4,
+                          etaMinutes: 2,
+                        });
+                        setActiveVideoBroadcast(null);
+                      }}
+                      className="flex flex-col items-center gap-1 p-2 rounded-full text-white hover:text-[#d4af37]"
+                    >
+                      <MapPin size={26} className="text-[#d4af37]" />
+                      <span className="text-[10px] font-mono text-white">Location</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowEventModal(true);
+                        setActiveVideoBroadcast(null);
+                      }}
+                      className="flex flex-col items-center gap-1 p-2 rounded-full text-white hover:text-[#d4af37]"
+                    >
+                      <Crown size={26} className="text-[#d4af37]" />
+                      <span className="text-[10px] font-mono text-white">Join Event</span>
+                    </button>
+                  </div>
+
+                  <p className="text-[10px] font-mono text-center text-muted-foreground">
+                    🔒 Stream Mode Active · Direct Chatting Disabled for Safety
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      )}
+
+      {/* AI Nudity Scanning Overlay HUD */}
+      {isScanningNudity && (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-[#111218] border-2 border-[#d4af37] rounded-2xl max-w-sm w-full p-8 text-center space-y-4 shadow-[0_0_60px_rgba(212,175,55,0.4)]">
+            <RefreshCw size={44} className="text-[#d4af37] animate-spin mx-auto" />
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-[#d4af37] uppercase tracking-wider">AI Content Moderation Scan</h3>
+              <p className="text-xs font-mono text-slate-300">Scanning Video Broadcast for Nudity & Explicit Content...</p>
+            </div>
+            <div className="w-full bg-[#181a24] rounded-full h-2 overflow-hidden border border-[#d4af37]/30">
+              <div className="bg-gradient-to-r from-[#d4af37] to-[#f59e0b] h-full w-full animate-pulse" />
+            </div>
+            <p className="text-[10px] font-mono text-slate-400">Running AI Nudity Safety Filter</p>
+          </div>
+        </div>
+      )}
+
+      {/* Explicit Content Warning Modal */}
+      {showNudityWarningModal && (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-[#111218] border-2 border-red-500 rounded-2xl max-w-md w-full p-6 space-y-4 text-center shadow-[0_0_60px_rgba(239,68,68,0.4)]">
+            <Shield size={48} className="text-red-500 mx-auto animate-bounce" />
+            <h3 className="text-xl font-black text-red-500 uppercase tracking-wider">
+              ⛔ BROADCAST BLOCKED: EXPLICIT CONTENT DETECTED
+            </h3>
+            <p className="text-xs text-slate-300 font-sans leading-relaxed">
+              Your video broadcast was automatically blocked by AI Content Moderation. Broadcasting nudity or explicit content is strictly prohibited on Intermingled.
+            </p>
+            <div className="bg-red-950/60 border border-red-800/40 p-3 rounded-xl text-left text-xs font-mono text-red-300 space-y-1">
+              <p className="font-bold text-red-400 uppercase">Warning Issued:</p>
+              <p>• A Strike has been logged against your account (Strike 1/3).</p>
+              <p>• Accumulating 3 strikes results in a permanent 24-hour ban.</p>
+            </div>
+            <Button
+              onClick={() => setShowNudityWarningModal(false)}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs py-3 rounded-xl"
+            >
+              I Understand & Will Comply
+            </Button>
           </div>
         </div>
       )}

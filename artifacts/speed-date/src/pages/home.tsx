@@ -287,6 +287,63 @@ export default function Home() {
   const [showLocationPing, setShowLocationPing] = useState(true);
   const [prefGender, setPrefGender] = useState<"everyone" | "men" | "women">("everyone");
 
+  // Dynamic User Participation Stats & Rank Badge
+  const [statsMatches, setStatsMatches] = useState<number>(0);
+  const [statsLikes, setStatsLikes] = useState<number>(0);
+  const [statsScore, setStatsScore] = useState<number>(92);
+  const [statsStrikes, setStatsStrikes] = useState<number>(0);
+  const [userRankBadge, setUserRankBadge] = useState<string>("MEMBER");
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+
+    fetch(`${base}/api/history`, { credentials: "include" })
+      .then((r) => r.ok ? r.json() : [])
+      .then((historyList) => {
+        const localMatchesRaw = localStorage.getItem("intermingled_matches");
+        let localMatches = [];
+        try { localMatches = localMatchesRaw ? JSON.parse(localMatchesRaw) : []; } catch {}
+        const totalMatches = Math.max(Array.isArray(historyList) ? historyList.length : 0, Array.isArray(localMatches) ? localMatches.length : 0);
+        setStatsMatches(totalMatches);
+
+        if (totalMatches >= 10) {
+          setUserRankBadge("COORDINATOR L2");
+        } else if (totalMatches >= 5) {
+          setUserRankBadge("SPEED DATER L1");
+        } else {
+          setUserRankBadge("MEMBER");
+        }
+      })
+      .catch(() => {
+        const localMatchesRaw = localStorage.getItem("intermingled_matches");
+        let localMatches = [];
+        try { localMatches = localMatchesRaw ? JSON.parse(localMatchesRaw) : []; } catch {}
+        const count = Array.isArray(localMatches) ? localMatches.length : 0;
+        setStatsMatches(count);
+        setUserRankBadge(count >= 10 ? "COORDINATOR L2" : count >= 5 ? "SPEED DATER L1" : "MEMBER");
+      });
+
+    const localLikesRaw = localStorage.getItem("intermingled_likes");
+    let localLikes = [];
+    try { localLikes = localLikesRaw ? JSON.parse(localLikesRaw) : []; } catch {}
+    setStatsLikes(Array.isArray(localLikes) ? localLikes.length : 0);
+
+    const localStrikesRaw = localStorage.getItem("intermingled_strikes");
+    setStatsStrikes(Number(localStrikesRaw || 0));
+
+    const rawQuiz = localStorage.getItem(QUIZ_STORAGE_KEY);
+    if (rawQuiz) {
+      try {
+        const parsed = JSON.parse(rawQuiz);
+        if (parsed?.personalityVector?.length === 7) {
+          const sum = parsed.personalityVector.reduce((a: number, b: number) => a + b, 0);
+          const scorePercent = Math.min(99, Math.max(70, Math.round((sum / 28) * 100)));
+          setStatsScore(scorePercent);
+        }
+      } catch {}
+    }
+  }, [isSignedIn, base]);
+
   const maxDob = new Date(new Date().setFullYear(new Date().getFullYear() - 18))
     .toISOString()
     .split("T")[0];
@@ -708,7 +765,7 @@ export default function Home() {
                   {sessionName || user?.firstName || "Ivan Maldonado"}
                 </h2>
                 <Badge variant="outline" className="border-[#d4af37]/40 text-[#d4af37] text-[10px] font-mono">
-                  COORDINATOR L2
+                  {userRankBadge}
                 </Badge>
               </div>
 
@@ -732,19 +789,19 @@ export default function Home() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[#d4af37]/20 text-center text-xs">
             <div className="bg-[#181a24] p-3 rounded-xl border border-[#222538]">
               <p className="text-[10px] text-muted-foreground font-mono uppercase">Matches</p>
-              <p className="text-lg font-black text-[#d4af37]">14</p>
+              <p className="text-lg font-black text-[#d4af37]">{statsMatches}</p>
             </div>
             <div className="bg-[#181a24] p-3 rounded-xl border border-[#222538]">
               <p className="text-[10px] text-muted-foreground font-mono uppercase">Likes Received</p>
-              <p className="text-lg font-black text-pink-400">28</p>
+              <p className="text-lg font-black text-pink-400">{statsLikes}</p>
             </div>
             <div className="bg-[#181a24] p-3 rounded-xl border border-[#222538]">
               <p className="text-[10px] text-muted-foreground font-mono uppercase">Match Score</p>
-              <p className="text-lg font-black text-emerald-400">96%</p>
+              <p className="text-lg font-black text-emerald-400">{statsScore}%</p>
             </div>
             <div className="bg-[#181a24] p-3 rounded-xl border border-[#222538]">
               <p className="text-[10px] text-muted-foreground font-mono uppercase">Strikes Status</p>
-              <p className="text-lg font-black text-emerald-400">0 / 3</p>
+              <p className={`text-lg font-black ${statsStrikes > 0 ? "text-amber-400" : "text-emerald-400"}`}>{statsStrikes} / 3</p>
             </div>
           </div>
         </div>

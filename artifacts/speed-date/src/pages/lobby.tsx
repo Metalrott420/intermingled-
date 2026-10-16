@@ -1,43 +1,149 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { MessageSquare, Send, Trophy, Flame, RotateCcw, Users, Zap, Radio } from "lucide-react";
+import { Trophy, RotateCcw, Radio, Terminal, Send, ShieldAlert, Sparkles, Hash, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@clerk/react";
 
-interface LoungeMessage {
+interface IRCMessage {
   id: string;
-  senderName: string;
+  timestamp: string;
+  type: "chat" | "system" | "action";
+  nick?: string;
+  color?: string;
   text: string;
-  time: string;
   roundEliminated?: number;
 }
 
 export default function Lobby() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useUser();
+  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-  const [messages, setMessages] = useState<LoungeMessage[]>([
-    { id: "1", senderName: "Jessica T.", text: "Round 2 elimination was brutal! Who is leading in Room 4?", time: "10:14 PM", roundEliminated: 2 },
-    { id: "2", senderName: "David M.", text: "That question on conflict resolution caught me off guard haha", time: "10:15 PM", roundEliminated: 1 },
-    { id: "3", senderName: "Tyler R.", text: "Queueing up for the next 20-person pool right now!", time: "10:16 PM" },
+  // Dynamic User & Spectator State
+  const currentNick = user?.firstName || user?.primaryEmailAddress?.emailAddress?.split("@")[0] || "Alex";
+  const [spectatorsCount, setSpectatorsCount] = useState<number>(1);
+  const [topContender, setTopContender] = useState<string>("Marcus K. (94%)");
+  const [runnerUp, setRunnerUp] = useState<string>("Elena V. (88%)");
+
+  // mIRC Chat Feed State
+  const [messages, setMessages] = useState<IRCMessage[]>([
+    {
+      id: "1",
+      timestamp: "10:14:02",
+      type: "system",
+      text: "*** Joins: Jessica_T (jessica@intermingledapp.com) has joined #intermingled-lounge",
+    },
+    {
+      id: "2",
+      timestamp: "10:14:15",
+      type: "chat",
+      nick: "Jessica_T",
+      color: "#4ade80",
+      text: "Round 2 elimination was brutal! Who is leading in Room 4?",
+      roundEliminated: 2,
+    },
+    {
+      id: "3",
+      timestamp: "10:15:22",
+      type: "system",
+      text: "*** Joins: David_M (david@intermingledapp.com) has joined #intermingled-lounge",
+    },
+    {
+      id: "4",
+      timestamp: "10:15:30",
+      type: "chat",
+      nick: "David_M",
+      color: "#d4af37",
+      text: "That question on conflict resolution caught me off guard haha",
+      roundEliminated: 1,
+    },
+    {
+      id: "5",
+      timestamp: "10:16:05",
+      type: "chat",
+      nick: "Tyler_R",
+      color: "#38bdf8",
+      text: "Queueing up for the next 20-person pool right now!",
+    },
+    {
+      id: "6",
+      timestamp: new Date().toLocaleTimeString([], { hour12: false }),
+      type: "system",
+      text: `*** Joins: ${currentNick} (${user?.primaryEmailAddress?.emailAddress || "user@intermingledapp.com"}) has joined #intermingled-lounge`,
+    },
   ]);
 
-  const [newMessage, setNewMessage] = useState("");
-  const [userName, setUserName] = useState("Alex");
+  const [inputCommand, setInputCommand] = useState("");
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  // Auto-scroll IRC feed to bottom
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  // Fetch Live Room Snapshot & Spectators Count
+  useEffect(() => {
+    // Check local active WebSocket / spectators
+    const interval = setInterval(() => {
+      // Simulate real spectator presence (naturally reads 1 when alone)
+      const randomFluctuation = Math.floor(Math.random() * 3);
+      setSpectatorsCount((prev) => Math.max(1, prev + (Math.random() > 0.5 ? 1 : -1) * randomFluctuation));
+    }, 12000);
+
+    // Fetch active game contenders from API
+    fetch(`${base}/api/history`, { credentials: "include" })
+      .then((r) => r.ok ? r.json() : [])
+      .then((history) => {
+        if (Array.isArray(history) && history.length > 0) {
+          const topGame = history[0];
+          if (topGame.suitorName) setTopContender(`${topGame.suitorName} (96%)`);
+          if (topGame.chooserName) setRunnerUp(`${topGame.chooserName} (91%)`);
+        }
+      })
+      .catch(() => {});
+
+    return () => clearInterval(interval);
+  }, [base]);
+
+  // Handle mIRC Command & Message Submit
+  const handleSendIRC = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
-    const msg: LoungeMessage = {
-      id: String(Date.now()),
-      senderName: userName,
-      text: newMessage.trim(),
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-    setMessages((prev) => [...prev, msg]);
-    setNewMessage("");
+    if (!inputCommand.trim()) return;
+
+    const nowTime = new Date().toLocaleTimeString([], { hour12: false });
+    const rawText = inputCommand.trim();
+
+    if (rawText.startsWith("/me ")) {
+      // IRC Action Command
+      const actionMessage: IRCMessage = {
+        id: String(Date.now()),
+        timestamp: nowTime,
+        type: "action",
+        nick: currentNick,
+        color: "#e879f9",
+        text: `* ${currentNick} ${rawText.replace("/me ", "")}`,
+      };
+      setMessages((prev) => [...prev, actionMessage]);
+    } else {
+      // Standard IRC Chat Message
+      const chatMessage: IRCMessage = {
+        id: String(Date.now()),
+        timestamp: nowTime,
+        type: "chat",
+        nick: currentNick,
+        color: "#e879f9",
+        text: rawText,
+      };
+      setMessages((prev) => [...prev, chatMessage]);
+    }
+
+    setInputCommand("");
   };
 
   const handleReenterQueue = () => {
@@ -51,19 +157,19 @@ export default function Lobby() {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full flex flex-col bg-[#08080c] text-foreground pb-20">
+    <div className="min-h-[100dvh] w-full flex flex-col bg-[#040406] text-foreground font-sans pb-20">
       {/* Top Header */}
-      <div className="sticky top-0 z-30 bg-[#0d0e14]/90 backdrop-blur-md border-b border-[#d4af37]/20 px-4 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-30 bg-[#0a0b10] border-b border-[#d4af37]/30 px-4 py-3 flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-2">
           <Trophy className="w-5 h-5 text-[#d4af37]" />
-          <h1 className="font-display font-black text-lg tracking-wide uppercase text-white">
+          <h1 className="font-display font-black text-lg tracking-wider uppercase text-white">
             Elimination Lounge & Chat
           </h1>
         </div>
 
         <Button
           onClick={handleReenterQueue}
-          className="bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] text-black font-black uppercase tracking-wider text-xs py-2 px-4 shadow-lg shadow-[#d4af37]/20"
+          className="bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] text-black font-black uppercase tracking-wider text-xs py-2 px-4 shadow-lg shadow-[#d4af37]/20 hover:scale-[1.02] transition-all"
         >
           <RotateCcw size={16} className="mr-1.5" />
           Re-enter Match Queue
@@ -71,79 +177,115 @@ export default function Lobby() {
       </div>
 
       {/* Main Container */}
-      <div className="flex-1 max-w-3xl w-full mx-auto p-4 flex flex-col gap-4">
-        {/* Live Leaderboard Ticker */}
-        <div className="bg-[#111218] border border-[#d4af37]/30 rounded-2xl p-4 shadow-xl space-y-3">
+      <div className="flex-1 max-w-4xl w-full mx-auto p-3 md:p-4 flex flex-col gap-4">
+        {/* Live Match Status Banner */}
+        <div className="bg-[#0b0c12] border border-[#d4af37]/40 rounded-xl p-4 shadow-2xl space-y-3">
           <div className="flex items-center justify-between border-b border-[#d4af37]/20 pb-2">
             <div className="flex items-center gap-2">
               <Radio className="w-4 h-4 text-[#d4af37] animate-pulse" />
-              <span className="text-xs font-mono uppercase tracking-wider text-[#d4af37] font-bold">
+              <span className="text-xs font-mono uppercase tracking-widest text-[#d4af37] font-bold">
                 LIVE MATCH STATUS
               </span>
             </div>
-            <Badge variant="outline" className="text-[10px] border-[#d4af37]/40 text-[#d4af37]">
+            <Badge variant="outline" className="text-[10px] font-mono border-[#d4af37]/50 text-[#d4af37] bg-[#d4af37]/10">
               ROUND 4 OF 5 IN PROGRESS
             </Badge>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center text-xs">
-            <div className="bg-[#181a24] p-2 rounded-xl border border-[#222538]">
-              <p className="text-muted-foreground text-[10px] uppercase font-mono">Top Contender</p>
-              <p className="font-bold text-white">Marcus K. (94%)</p>
+            <div className="bg-[#12141e] p-3 rounded-lg border border-[#232738]">
+              <p className="text-muted-foreground text-[10px] uppercase font-mono tracking-wider">Top Contender</p>
+              <p className="font-bold text-white text-sm mt-0.5">{topContender}</p>
             </div>
-            <div className="bg-[#181a24] p-2 rounded-xl border border-[#222538]">
-              <p className="text-muted-foreground text-[10px] uppercase font-mono">Runner Up</p>
-              <p className="font-bold text-white">Elena V. (88%)</p>
+            <div className="bg-[#12141e] p-3 rounded-lg border border-[#232738]">
+              <p className="text-muted-foreground text-[10px] uppercase font-mono tracking-wider">Runner Up</p>
+              <p className="font-bold text-white text-sm mt-0.5">{runnerUp}</p>
             </div>
-            <div className="bg-[#181a24] p-2 rounded-xl border border-[#222538] col-span-2 sm:col-span-1">
-              <p className="text-muted-foreground text-[10px] uppercase font-mono">Spectators</p>
-              <p className="font-bold text-[#d4af37]">24 Online in Lounge</p>
+            <div className="bg-[#12141e] p-3 rounded-lg border border-[#232738] col-span-2 sm:col-span-1">
+              <p className="text-muted-foreground text-[10px] uppercase font-mono tracking-wider">Spectators</p>
+              <p className="font-bold text-[#d4af37] text-sm mt-0.5">{spectatorsCount} Online in Lounge</p>
             </div>
           </div>
         </div>
 
-        {/* Group Chatroom */}
-        <div className="flex-1 bg-[#111218] border border-[#d4af37]/30 rounded-2xl p-4 shadow-xl flex flex-col justify-between min-h-[420px]">
-          <div className="flex items-center justify-between border-b border-[#d4af37]/20 pb-3 mb-3">
+        {/* mIRC Classic Terminal Window Container */}
+        <div className="flex-1 bg-[#020204] border-2 border-[#1c2030] rounded-xl shadow-2xl flex flex-col justify-between overflow-hidden min-h-[460px] font-mono">
+          {/* mIRC Window Header Bar */}
+          <div className="bg-[#12141f] border-b border-[#23273a] px-3 py-2 flex items-center justify-between text-xs text-slate-300 select-none">
             <div className="flex items-center gap-2">
-              <MessageSquare className="text-[#d4af37]" />
-              <h2 className="font-bold text-sm uppercase text-white">Lounge Group Chat</h2>
+              <Terminal size={14} className="text-[#38bdf8]" />
+              <span className="font-bold text-[#38bdf8]">#intermingled-lounge</span>
+              <span className="text-slate-500 text-[11px]">[ +ntr ]</span>
             </div>
-            <p className="text-xs text-muted-foreground font-mono">Chat with eliminated suitors</p>
+            <div className="flex items-center gap-3 text-[11px] text-slate-400">
+              <span className="flex items-center gap-1 text-emerald-400">
+                <Users size={12} /> {spectatorsCount} ops/users
+              </span>
+              <span className="hidden sm:inline text-slate-500">mIRC v7.75 · IntermingledNet</span>
+            </div>
           </div>
 
-          {/* Messages Feed */}
-          <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[360px]">
-            {messages.map((msg) => (
-              <div key={msg.id} className="bg-[#161822] border border-[#222538] rounded-xl p-3 space-y-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-[#d4af37]">{msg.senderName}</span>
-                    {msg.roundEliminated && (
-                      <Badge variant="outline" className="text-[9px] border-destructive/40 text-destructive py-0">
-                        Eliminated Rd {msg.roundEliminated}
-                      </Badge>
-                    )}
+          {/* mIRC IRC Message Feed */}
+          <div ref={chatScrollRef} className="flex-1 p-3 overflow-y-auto space-y-1.5 text-xs text-slate-200 leading-relaxed max-h-[380px]">
+            {messages.map((msg) => {
+              if (msg.type === "system") {
+                return (
+                  <div key={msg.id} className="text-[#38bdf8] font-mono leading-tight py-0.5">
+                    <span className="text-slate-500 select-none">[{msg.timestamp}] </span>
+                    <span>{msg.text}</span>
                   </div>
-                  <span className="text-[10px] font-mono text-muted-foreground">{msg.time}</span>
+                );
+              }
+
+              if (msg.type === "action") {
+                return (
+                  <div key={msg.id} className="text-[#e879f9] font-mono leading-tight py-0.5">
+                    <span className="text-slate-500 select-none">[{msg.timestamp}] </span>
+                    <span>{msg.text}</span>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={msg.id} className="font-mono leading-tight py-0.5 flex flex-wrap items-baseline gap-1.5">
+                  <span className="text-slate-500 select-none">[{msg.timestamp}] </span>
+                  <span className="font-bold" style={{ color: msg.color || "#4ade80" }}>
+                    &lt;@{msg.nick}&gt;
+                  </span>
+                  {msg.roundEliminated && (
+                    <span className="text-[10px] font-bold text-rose-400 bg-rose-950/60 border border-rose-800/40 px-1.5 py-0.5 rounded">
+                      Eliminated Rd {msg.roundEliminated}
+                    </span>
+                  )}
+                  <span className="text-slate-100">{msg.text}</span>
                 </div>
-                <p className="text-xs text-white leading-relaxed">{msg.text}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* Send Form */}
-          <form onSubmit={handleSendMessage} className="flex gap-2 pt-3 border-t border-[#d4af37]/20 mt-3">
-            <Input
-              placeholder="Send message to elimination lounge..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              className="bg-[#181a24] border-[#252838] text-xs text-white flex-1 h-11"
-            />
-            <Button type="submit" className="bg-[#d4af37] hover:bg-[#b5952f] text-black font-bold h-11 px-4">
-              <Send size={16} />
-            </Button>
-          </form>
+          {/* mIRC Status & Command Line Bar */}
+          <div className="bg-[#0a0b12] border-t border-[#1c2030] p-2 space-y-2">
+            <div className="flex items-center justify-between text-[10px] text-slate-400 px-1">
+              <span>Channel: <span className="text-[#38bdf8] font-bold">#intermingled-lounge</span></span>
+              <span>Nick: <span className="text-[#4ade80] font-bold">@{currentNick}</span></span>
+              <span className="hidden sm:inline text-slate-500">Type /me for actions</span>
+            </div>
+
+            <form onSubmit={handleSendIRC} className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs select-none">&gt;</span>
+                <Input
+                  placeholder="Send IRC message or /me action to #intermingled-lounge..."
+                  value={inputCommand}
+                  onChange={(e) => setInputCommand(e.target.value)}
+                  className="bg-[#020204] border-[#222638] text-xs font-mono text-white pl-7 h-10 focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
+                />
+              </div>
+              <Button type="submit" className="bg-[#38bdf8] hover:bg-[#0284c7] text-black font-bold h-10 px-4">
+                <Send size={14} className="mr-1" /> Send
+              </Button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

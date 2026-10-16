@@ -60,58 +60,84 @@ const clerkAppearance = {
     logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
   },
   variables: {
-    colorPrimary: "#9333ea",
-    colorForeground: "#f3f4f8",
-    colorMutedForeground: "#6b7280",
-    colorDanger: "#ec4899",
-    colorBackground: "#080a10",
-    colorInput: "#12141e",
-    colorInputForeground: "#f3f4f8",
-    colorNeutral: "#1a1c2a",
+    colorPrimary: "#d4af37",
+    colorForeground: "#ffffff",
+    colorMutedForeground: "#94a3b8",
+    colorDanger: "#ef4444",
+    colorBackground: "#111218",
+    colorInput: "#181a24",
+    colorInputForeground: "#ffffff",
+    colorNeutral: "#1f2232",
     fontFamily: "Barlow, Inter, system-ui, sans-serif",
-    borderRadius: "0.625rem",
+    borderRadius: "1rem",
   },
   elements: {
     rootBox: "w-full flex justify-center",
-    cardBox: "bg-[#111318] border border-[#1e2230] rounded-xl w-[440px] max-w-full overflow-hidden shadow-xl",
-    card: "!shadow-none !border-0 !bg-transparent !rounded-none",
+    cardBox: "bg-[#111218]/95 backdrop-blur-2xl border-2 border-[#d4af37]/50 rounded-2xl w-[460px] max-w-full overflow-hidden shadow-[0_0_60px_rgba(212,175,55,0.3)]",
+    card: "!shadow-none !border-0 !bg-transparent !rounded-none p-6",
     footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    headerTitle: "text-[#f0f1f5] font-bold",
-    headerSubtitle: "text-[#7d8899]",
-    socialButtonsBlockButtonText: "text-[#f0f1f5]",
-    formFieldLabel: "text-[#7d8899] text-sm",
-    footerActionLink: "text-[#8b5cf6] hover:text-[#a78bfa]",
-    footerActionText: "text-[#7d8899]",
-    dividerText: "text-[#7d8899]",
-    identityPreviewEditButton: "text-[#8b5cf6]",
-    formFieldSuccessText: "text-[#2bbfa8]",
-    alertText: "text-[#f0f1f5]",
-    logoBox: "flex justify-center mb-2",
-    logoImage: "h-8",
-    socialButtonsBlockButton: "border-[#1e2230] bg-[#181b24] hover:bg-[#1e2230]",
-    formButtonPrimary: "bg-[#8b5cf6] hover:bg-[#7c3aed] text-white",
-    formFieldInput: "bg-[#181b24] border-[#1e2230] text-[#f0f1f5]",
+    headerTitle: "text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] font-display font-black text-2xl uppercase tracking-widest text-shadow-gold-3d",
+    headerSubtitle: "text-slate-400 text-xs font-mono uppercase tracking-wider",
+    socialButtonsBlockButtonText: "text-white font-bold text-xs uppercase tracking-wider",
+    formFieldLabel: "text-[#d4af37] text-xs font-mono uppercase tracking-wider font-bold",
+    footerActionLink: "text-[#d4af37] hover:text-[#f59e0b] font-black uppercase text-xs tracking-wider",
+    footerActionText: "text-slate-400 text-xs font-mono",
+    dividerText: "text-[#d4af37] text-[10px] font-mono uppercase tracking-widest",
+    identityPreviewEditButton: "text-[#d4af37]",
+    formFieldSuccessText: "text-emerald-400",
+    alertText: "text-white",
+    logoBox: "flex justify-center mb-3",
+    logoImage: "h-12 w-auto filter drop-shadow-[0_0_15px_rgba(212,175,55,0.5)]",
+    socialButtonsBlockButton: "border-[#2d3142] bg-[#181a24] hover:bg-[#222536] text-white rounded-xl shadow-md",
+    formButtonPrimary: "bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] hover:from-[#b5952f] hover:to-[#d97706] text-black font-black uppercase tracking-wider text-xs py-3.5 rounded-xl shadow-lg shadow-[#d4af37]/25 transition-all hover:scale-[1.01]",
+    formFieldInput: "bg-[#181a24] border-[#2d3142] text-white focus:border-[#d4af37] focus:ring-2 focus:ring-[#d4af37]/30 rounded-xl h-11 text-sm",
     footerAction: "bg-transparent",
-    dividerLine: "bg-[#1e2230]",
-    alert: "bg-[#181b24] border-[#1e2230]",
-    otpCodeFieldInput: "bg-[#181b24] border-[#1e2230] text-[#f0f1f5]",
+    dividerLine: "bg-[#2d3142]",
+    alert: "bg-[#181a24] border-[#2d3142]",
+    otpCodeFieldInput: "bg-[#181a24] border-[#2d3142] text-white rounded-xl focus:border-[#d4af37]",
     formFieldRow: "",
     main: "",
   },
 };
 
+function AuthHeroHeader() {
+  return (
+    <div className="text-center space-y-3 flex flex-col items-center mb-6">
+      <img
+        src="/logo.svg"
+        alt="Intermingled Logo"
+        className="h-24 w-auto filter drop-shadow-[0_0_25px_rgba(212,175,55,0.6)] animate-pulse"
+      />
+      <h1 className="text-4xl md:text-5xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] text-shadow-gold-3d">
+        INTERMINGLED
+      </h1>
+      <p className="text-[11px] md:text-xs font-mono text-[#d4af37] uppercase tracking-widest font-extrabold max-w-sm">
+        5 ROUNDS. 2 WINNERS. 1 PERFECT MATCH. FIND THE ONE WHO COMPLETES YOU.
+      </p>
+    </div>
+  );
+}
+
 function SignInPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 bg-[#08080c] text-foreground relative overflow-y-auto py-12">
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(212,175,55,0.15)_0%,transparent_70%)] pointer-events-none" />
+      <div className="z-10 w-full max-w-md flex flex-col items-center">
+        <AuthHeroHeader />
+        <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+      </div>
     </div>
   );
 }
 
 function SignUpPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 bg-[#08080c] text-foreground relative overflow-y-auto py-12">
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(212,175,55,0.15)_0%,transparent_70%)] pointer-events-none" />
+      <div className="z-10 w-full max-w-md flex flex-col items-center">
+        <AuthHeroHeader />
+        <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+      </div>
     </div>
   );
 }

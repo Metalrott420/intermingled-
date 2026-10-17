@@ -95,9 +95,35 @@ export default function RoomChooser() {
 
   const { getToken } = useAuth();
 
-  const { data: room, isLoading: isLoadingRoom } = useGetRoom(roomId, {
-    query: { enabled: !!roomId, queryKey: getGetRoomQueryKey(roomId) },
+  const isAdminTest = roomId.startsWith("test-room-") || (typeof window !== "undefined" && window.location.search.includes("adminTest=true"));
+
+  const mockTestRoom = useMemo(() => {
+    if (!isAdminTest) return null;
+    return {
+      id: roomId,
+      code: "ADMIN-TEST",
+      status: "active",
+      chooserName: "Admin Chooser 👑",
+      currentRound: 1,
+      maxSuitors: 4,
+      numberOfRounds: 3,
+      roomSnapshotVersion: 1,
+      participants: [
+        { id: "admin-chooser-123", name: "Admin Chooser 👑", role: "chooser", suitorSlot: null },
+        { id: "bot-suitor-1", name: "Bot Marcus (94%)", role: "suitor", suitorSlot: 1 },
+        { id: "bot-suitor-2", name: "Bot Jessica (89%)", role: "suitor", suitorSlot: 2 },
+        { id: "bot-suitor-3", name: "Bot Tyler (85%)", role: "suitor", suitorSlot: 3 },
+        { id: "bot-suitor-4", name: "Bot Elena (81%)", role: "suitor", suitorSlot: 4 },
+      ],
+      eliminatedParticipants: [],
+    };
+  }, [isAdminTest, roomId]);
+
+  const { data: serverRoom, isLoading: isLoadingRoom } = useGetRoom(roomId, {
+    query: { enabled: !!roomId && !isAdminTest, queryKey: getGetRoomQueryKey(roomId) },
   });
+
+  const room = serverRoom || mockTestRoom;
   const { data: initialMessages } = useGetRoomMessages(roomId, {
     query: { enabled: !!roomId, queryKey: getGetRoomMessagesQueryKey(roomId) },
   });

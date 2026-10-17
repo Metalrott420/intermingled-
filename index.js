@@ -23,6 +23,16 @@ function handleRequest(req, res) {
     return res.end('OK');
   }
 
+  // Socket.IO / Engine.IO Handshake Fallback Handler
+  if (req.url.startsWith('/ws/socket.io') || req.url.startsWith('/socket.io')) {
+    res.writeHead(200, {
+      'Content-Type': 'text/plain; charset=UTF-8',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': 'true',
+    });
+    return res.end('0{"sid":"intermingled-ws-session","upgrades":["websocket"],"pingInterval":25000,"pingTimeout":20000}');
+  }
+
   // Parse request path
   let reqPath = req.url.split('?')[0];
   let filePath = path.join(publicDir, reqPath === '/' ? 'index.html' : reqPath);

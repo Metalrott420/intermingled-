@@ -101,7 +101,7 @@ export function useSocket(
   useEffect(() => {
     if (!roomId || !participantId) return;
 
-    const socket = io({ path: '/ws/socket.io' });
+    const socket = io({ path: '/ws/socket.io', transports: ['websocket', 'polling'], autoConnect: true });
     socketRef.current = socket;
 
     const onConnect = () => {
@@ -177,7 +177,7 @@ export function usePoolSocket(userId?: string, token?: string) {
   useEffect(() => {
     if (!userId) return;
 
-    const socket = io({ path: '/ws/socket.io' });
+    const socket = io({ path: '/ws/socket.io', transports: ['websocket', 'polling'], autoConnect: true });
     socketRef.current = socket;
 
     const onConnect = () => {
@@ -227,7 +227,7 @@ export function useChooserSocket(userId?: string, token?: string) {
   useEffect(() => {
     if (!userId) return;
 
-    const socket = io({ path: '/ws/socket.io' });
+    const socket = io({ path: '/ws/socket.io', transports: ['websocket', 'polling'], autoConnect: true });
     socketRef.current = socket;
 
     const onConnect = () => {

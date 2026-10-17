@@ -110,52 +110,60 @@ export default function Match() {
   };
 
   if (matching) {
+    const demoSuitorNames = ["Marcus K.", "Jessica T.", "Tyler R.", "Elena V.", "David M.", "Sarah B.", "Chloe W."];
     return (
-      <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 sm:p-6 bg-background text-foreground bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background">
-        <div className="text-center max-w-sm w-full">
-          <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-wider text-primary mb-2">Matching...</h1>
-          <p className="text-muted-foreground font-mono text-sm mb-8">
-            {filledSlots.length === 0
-              ? "Ranking your perfect matches..."
-              : `Connecting your suitors (${filledSlots.length} / 5)...`}
-          </p>
+      <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 sm:p-6 bg-[#08080c] text-foreground relative overflow-hidden">
+        <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(212,175,55,0.15)_0%,transparent_70%)] pointer-events-none" />
 
-          <div className="flex justify-center gap-2 sm:gap-3 mb-8">
+        <div className="z-10 text-center max-w-lg w-full space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-widest text-gold-hd-3d">
+              🎰 CASINO MATCHMAKING REEL 🎰
+            </h1>
+            <p className="text-xs font-mono text-[#d4af37] uppercase tracking-wider font-bold">
+              SPINNING SUITOR POOL · MATCHING PERSONALITY VECTORS...
+            </p>
+          </div>
+
+          {/* 4 Casino Slot Machine Reel Columns */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#111218] border-2 border-[#d4af37]/50 rounded-2xl p-4 shadow-[0_0_50px_rgba(212,175,55,0.3)]">
             {Array.from({ length: 4 }).map((_, i) => {
               const filled = filledSlots.find((s) => s.slot === i + 1);
               return (
                 <div
                   key={i}
-                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-lg border-2 flex flex-col items-center justify-center transition-all duration-300 ${
+                  className={`h-32 rounded-xl border-2 flex flex-col items-center justify-center p-2 transition-all duration-500 relative overflow-hidden ${
                     filled
-                      ? "border-secondary bg-secondary/20 shadow-[0_0_15px_hsl(var(--secondary)/0.4)] scale-110"
-                      : "border-border bg-card"
+                      ? "border-[#d4af37] bg-[#d4af37]/15 shadow-[0_0_20px_rgba(212,175,55,0.4)] scale-105"
+                      : "border-[#222538] bg-[#181a24]"
                   }`}
                 >
+                  <div className="text-[10px] font-mono uppercase text-[#d4af37] font-bold mb-1">
+                    SLOT {i + 1}
+                  </div>
+
                   {filled ? (
-                    <span className="text-secondary font-black text-xs">{filled.suitorName.slice(0, 2).toUpperCase()}</span>
+                    <div className="space-y-1 animate-in zoom-in-50">
+                      <div className="text-2xl">🎰</div>
+                      <div className="font-bold text-xs text-white uppercase tracking-wider">{filled.suitorName}</div>
+                      <Badge className="bg-emerald-500 text-black text-[8px] font-black uppercase">LOCKED ✓</Badge>
+                    </div>
                   ) : (
-                    <span className="text-muted-foreground text-xs font-mono">{i + 1}</span>
+                    <div className="space-y-1 animate-pulse">
+                      <div className="text-lg text-[#d4af37] font-mono animate-bounce">⚡</div>
+                      <div className="text-[11px] font-mono text-slate-400 font-bold uppercase">
+                        {demoSuitorNames[(i * 2 + Math.floor(Date.now() / 200)) % demoSuitorNames.length]}
+                      </div>
+                      <div className="text-[9px] font-mono text-amber-400">SPINNING…</div>
+                    </div>
                   )}
                 </div>
               );
             })}
           </div>
 
-          {filledSlots.length > 0 && (
-            <div className="space-y-1 mb-4">
-              {[...filledSlots]
-                .sort((a, b) => a.slot - b.slot)
-                .map((s) => (
-                  <div key={s.slot} className="text-xs font-mono text-secondary">
-                    Slot {s.slot}: {s.suitorName}
-                  </div>
-                ))}
-            </div>
-          )}
-
-          <div className="text-xs font-mono text-muted-foreground animate-pulse">
-            {filledSlots.length >= 4 ? "ALL MATCHED — ENTERING ROOM..." : "WAITING FOR CONFIRMATIONS..."}
+          <div className="text-xs font-mono text-[#d4af37] font-bold animate-pulse">
+            {filledSlots.length >= 4 ? "🎰 ALL 4 SUITORS MATCHED — ENTERING GAMESHOW ROOM..." : "ROLLING SUITOR POOL MATCHES..."}
           </div>
         </div>
       </div>

@@ -83,8 +83,33 @@ export default function ConversationPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
+  const checkAISafetyViolation = (text: string): { isViolation: boolean; reason?: string } => {
+    const lower = text.toLowerCase();
+    if (/nude|naked|explicit|nsfw|sex|porn/i.test(lower)) {
+      return { isViolation: true, reason: "Explicit content or nudity solicitation is strictly prohibited." };
+    }
+    if (/\b\d{3}[-.]?\d{2}[-.]?\d{4}\b|\b(?:\d[ -]*?){13,16}\b|routing|bank account|cashapp|venmo|zelle/i.test(lower)) {
+      return { isViolation: true, reason: "Sharing sensitive PII or financial accounts is blocked for user safety." };
+    }
+    if (/harass|threat|stalk|abuse|hate speech/i.test(lower)) {
+      return { isViolation: true, reason: "Abusive or harassing language is blocked by AI Moderation." };
+    }
+    return { isViolation: false };
+  };
+
+  const [safetyViolationMessage, setSafetyViolationMessage] = useState<string | null>(null);
+
   const handleSend = async () => {
     if (!content.trim() || sending) return;
+
+    const violation = checkAISafetyViolation(content.trim());
+    if (violation.isViolation) {
+      setSafetyViolationMessage(violation.reason || "Safety policy violation detected.");
+      const strikes = Number(localStorage.getItem("intermingled_strikes") || 0) + 1;
+      localStorage.setItem("intermingled_strikes", String(strikes));
+      return;
+    }
+
     setSending(true);
     try {
       const res = await fetch(`/api/matches/${matchId}/messages`, {
@@ -228,6 +253,32 @@ export default function ConversationPage() {
           </button>
         </div>
       </div>
+
+      {/* AI Safety Governor Modal */}
+      {safetyViolationMessage && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-[#111218] border-2 border-red-500 rounded-2xl max-w-sm w-full p-6 text-center space-y-4 shadow-[0_0_50px_rgba(239,68,68,0.4)]">
+            <div className="text-4xl text-red-500">⛔</div>
+            <h3 className="text-lg font-black text-red-500 uppercase tracking-wider">
+              MESSAGE BLOCKED BY AI SAFETY GOVERNOR
+            </h3>
+            <p className="text-xs text-slate-300 leading-relaxed font-sans">
+              {safetyViolationMessage}
+            </p>
+            <div className="bg-red-950/60 border border-red-800/40 p-3 rounded-xl text-left text-[11px] font-mono text-red-300">
+              <p className="font-bold text-red-400 uppercase">Warning Issued:</p>
+              <p>• A Strike has been logged on your account.</p>
+              <p>• Sharing explicit material or PII violates safety rules.</p>
+            </div>
+            <button
+              onClick={() => setSafetyViolationMessage(null)}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs py-3 rounded-xl"
+            >
+              I Understand & Will Comply
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

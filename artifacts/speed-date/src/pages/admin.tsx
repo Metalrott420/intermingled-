@@ -292,23 +292,23 @@ export default function AdminPage() {
               <div className="flex items-center justify-between border-b border-[#d4af37]/20 pb-3">
                 <div className="flex items-center gap-2">
                   <Crown className="text-[#d4af37]" />
-                  <h3 className="font-display font-black uppercase text-base text-white">Admin 5-Round AI Bot Test Match Launcher</h3>
+                  <h3 className="font-display font-black uppercase text-base text-white">Admin 3-Round AI Bot Test Suite & Modulation Controls</h3>
                 </div>
                 <span className="text-[10px] font-mono text-[#d4af37] bg-[#d4af37]/10 border border-[#d4af37]/30 px-2 py-1 rounded-md">ADMIN TEST SUITE</span>
               </div>
 
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Launch an instant 5-Round Speed Dating Match populated with 4 AI Bots (`Bot Marcus`, `Bot Jessica`, `Bot Tyler`, `Bot Elena`) to test questions, 3-minute profile review, 60s round timers, and elimination flow.
+                Launch an instant 3-Round Speed Dating Match populated with 4 AI Bots (adaptive to your preferred gender match choice) to test 3-round vector-matched questions, answer ratings, and elimination modulation flow.
               </p>
 
-              <div className="flex gap-3 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                 <button
                   onClick={() => {
                     const testRoomId = `test-room-${Date.now()}`;
                     sessionStorage.setItem(`participantId_${testRoomId}`, "admin-chooser-123");
                     setLocation(`/room/${testRoomId}/chooser?adminTest=true`);
                   }}
-                  className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-xs tracking-wider shadow-lg hover:from-[#b5952f] hover:to-[#d97706] transition-all"
+                  className="py-3 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-xs tracking-wider shadow-lg hover:from-[#b5952f] hover:to-[#d97706] transition-all"
                 >
                   Test Match as Chooser (vs 4 AI Bots) 👑
                 </button>
@@ -319,9 +319,22 @@ export default function AdminPage() {
                     sessionStorage.setItem(`participantId_${testRoomId}`, "admin-suitor-123");
                     setLocation(`/room/${testRoomId}/suitor?adminTest=true`);
                   }}
-                  className="flex-1 py-3 px-4 rounded-xl bg-[#181a24] hover:bg-[#222538] border border-[#d4af37]/40 text-[#d4af37] font-bold uppercase text-xs tracking-wider transition-all"
+                  className="py-3 px-4 rounded-xl bg-[#181a24] hover:bg-[#222538] border border-[#d4af37]/40 text-[#d4af37] font-bold uppercase text-xs tracking-wider transition-all"
                 >
                   Test Match as Suitor (vs 3 AI Bots) 💖
+                </button>
+
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("intermingled_matches");
+                    localStorage.removeItem("intermingled_likes");
+                    localStorage.removeItem("intermingled_history");
+                    sessionStorage.clear();
+                    alert("Reset Test Data: All test match records and room snapshots cleared!");
+                  }}
+                  className="py-3 px-4 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-800/80 text-red-300 font-bold uppercase text-xs tracking-wider transition-all flex items-center justify-center gap-1.5"
+                >
+                  <RefreshCw size={14} /> Reset Test Data 🔄
                 </button>
               </div>
             </div>

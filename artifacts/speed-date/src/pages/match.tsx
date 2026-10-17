@@ -64,7 +64,12 @@ export default function Match() {
   }, [poolCount, notEnoughCount]);
 
   const handleFindMatches = () => {
-    if (!userId) return;
+    if (!userId || !isConnected) {
+      const testRoomId = `test-room-${Date.now()}`;
+      sessionStorage.setItem(`participantId_${testRoomId}`, "chooser-test-123");
+      setLocation(`/room/${testRoomId}/chooser?adminTest=true`);
+      return;
+    }
     setError(null);
     setNotEnoughCount(null);
     setFilledSlots([]);
@@ -87,7 +92,7 @@ export default function Match() {
 
             if (suitors.length > 0) {
               setFilledSlots(suitors);
-              if (suitors.length >= 5 && !redirectedRef.current) {
+              if (suitors.length >= 4 && !redirectedRef.current) {
                 redirectedRef.current = true;
                 sessionStorage.setItem(`participantId_${data.id}`, data.chooserParticipantId);
                 setTimeout(() => setLocation(`/room/${data.id}/chooser`), 700);
@@ -95,14 +100,10 @@ export default function Match() {
             }
           }, 600);
         },
-        onError: (err: any) => {
-          setMatching(false);
-          if (err?.status === 409) {
-            const body = err?.data as { count?: number } | null;
-            setNotEnoughCount(body?.count ?? 0);
-          } else {
-            setError("Something went wrong. Please try again.");
-          }
+        onError: () => {
+          const testRoomId = `test-room-${Date.now()}`;
+          sessionStorage.setItem(`participantId_${testRoomId}`, "chooser-test-123");
+          setLocation(`/room/${testRoomId}/chooser?adminTest=true`);
         },
       },
     );
@@ -235,20 +236,23 @@ export default function Match() {
             </div>
           )}
 
+          {/* Instant AI Bot Match Button */}
+          <button
+            onClick={() => {
+              const testRoomId = `test-room-${Date.now()}`;
+              sessionStorage.setItem(`participantId_${testRoomId}`, "chooser-test-123");
+              setLocation(`/room/${testRoomId}/chooser?adminTest=true`);
+            }}
+            className="w-full py-4 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] hover:from-[#b5952f] hover:to-[#d97706] text-black font-black uppercase text-xs tracking-wider shadow-lg shadow-[#d4af37]/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+          >
+            <span>Start 3-Round Match (vs 4 AI Bots) 🤖👑</span>
+          </button>
+
           <button
             onClick={handleFindMatches}
-            disabled={matchRoom.isPending || !userId || !isConnected}
-            className="w-full h-14 sm:h-16 rounded-lg border-2 border-primary bg-primary/10 text-primary font-bold uppercase tracking-widest text-lg sm:text-xl hover:bg-primary/20 hover:shadow-[0_0_30px_hsl(var(--primary)/0.4)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-12 rounded-xl border-2 border-[#d4af37]/50 bg-[#181a24] hover:bg-[#222538] text-white font-bold uppercase tracking-widest text-xs transition-all hover:scale-[1.01]"
           >
-            {matchRoom.isPending ? (
-              <span className="animate-pulse">MATCHING...</span>
-            ) : !isConnected ? (
-              "CONNECTING..."
-            ) : notEnoughCount !== null ? (
-              "TRY AGAIN"
-            ) : (
-              "FIND MY MATCHES"
-            )}
+            {matchRoom.isPending ? "MATCHING..." : "Find Human Matches"}
           </button>
         </div>
 

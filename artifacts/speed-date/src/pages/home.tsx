@@ -265,7 +265,9 @@ export default function Home() {
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
   const [phase, setPhase] = useState<Phase>("loading");
-  const [isAdmin, setIsAdmin] = useState(false);
+  const ALLOWED_ADMIN_EMAIL = "metalrott.7@gmail.com";
+  const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? "";
+  const isAdmin = userEmail === ALLOWED_ADMIN_EMAIL;
 
   // Profile setup
   const [setupName, setSetupName] = useState("");
@@ -374,8 +376,6 @@ export default function Home() {
     fetch(`${base}/api/profile/me`, { credentials: "include" })
       .then((r) => r.ok ? r.json() : null)
       .then((profile) => {
-        if (profile?.isAdmin) setIsAdmin(true);
-
         const isVerifiedLocal = localStorage.getItem("intermingled_verified") === "true";
         if (profile && !profile.ageVerified && !isVerifiedLocal) {
           setPhase("age_verification");

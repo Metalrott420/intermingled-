@@ -229,12 +229,29 @@ export default function AdminPage() {
     );
   }
 
+  const ALLOWED_ADMIN_EMAIL = "metalrott.7@gmail.com";
+  const userEmail = clerkUser?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? "";
+  const isAuthorizedAdmin = userEmail === ALLOWED_ADMIN_EMAIL;
+
+  if (isLoaded && clerkUser && !isAuthorizedAdmin) {
+    return (
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4 p-4 text-center">
+        <Shield size={48} className="text-destructive" />
+        <h1 className="font-display font-black text-2xl uppercase tracking-wide text-destructive">Access Denied</h1>
+        <p className="text-muted-foreground text-sm max-w-sm">
+          Only <span className="font-mono text-primary font-bold">metalrott.7@gmail.com</span> is authorized to access Admin features.
+        </p>
+        <button onClick={() => setLocation("/")} className="text-primary text-sm hover:underline font-bold">← Back to home</button>
+      </div>
+    );
+  }
+
   if (error === "forbidden") {
     return (
       <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4">
         <Shield size={48} className="text-destructive" />
         <h1 className="font-display font-black text-2xl uppercase tracking-wide text-destructive">Access Denied</h1>
-        <p className="text-muted-foreground text-sm">This account does not have admin privileges.</p>
+        <p className="text-muted-foreground text-sm">Only metalrott.7@gmail.com is authorized to access Admin features.</p>
         <button onClick={() => setLocation("/")} className="text-primary text-sm hover:underline">← Back to home</button>
       </div>
     );

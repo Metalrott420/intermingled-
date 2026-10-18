@@ -321,9 +321,7 @@ export default function AdminPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                 <button
                   onClick={() => {
-                    const testRoomId = `test-room-${Date.now()}`;
-                    sessionStorage.setItem(`participantId_${testRoomId}`, "admin-chooser-123");
-                    setLocation(`/room/${testRoomId}/chooser?adminTest=true`);
+                    setLocation("/match?spin=true&adminTest=true");
                   }}
                   className="py-3 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-xs tracking-wider shadow-lg hover:from-[#b5952f] hover:to-[#d97706] transition-all"
                 >

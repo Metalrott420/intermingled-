@@ -209,12 +209,12 @@ export default function Lobby() {
     <div className="min-h-[100dvh] w-full flex flex-col bg-[#040406] text-foreground font-sans pb-20">
       {/* Top Header */}
       <div className="sticky top-0 z-30 bg-[#0a0b10] border-b border-[#d4af37]/30 px-4 py-3 flex items-center justify-between shadow-xl">
-        <div className="flex items-center gap-2">
+        <a href={`${base}/`} className="flex items-center gap-2 group">
           <Trophy className="w-5 h-5 text-[#d4af37]" />
-          <h1 className="font-display font-black text-lg tracking-wider uppercase text-white">
-            Elimination Lounge & Chat
+          <h1 className="font-display font-black text-lg tracking-wider uppercase text-white group-hover:text-[#d4af37] transition-colors">
+            INTERMINGLED
           </h1>
-        </div>
+        </a>
 
         <Button
           onClick={handleReenterQueue}

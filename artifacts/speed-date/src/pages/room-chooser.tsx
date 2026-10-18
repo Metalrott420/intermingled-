@@ -514,14 +514,14 @@ export default function RoomChooser() {
 
       {/* ── Header ── */}
       <header className="p-3 sm:p-4 border-b border-border bg-background/80 backdrop-blur flex justify-between items-center shrink-0 z-20">
-        <div>
-          <h1 className="font-display text-xl sm:text-2xl font-black text-primary uppercase tracking-widest drop-shadow-[0_0_10px_hsl(var(--primary)/0.5)]">
+        <a href={`${base}/`} className="group block text-left">
+          <h1 className="font-display text-xl sm:text-2xl font-black text-primary uppercase tracking-widest drop-shadow-[0_0_10px_hsl(var(--primary)/0.5)] group-hover:text-secondary transition-colors">
             INTERMINGLED
           </h1>
           <div className="text-[10px] font-mono text-muted-foreground">
             ROOM <span className="text-primary">{room.code}</span>
           </div>
-        </div>
+        </a>
         <div className="flex items-center gap-3 sm:gap-5">
           {isActive && (
             <div className="text-center border-r border-border pr-3 sm:pr-5">

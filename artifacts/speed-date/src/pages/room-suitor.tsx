@@ -251,9 +251,12 @@ export default function RoomSuitor() {
         {/* Header */}
         <header className="p-3 sm:p-4 border-b border-border bg-primary/8 flex justify-between items-center shrink-0">
           <div>
-            <h1 className="font-display text-base sm:text-xl font-black text-primary uppercase tracking-widest drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]">
-              {room.chooserName}'s Show
-            </h1>
+            <a href={`${base}/`} className="group block text-left">
+              <h1 className="font-display text-base sm:text-xl font-black text-primary uppercase tracking-widest drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] group-hover:text-secondary transition-colors">
+                INTERMINGLED
+              </h1>
+              <p className="text-[10px] font-mono text-muted-foreground">{room.chooserName}'s Show</p>
+            </a>
             {myParticipant && (
               <div className="text-xs font-mono text-muted-foreground">
                 YOU: <span className="text-primary font-bold">{myParticipant.name.toUpperCase()}</span>

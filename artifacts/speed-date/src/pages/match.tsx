@@ -15,8 +15,9 @@ export default function Match() {
   const params = new URLSearchParams(search);
   const userId = params.get("userId") || "";
   const name = params.get("name") || "";
+  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-  const [matching, setMatching] = useState(false);
+  const [matching, setMatching] = useState<boolean>(search.includes("spin=true"));
   const [filledSlots, setFilledSlots] = useState<FilledSlot[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notEnoughCount, setNotEnoughCount] = useState<number | null>(null);
@@ -109,17 +110,47 @@ export default function Match() {
     );
   };
 
+  // Stepped Slot Machine Reel Deceleration Sequence
+  const [lockedReels, setLockedReels] = useState<number>(0);
+  const [targetRoomId, setTargetRoomId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!matching) return;
+
+    const roomId = `test-room-${Date.now()}`;
+    setTargetRoomId(roomId);
+    sessionStorage.setItem(`participantId_${roomId}`, "chooser-test-123");
+
+    // Staggered decelerating lock sequence (Reels 1-4 lock at 1s, 2s, 3s, 4s)
+    const t1 = setTimeout(() => setLockedReels(1), 1000);
+    const t2 = setTimeout(() => setLockedReels(2), 2000);
+    const t3 = setTimeout(() => setLockedReels(3), 3000);
+    const t4 = setTimeout(() => setLockedReels(4), 4000);
+
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+  }, [matching]);
+
   if (matching) {
-    const demoSuitorNames = ["Marcus K.", "Jessica T.", "Tyler R.", "Elena V.", "David M.", "Sarah B.", "Chloe W."];
+    const demoSuitors = [
+      { name: "Bot Marcus (94%)", slot: 1 },
+      { name: "Bot Jessica (89%)", slot: 2 },
+      { name: "Bot Tyler (85%)", slot: 3 },
+      { name: "Bot Elena (81%)", slot: 4 },
+    ];
+
+    const spinNames = ["Marcus K.", "Jessica T.", "Tyler R.", "Elena V.", "David M.", "Sarah B.", "Chloe W."];
+
     return (
       <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 sm:p-6 bg-[#08080c] text-foreground relative overflow-hidden">
         <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(212,175,55,0.15)_0%,transparent_70%)] pointer-events-none" />
 
         <div className="z-10 text-center max-w-lg w-full space-y-6">
           <div className="space-y-2">
-            <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-widest text-gold-hd-3d">
-              🎰 CASINO MATCHMAKING REEL 🎰
-            </h1>
+            <a href={`${base}/`} className="inline-block group">
+              <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-widest text-gold-hd-3d group-hover:scale-105 transition-transform">
+                🎰 CASINO MATCHMAKING REEL 🎰
+              </h1>
+            </a>
             <p className="text-xs font-mono text-[#d4af37] uppercase tracking-wider font-bold">
               SPINNING SUITOR POOL · MATCHING PERSONALITY VECTORS...
             </p>
@@ -127,13 +158,13 @@ export default function Match() {
 
           {/* 4 Casino Slot Machine Reel Columns */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#111218] border-2 border-[#d4af37]/50 rounded-2xl p-4 shadow-[0_0_50px_rgba(212,175,55,0.3)]">
-            {Array.from({ length: 4 }).map((_, i) => {
-              const filled = filledSlots.find((s) => s.slot === i + 1);
+            {demoSuitors.map((suitor, i) => {
+              const isLocked = lockedReels >= i + 1;
               return (
                 <div
                   key={i}
                   className={`h-32 rounded-xl border-2 flex flex-col items-center justify-center p-2 transition-all duration-500 relative overflow-hidden ${
-                    filled
+                    isLocked
                       ? "border-[#d4af37] bg-[#d4af37]/15 shadow-[0_0_20px_rgba(212,175,55,0.4)] scale-105"
                       : "border-[#222538] bg-[#181a24]"
                   }`}
@@ -142,17 +173,17 @@ export default function Match() {
                     SLOT {i + 1}
                   </div>
 
-                  {filled ? (
+                  {isLocked ? (
                     <div className="space-y-1 animate-in zoom-in-50">
                       <div className="text-2xl">🎰</div>
-                      <div className="font-bold text-xs text-white uppercase tracking-wider">{filled.suitorName}</div>
+                      <div className="font-bold text-xs text-white uppercase tracking-wider">{suitor.name}</div>
                       <Badge className="bg-emerald-500 text-black text-[8px] font-black uppercase">LOCKED ✓</Badge>
                     </div>
                   ) : (
                     <div className="space-y-1 animate-pulse">
                       <div className="text-lg text-[#d4af37] font-mono animate-bounce">⚡</div>
                       <div className="text-[11px] font-mono text-slate-400 font-bold uppercase">
-                        {demoSuitorNames[(i * 2 + Math.floor(Date.now() / 200)) % demoSuitorNames.length]}
+                        {spinNames[(i * 2 + Math.floor(Date.now() / 200)) % spinNames.length]}
                       </div>
                       <div className="text-[9px] font-mono text-amber-400">SPINNING…</div>
                     </div>
@@ -162,9 +193,24 @@ export default function Match() {
             })}
           </div>
 
-          <div className="text-xs font-mono text-[#d4af37] font-bold animate-pulse">
-            {filledSlots.length >= 4 ? "🎰 ALL 4 SUITORS MATCHED — ENTERING GAMESHOW ROOM..." : "ROLLING SUITOR POOL MATCHES..."}
-          </div>
+          {/* Stepped Launcher Button - Appears once Reel 4 locks! */}
+          {lockedReels >= 4 ? (
+            <div className="space-y-3 animate-in zoom-in-75">
+              <p className="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider animate-pulse">
+                🎰 ALL 4 SUITORS MATCHED & LOCKED!
+              </p>
+              <Button
+                onClick={() => setLocation(`/room/${targetRoomId || "test-room-1"}/chooser?adminTest=true`)}
+                className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] hover:from-[#b5952f] hover:to-[#d97706] text-black font-black uppercase text-sm tracking-widest shadow-2xl shadow-[#d4af37]/30 hover:scale-[1.03] transition-all"
+              >
+                START ROUND 1 (3-MIN PROFILE REVIEW) 🚀
+              </Button>
+            </div>
+          ) : (
+            <div className="text-xs font-mono text-[#d4af37] font-bold animate-pulse">
+              ROLLING SUITOR POOL MATCHES ({lockedReels} / 4 LOCKED)…
+            </div>
+          )}
         </div>
       </div>
     );

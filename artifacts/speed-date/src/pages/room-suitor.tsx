@@ -3,6 +3,7 @@ import { useLocation, useParams, Link } from "wouter";
 import { useAuth } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useGetRoom, useGetRoomMessages, getGetRoomQueryKey, getGetRoomMessagesQueryKey } from "@workspace/api-client-react";
 import { useSocket } from "@/hooks/useSocket";

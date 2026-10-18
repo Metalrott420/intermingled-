@@ -3,6 +3,8 @@ import { useUser } from "@clerk/react";
 import { useLocation } from "wouter";
 import { Camera, Pencil, Trash2, Check, X, ArrowLeft, Plus, MessageSquare, Flag, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface ProfilePrompt { question: string; answer: string; }
 

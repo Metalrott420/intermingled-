@@ -28,6 +28,8 @@ import {
   type QuestionTrendPoint,
 } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 type Tab = "overview" | "users" | "reports" | "rooms" | "questions" | "analytics" | "guardian";
 type QuestionCategory = "general" | "fun" | "deep";

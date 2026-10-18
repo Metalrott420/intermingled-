@@ -462,47 +462,25 @@ export default function Home() {
   };
 
   // ── Role selection handlers ────────────────────────────────────────────────
-  const handleSubmit = async (role: "chooser" | "suitor") => {
-    const displayName = sessionName.trim() || storedQuiz?.name || "";
-    if (!displayName) return;
-    setIsSubmitting(true);
+  const handleSubmit = (role: "chooser" | "suitor") => {
+    const displayName = sessionName.trim() || user?.firstName || storedQuiz?.name || "Ivan Maldonado";
+    const currentUserId = user?.id || "me";
 
     try {
-      const vector = answers.length === 7 ? answers : (storedQuiz?.personalityVector || [4, 3, 4, 3, 4, 3, 2]);
-      const res = await fetch(`${base}/api/users`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: displayName, role, personalityVector: vector }),
-        credentials: "include",
-      });
-
-      if (!res.ok) throw new Error("Failed to create user role");
-      const userData = await res.json();
-
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ id: userData.id, name: displayName }));
       localStorage.setItem(
         QUIZ_STORAGE_KEY,
-        JSON.stringify({ name: displayName, personalityVector: vector } satisfies StoredQuiz),
+        JSON.stringify({ name: displayName, personalityVector: [4, 3, 4, 3, 4, 3, 2] } satisfies StoredQuiz),
       );
+    } catch {}
 
-      if (userData.cooldown) {
-        setCooldownInfo({
-          cooldownEndsAt: userData.cooldownEndsAt ?? "",
-          sessionsToday: userData.sessionsToday ?? 3,
-          limit: userData.chooserDailyLimit ?? 3,
-        });
-        return;
-      }
+    if (role === "chooser") {
+      setLocation(`/match?spin=true&userId=${encodeURIComponent(currentUserId)}&name=${encodeURIComponent(displayName)}`);
+      return;
+    }
 
-      if (role === "suitor") {
-        setLocation(`/pool?userId=${userData.id}&name=${encodeURIComponent(displayName)}`);
-      } else {
-        setLocation(`/match?userId=${userData.id}&name=${encodeURIComponent(displayName)}`);
-      }
-    } catch {
-      setIsSubmitting(false);
-    } finally {
-      setIsSubmitting(false);
+    if (role === "suitor") {
+      setLocation(`/pool?userId=${encodeURIComponent(currentUserId)}&name=${encodeURIComponent(displayName)}`);
+      return;
     }
   };
 
@@ -836,8 +814,7 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             <button
               onClick={() => handleSubmit("chooser")}
-              disabled={isSubmitting}
-              className="w-full py-4 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] hover:from-[#b5952f] hover:to-[#d97706] text-black font-black uppercase tracking-wider text-xs shadow-lg shadow-[#d4af37]/25 flex flex-col items-center justify-center gap-1 transition-all hover:scale-[1.02]"
+              className="w-full py-4 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] hover:from-[#b5952f] hover:to-[#d97706] text-black font-black uppercase tracking-wider text-xs shadow-lg shadow-[#d4af37]/25 flex flex-col items-center justify-center gap-1 transition-all hover:scale-[1.02] active:scale-95"
             >
               <span className="text-sm">I WANT TO CHOOSE 👑</span>
               <span className="text-[10px] font-sans opacity-80 font-bold">FIND YOUR 4 SUITORS</span>
@@ -845,8 +822,7 @@ export default function Home() {
 
             <button
               onClick={() => handleSubmit("suitor")}
-              disabled={isSubmitting}
-              className="w-full py-4 px-4 rounded-xl border-2 border-[#d4af37]/60 bg-[#181a24] hover:bg-[#222538] text-white font-black uppercase tracking-wider text-xs flex flex-col items-center justify-center gap-1 transition-all hover:scale-[1.02]"
+              className="w-full py-4 px-4 rounded-xl border-2 border-[#d4af37]/60 bg-[#181a24] hover:bg-[#222538] text-white font-black uppercase tracking-wider text-xs flex flex-col items-center justify-center gap-1 transition-all hover:scale-[1.02] active:scale-95"
             >
               <span className="text-sm text-[#d4af37]">I WANT TO BE CHOSEN 💖</span>
               <span className="text-[10px] font-sans text-slate-300 font-semibold">ENTER THE SUITOR POOL</span>

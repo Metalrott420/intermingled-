@@ -3,6 +3,8 @@ import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@clerk/react";
 import { useMatchRoom, MatchResult } from "@workspace/api-client-react";
 import { useChooserSocket } from "@/hooks/useSocket";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface FilledSlot {
   slot: number;

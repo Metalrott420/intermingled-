@@ -45,17 +45,21 @@ window.addEventListener(
   true
 );
 
-// 3. Listen for unhandled promise rejections caused by failed module imports
+// 3. Listen for unhandled promise rejections caused by failed module imports or HTML prefetch JSON errors
 window.addEventListener("unhandledrejection", (event) => {
   const reason = String(event.reason?.message || event.reason || "");
   if (
     reason.includes("Failed to fetch dynamically imported module") ||
     reason.includes("Expected a JavaScript-or-Wasm module script") ||
     reason.includes("Importing a module script failed") ||
-    reason.includes("MIME type")
+    reason.includes("MIME type") ||
+    reason.includes("is not valid JSON") ||
+    reason.includes("Unexpected token '<'")
   ) {
     event.preventDefault();
-    autoReloadOnDeploymentError(reason);
+    if (reason.includes("dynamically imported module")) {
+      autoReloadOnDeploymentError(reason);
+    }
   }
 });
 

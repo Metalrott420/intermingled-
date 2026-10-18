@@ -185,6 +185,19 @@ export default function RoomChooser() {
   const finalRound = (room?.maxSuitors ?? 4) - 1;
   const questionsPerRound = 1;
   const suitorSlots = Array.from({ length: 4 }, (_, i) => i + 1);
+  const currentRoundQuestions = (room?.currentRoundQuestions ?? []) as Array<{
+    id: string;
+    content: string;
+    packSlug?: string;
+    category: string;
+    difficulty: string;
+    ratingSummary?: {
+      questionId: string;
+      ratingCount: number;
+      averageRating: number | null;
+      qualityScore: number | null;
+    };
+  }>;
 
   const isEliminated = useCallback((suitorId: string) =>
     eliminatedParticipants.includes(suitorId), [eliminatedParticipants]);

@@ -178,26 +178,13 @@ export default function RoomChooser() {
   const chooseWinner = useChooseWinner();
   const { playEliminationStinger } = useGameCues();
   const chooserName = room?.chooserName ?? undefined;
-  const { isConnected, sendMessage, subscribe } = useSocket(roomId, participantId || undefined, chooserName, "chooser", socketToken ?? undefined, room?.roomSnapshotVersion);
+  const { isConnected, sendMessage, subscribe } = useSocket(isAdminTest ? undefined : roomId, participantId || undefined, chooserName, "chooser", socketToken ?? undefined, room?.roomSnapshotVersion);
 
   const currentRound = room?.currentRound ?? 1;
   const eliminatedParticipants = (room?.eliminatedParticipants ?? []) as string[];
-  const finalRound = (room?.maxSuitors ?? 3) - 1;
-  const questionsPerRound = currentRound < finalRound ? 1 : 3;
-  const suitorSlots = Array.from({ length: room?.maxSuitors ?? 3 }, (_, i) => i + 1);
-  const currentRoundQuestions = (room?.currentRoundQuestions ?? []) as Array<{
-    id: string;
-    content: string;
-    packSlug?: string;
-    category: string;
-    difficulty: string;
-    ratingSummary?: {
-      questionId: string;
-      ratingCount: number;
-      averageRating: number | null;
-      qualityScore: number | null;
-    };
-  }>;
+  const finalRound = (room?.maxSuitors ?? 4) - 1;
+  const questionsPerRound = 1;
+  const suitorSlots = Array.from({ length: 4 }, (_, i) => i + 1);
 
   const isEliminated = useCallback((suitorId: string) =>
     eliminatedParticipants.includes(suitorId), [eliminatedParticipants]);
@@ -216,17 +203,12 @@ export default function RoomChooser() {
     activeSlots.every((slot) => questionsAskedInRound(slot) >= questionsPerRound);
 
   useEffect(() => {
-    if (phase === "advancing") return;
-    if (room?.status !== "active") {
-      setPhase("messaging");
-      return;
-    }
+    if (phase === "profile_review" || phase === "advancing") return;
     if (allQuestionsAsked) {
       setPhase(currentRound < finalRound ? "eliminate" : "choose_winner");
       return;
     }
-    setPhase("messaging");
-  }, [allQuestionsAsked, currentRound, finalRound, phase, room?.status]);
+  }, [allQuestionsAsked, currentRound, finalRound, phase]);
 
   useEffect(() => {
     if (phase !== "advancing") return;
@@ -689,6 +671,98 @@ export default function RoomChooser() {
               ))}
             </div>
             <p className="mt-6 text-sm font-mono text-muted-foreground">{room.suitorCount}/{room.maxSuitors} suitors joined</p>
+          </div>
+        ) : phase === "profile_review" ? (
+          /* Facebook Dating UI Profile Review Cards Phase */
+          <div className="flex-1 p-4 overflow-y-auto max-w-4xl mx-auto w-full space-y-4">
+            <div className="bg-[#111218] border-2 border-[#d4af37]/50 rounded-2xl p-5 text-center shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-[#d4af37]/30 pb-3">
+                <div className="flex items-center gap-2 text-left">
+                  <Badge className="bg-[#d4af37] text-black font-black uppercase text-[10px]">ROUND 1 PRE-GAME REVIEW</Badge>
+                  <span className="text-xs font-mono text-slate-300 font-bold">INSPECT ALL 4 SUITOR PROFILES</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs font-mono text-[#d4af37] font-extrabold bg-[#d4af37]/10 px-3 py-1 rounded-lg border border-[#d4af37]/30">
+                  <Clock size={14} className="animate-pulse" />
+                  <span>3-MIN REVIEW: {Math.floor(reviewRemaining / 60)}:{(reviewRemaining % 60).toString().padStart(2, "0")}</span>
+                </div>
+              </div>
+
+              {/* Suitor Tab Switcher */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {suitorSlots.map((slot) => {
+                  const profile = AI_BOT_PROFILES[slot];
+                  const isActiveTab = activeTab === slot;
+                  return (
+                    <button
+                      key={slot}
+                      onClick={() => setActiveTab(slot)}
+                      className={`p-3 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${
+                        isActiveTab ? "border-[#d4af37] bg-[#d4af37]/20 shadow-lg" : "border-[#222538] bg-[#181a24]"
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-full overflow-hidden border border-[#d4af37] shrink-0">
+                        <img src={profile.photo} alt={profile.name} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-xs text-white truncate">{profile.name}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">{profile.age} · {profile.location}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Facebook Dating Style Profile Card */}
+              {AI_BOT_PROFILES[activeTab] && (
+                <div className="bg-[#141622] border border-[#d4af37]/30 rounded-2xl p-5 text-left space-y-4 shadow-xl animate-in fade-in duration-300">
+                  <div className="flex flex-col sm:flex-row gap-4 items-start">
+                    <div className="w-32 h-32 rounded-2xl overflow-hidden border-2 border-[#d4af37] shadow-xl shrink-0">
+                      <img src={AI_BOT_PROFILES[activeTab].photo} alt={AI_BOT_PROFILES[activeTab].name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xl font-black text-white">{AI_BOT_PROFILES[activeTab].name}, {AI_BOT_PROFILES[activeTab].age}</h3>
+                        <Badge variant="outline" className="border-[#d4af37]/40 text-[#d4af37] text-[10px] font-mono">VERIFIED SUITOR</Badge>
+                      </div>
+                      <p className="text-xs text-slate-300 font-mono">📍 {AI_BOT_PROFILES[activeTab].location} · 💼 {AI_BOT_PROFILES[activeTab].occupation}</p>
+                      <p className="text-xs text-slate-300 font-mono">🎓 {AI_BOT_PROFILES[activeTab].education}</p>
+                      <p className="text-xs font-bold text-[#d4af37] pt-1">🎯 Goal: {AI_BOT_PROFILES[activeTab].goal}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 border-t border-[#d4af37]/20 pt-3">
+                    <p className="text-[10px] font-mono uppercase text-[#d4af37] font-bold">About Me</p>
+                    <p className="text-xs text-slate-200 leading-relaxed font-sans">{AI_BOT_PROFILES[activeTab].bio}</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-[#d4af37]/20 pt-3 text-xs">
+                    <div>
+                      <p className="text-[10px] font-mono uppercase text-emerald-400 font-bold mb-1">💚 Likes</p>
+                      <div className="flex flex-wrap gap-1">
+                        {AI_BOT_PROFILES[activeTab].likes.map((like) => (
+                          <Badge key={like} className="bg-emerald-950/60 border border-emerald-800/40 text-emerald-300 text-[10px]">{like}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-mono uppercase text-rose-400 font-bold mb-1">💔 Dislikes</p>
+                      <div className="flex flex-wrap gap-1">
+                        {AI_BOT_PROFILES[activeTab].dislikes.map((dislike) => (
+                          <Badge key={dislike} className="bg-rose-950/60 border border-rose-800/40 text-rose-300 text-[10px]">{dislike}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <Button
+                onClick={() => setPhase("messaging")}
+                className="w-full py-4 bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] hover:from-[#b5952f] hover:to-[#d97706] text-black font-black uppercase text-xs tracking-wider shadow-lg shadow-[#d4af37]/25"
+              >
+                BEGIN ROUND 1 QUESTIONS 🚀
+              </Button>
+            </div>
           </div>
         ) : (
           <>

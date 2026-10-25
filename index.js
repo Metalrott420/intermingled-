@@ -71,24 +71,58 @@ function handleRequest(req, res) {
 
   // Production API Endpoints Handler
   if (reqPath === '/api/admin/stats') {
+    const onlineCount = getOnlineCount();
+    const realHumanCount = Array.from(activeHeartbeats.values()).filter((s) => !s.email?.endsWith('.internal')).length || 1;
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    return res.end(JSON.stringify({ totalUsers: 142, onlineUsers: getOnlineCount(), realHumanUsers: 2, aiBotsCount: 4, totalRooms: 38, openReports: 0 }));
+    return res.end(JSON.stringify({
+      totalUsers: 142,
+      onlineUsers: onlineCount,
+      realHumanUsers: realHumanCount,
+      aiBotsCount: 4,
+      totalRooms: 38,
+      openReports: 0,
+    }));
   }
 
   if (reqPath === '/api/admin/users') {
     const now = Date.now();
-    const ommSession = activeHeartbeats.get('usr_2');
-    const isOmmOnline = ommSession ? (now - ommSession.lastPing < 60000) : false;
 
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    return res.end(JSON.stringify([
+    // 1. Always include Admin user (Ivan Maldonado - metalrott.7@gmail.com)
+    const userList = [
       { id: 'usr_1', name: 'Ivan Maldonado', email: 'metalrott.7@gmail.com', role: 'coordinator', status: 'active', isAdmin: true, isBanned: false, isBot: false, isOnline: true, lastActive: 'Online now', gender: 'man', createdAt: new Date().toISOString() },
-      { id: 'usr_2', name: 'Omm Maldonado (Omm_mldo)', email: 'omm.mldo@intermingledapp.com', role: 'registered_user', status: 'active', isAdmin: false, isBanned: false, isBot: false, isOnline: isOmmOnline, lastActive: isOmmOnline ? 'Online now' : 'Offline (Last seen today)', gender: 'woman', createdAt: new Date(Date.now() - 1800000).toISOString() },
+    ];
+
+    // 2. Dynamically add ALL real human users who ping /api/ping with legitimate Clerk credentials
+    activeHeartbeats.forEach((session, uId) => {
+      if (session.email && session.email !== 'metalrott.7@gmail.com' && !session.email.endsWith('.internal')) {
+        const isOnline = now - session.lastPing < 60000;
+        userList.push({
+          id: uId,
+          name: session.name || 'Registered User',
+          email: session.email,
+          role: 'registered_user',
+          status: 'active',
+          isAdmin: false,
+          isBanned: false,
+          isBot: false,
+          isOnline: isOnline,
+          lastActive: isOnline ? 'Online now' : 'Offline',
+          gender: 'user',
+          createdAt: new Date(session.lastPing).toISOString(),
+        });
+      }
+    });
+
+    // 3. Add system AI Suitor Bots (clearly tagged as isBot: true)
+    userList.push(
       { id: 'bot_1', name: 'Bot Jessica (89%)', email: 'jessica.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, isOnline: true, lastActive: 'Online now', gender: 'woman', createdAt: new Date(Date.now() - 3600000).toISOString() },
       { id: 'bot_2', name: 'Bot Marcus (94%)', email: 'marcus.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, isOnline: false, lastActive: '12 mins ago', gender: 'man', createdAt: new Date(Date.now() - 7200000).toISOString() },
       { id: 'bot_3', name: 'Bot Tyler (85%)', email: 'tyler.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, isOnline: false, lastActive: '1 hour ago', gender: 'man', createdAt: new Date(Date.now() - 10800000).toISOString() },
       { id: 'bot_4', name: 'Bot Elena (81%)', email: 'elena.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, isOnline: false, lastActive: '2 hours ago', gender: 'woman', createdAt: new Date(Date.now() - 14400000).toISOString() },
-    ]));
+    );
+
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify(userList));
   }
 
   if (reqPath === '/api/admin/reports') {

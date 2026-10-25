@@ -67,6 +67,7 @@ export default function AdminPage() {
   const { user: clerkUser, isLoaded } = useUser();
   const [, setLocation] = useLocation();
   const [tab, setTab] = useState<Tab>("overview");
+  const [userCategoryFilter, setUserCategoryFilter] = useState<"all" | "humans" | "online" | "bots">("all");
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
@@ -268,8 +269,6 @@ export default function AdminPage() {
     { id: "analytics" as Tab, label: "Question Health", icon: BarChart3 },
     { id: "guardian" as Tab, label: "Guardian", icon: Shield },
   ];
-
-  const [userCategoryFilter, setUserCategoryFilter] = useState<"all" | "humans" | "online" | "bots">("all");
 
   const filteredUsers = users.filter((u) => {
     const matchesSearch = !userSearch || u.name.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase());

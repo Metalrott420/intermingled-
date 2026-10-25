@@ -164,9 +164,35 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
+function ClientHeartbeatPingTracker() {
+  const { user, isLoaded } = useUser();
+
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+
+    const sendPing = () => {
+      const uId = user.id;
+      const uName = [user.firstName, user.lastName].filter(Boolean).join(" ") || "Dater";
+      const uEmail = user.primaryEmailAddress?.emailAddress || "";
+
+      fetch(`/api/ping?userId=${encodeURIComponent(uId)}&name=${encodeURIComponent(uName)}&email=${encodeURIComponent(uEmail)}`, {
+        credentials: "include",
+      }).catch(() => {});
+    };
+
+    sendPing();
+    const interval = setInterval(sendPing, 30000);
+    return () => clearInterval(interval);
+  }, [user, isLoaded]);
+
+  return null;
+}
+
 function AppRoutes() {
   return (
-    <Switch>
+    <>
+      <ClientHeartbeatPingTracker />
+      <Switch>
       <Route path="/" component={Home} />
       <Route path="/pool" component={Pool} />
       <Route path="/map" component={Pool} />
@@ -193,6 +219,7 @@ function AppRoutes() {
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route component={NotFound} />
     </Switch>
+    </>
   );
 }
 

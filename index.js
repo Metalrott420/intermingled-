@@ -15,6 +15,27 @@ const mimeTypes = {
   '.woff2': 'font/woff2',
 };
 
+// Active User Session Heartbeat Tracker
+const activeHeartbeats = new Map(); // userId -> { lastPing: timestamp, email, name }
+
+function trackHeartbeat(userId, name, email) {
+  if (!userId) return;
+  activeHeartbeats.set(userId, {
+    lastPing: Date.now(),
+    name: name || 'Dater',
+    email: email || '',
+  });
+}
+
+function getOnlineCount() {
+  const now = Date.now();
+  let count = 0;
+  activeHeartbeats.forEach((session) => {
+    if (now - session.lastPing < 60000) count++;
+  });
+  return Math.max(1, count);
+}
+
 function handleRequest(req, res) {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
 
@@ -36,17 +57,33 @@ function handleRequest(req, res) {
   // Parse request path
   let reqPath = req.url.split('?')[0];
 
+  // Live Ping Heartbeat Handler
+  if (reqPath === '/api/ping') {
+    const urlParams = new URLSearchParams(req.url.split('?')[1] || '');
+    const userId = urlParams.get('userId');
+    const name = urlParams.get('name');
+    const email = urlParams.get('email');
+    if (userId) trackHeartbeat(userId, name, email);
+
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify({ ok: true, onlineCount: getOnlineCount() }));
+  }
+
   // Production API Endpoints Handler
   if (reqPath === '/api/admin/stats') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    return res.end(JSON.stringify({ totalUsers: 142, onlineUsers: 3, realHumanUsers: 2, aiBotsCount: 4, totalRooms: 38, openReports: 0 }));
+    return res.end(JSON.stringify({ totalUsers: 142, onlineUsers: getOnlineCount(), realHumanUsers: 2, aiBotsCount: 4, totalRooms: 38, openReports: 0 }));
   }
 
   if (reqPath === '/api/admin/users') {
+    const now = Date.now();
+    const ommSession = activeHeartbeats.get('usr_2');
+    const isOmmOnline = ommSession ? (now - ommSession.lastPing < 60000) : false;
+
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     return res.end(JSON.stringify([
       { id: 'usr_1', name: 'Ivan Maldonado', email: 'metalrott.7@gmail.com', role: 'coordinator', status: 'active', isAdmin: true, isBanned: false, isBot: false, isOnline: true, lastActive: 'Online now', gender: 'man', createdAt: new Date().toISOString() },
-      { id: 'usr_2', name: 'Omm Maldonado (Omm_mldo)', email: 'omm.mldo@intermingledapp.com', role: 'registered_user', status: 'active', isAdmin: false, isBanned: false, isBot: false, isOnline: true, lastActive: '5 mins ago', gender: 'woman', createdAt: new Date(Date.now() - 1800000).toISOString() },
+      { id: 'usr_2', name: 'Omm Maldonado (Omm_mldo)', email: 'omm.mldo@intermingledapp.com', role: 'registered_user', status: 'active', isAdmin: false, isBanned: false, isBot: false, isOnline: isOmmOnline, lastActive: isOmmOnline ? 'Online now' : 'Offline (Last seen today)', gender: 'woman', createdAt: new Date(Date.now() - 1800000).toISOString() },
       { id: 'bot_1', name: 'Bot Jessica (89%)', email: 'jessica.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, isOnline: true, lastActive: 'Online now', gender: 'woman', createdAt: new Date(Date.now() - 3600000).toISOString() },
       { id: 'bot_2', name: 'Bot Marcus (94%)', email: 'marcus.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, isOnline: false, lastActive: '12 mins ago', gender: 'man', createdAt: new Date(Date.now() - 7200000).toISOString() },
       { id: 'bot_3', name: 'Bot Tyler (85%)', email: 'tyler.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, isOnline: false, lastActive: '1 hour ago', gender: 'man', createdAt: new Date(Date.now() - 10800000).toISOString() },

@@ -35,6 +35,51 @@ function handleRequest(req, res) {
 
   // Parse request path
   let reqPath = req.url.split('?')[0];
+
+  // Production API Endpoints Handler
+  if (reqPath === '/api/admin/stats') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify({ totalUsers: 142, totalRooms: 38, openReports: 0 }));
+  }
+
+  if (reqPath === '/api/admin/users') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify([
+      { id: 'usr_1', name: 'Ivan Maldonado', email: 'metalrott.7@gmail.com', role: 'coordinator', status: 'active', isAdmin: true, isBanned: false, gender: 'man', createdAt: new Date().toISOString() },
+      { id: 'usr_2', name: 'Jessica T.', email: 'jessica.t@example.com', role: 'suitor', status: 'active', isAdmin: false, isBanned: false, gender: 'woman', createdAt: new Date(Date.now() - 3600000).toISOString() },
+      { id: 'usr_3', name: 'Marcus K.', email: 'marcus.k@example.com', role: 'suitor', status: 'active', isAdmin: false, isBanned: false, gender: 'man', createdAt: new Date(Date.now() - 7200000).toISOString() },
+      { id: 'usr_4', name: 'Elena V.', email: 'elena.v@example.com', role: 'suitor', status: 'active', isAdmin: false, isBanned: false, gender: 'woman', createdAt: new Date(Date.now() - 10800000).toISOString() },
+    ]));
+  }
+
+  if (reqPath === '/api/admin/reports') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify([]));
+  }
+
+  if (reqPath === '/api/admin/rooms') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify([
+      { id: 'room_101', code: 'A39X', status: 'active', chooserName: 'Ivan Maldonado', winnerName: null, currentRound: 1, createdAt: new Date().toISOString() },
+    ]));
+  }
+
+  if (reqPath === '/api/profile/me') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify({
+      id: 'usr_1',
+      name: 'Ivan Maldonado',
+      email: 'metalrott.7@gmail.com',
+      dateOfBirth: '1996-05-14',
+      ageVerified: true,
+      isAdmin: true,
+      role: 'coordinator',
+      photos: ['/logo-192.png'],
+      bio: 'Administrator & Founder of Intermingled.',
+      gender: 'man',
+      showMeGender: 'everyone',
+    }));
+  }
   let filePath = path.join(publicDir, reqPath === '/' ? 'index.html' : reqPath);
 
   // If request has a file extension, serve exact static file or 404

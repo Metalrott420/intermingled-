@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useLocation, useSearch } from "wouter";
-import { useAuth } from "@clerk/react";
+import { useAuth, useUser } from "@clerk/react";
 import { usePoolSocket } from "@/hooks/useSocket";
 import {
   Zap,
@@ -88,6 +88,9 @@ export default function Pool() {
   const userId = params.get("userId") || "";
   const name = params.get("name") || "";
   const { toast } = useToast();
+  const { user: clerkUser } = useUser();
+  const ALLOWED_ADMIN_EMAIL = "metalrott.7@gmail.com";
+  const isAdmin = clerkUser?.primaryEmailAddress?.emailAddress?.toLowerCase() === ALLOWED_ADMIN_EMAIL;
 
   const { getToken } = useAuth();
   const [token, setToken] = useState<string | null>(null);
@@ -772,15 +775,29 @@ export default function Pool() {
               </div>
 
               <div className="space-y-2 pt-2">
-                <Button
-                  onClick={() => {
-                    setNewEvent({ ...newEvent, title: `Speed Date @ ${selectedTarget.title}`, area: selectedTarget.title });
-                    setShowEventModal(true);
-                  }}
-                  className="w-full bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-xs py-3"
-                >
-                  <Crown size={14} className="mr-1.5" /> Host Speed Date Event Here
-                </Button>
+                {isAdmin ? (
+                  <Button
+                    onClick={() => {
+                      setNewEvent({ ...newEvent, title: `Speed Date @ ${selectedTarget.title}`, area: selectedTarget.title });
+                      setShowEventModal(true);
+                    }}
+                    className="w-full bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-xs py-3"
+                  >
+                    <Crown size={14} className="mr-1.5" /> Host Speed Date Event Here (Admin Only) 👑
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      toast({
+                        title: "Event Interest Requested! 📍",
+                        description: `Your request to host a speed dating event at ${selectedTarget.title} was submitted to the Admin Coordinator!`,
+                      });
+                    }}
+                    className="w-full bg-[#181a24] hover:bg-[#222538] border border-[#d4af37]/40 text-[#d4af37] font-bold uppercase text-xs py-3"
+                  >
+                    <MapPin size={14} className="mr-1.5" /> Request Speed Date Event At Venue 📍
+                  </Button>
+                )}
 
                 <a
                   href={`https://www.google.com/maps/dir/?api=1&destination=${selectedTarget.latitude},${selectedTarget.longitude}`}

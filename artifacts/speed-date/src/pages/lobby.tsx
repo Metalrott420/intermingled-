@@ -97,7 +97,7 @@ export default function Lobby() {
       setSpectatorsCount((prev) => Math.max(1, prev + (Math.random() > 0.5 ? 1 : -1) * randomFluctuation));
     }, 12000);
 
-    // Fetch active game contenders & count matches from API and local storage
+    // Fetch active game contenders & count matches from API and local storage (Human Users Only - No Bots in Lounge)
     fetch(`${base}/api/history`, { credentials: "include" })
       .then((r) => r.ok ? r.json() : [])
       .then((history) => {
@@ -109,21 +109,27 @@ export default function Lobby() {
 
         if (Array.isArray(history)) {
           history.forEach((h: any) => {
-            if (h.suitorName) allMatches.push({ name: h.suitorName });
-            if (h.chooserName) allMatches.push({ name: h.chooserName });
+            if (h.suitorName && !h.suitorName.startsWith("Bot ") && !h.suitorName.includes("Bot_")) {
+              allMatches.push({ name: h.suitorName });
+            }
+            if (h.chooserName && !h.chooserName.startsWith("Bot ") && !h.chooserName.includes("Bot_")) {
+              allMatches.push({ name: h.chooserName });
+            }
           });
         }
 
         if (Array.isArray(localMatches)) {
           localMatches.forEach((m: any) => {
-            if (m.name) allMatches.push({ name: m.name });
+            if (m.name && !m.name.startsWith("Bot ") && !m.name.includes("Bot_")) {
+              allMatches.push({ name: m.name });
+            }
           });
         }
 
         if (allMatches.length === 0) {
           setTopContender("None Yet");
           setRunnerUp("None Yet");
-          setLiveMatchBadge("NO MATCHES YET");
+          setLiveMatchBadge("NO HUMAN MATCHES YET");
           return;
         }
 
@@ -139,7 +145,7 @@ export default function Lobby() {
         if (sortedDaters.length > 0) {
           const [topName, topCount] = sortedDaters[0];
           setTopContender(`${topName} (${topCount} Match${topCount > 1 ? "es" : ""})`);
-          setLiveMatchBadge("LIVE LEADERBOARD");
+          setLiveMatchBadge("LIVE HUMAN LEADERBOARD");
         } else {
           setTopContender("None Yet");
         }
@@ -154,7 +160,7 @@ export default function Lobby() {
       .catch(() => {
         setTopContender("None Yet");
         setRunnerUp("None Yet");
-        setLiveMatchBadge("NO MATCHES YET");
+        setLiveMatchBadge("NO HUMAN MATCHES YET");
       });
 
     return () => clearInterval(interval);

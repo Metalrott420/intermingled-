@@ -36,7 +36,7 @@ type QuestionCategory = "general" | "fun" | "deep";
 type QuestionDifficulty = "easy" | "medium" | "hard";
 
 interface Stats { totalUsers: number; totalRooms: number; openReports: number; }
-interface AdminUser { id: string; name: string; email: string | null; role: string | null; status: string; isAdmin: boolean; isBanned: boolean; gender: string | null; createdAt: string; }
+interface AdminUser { id: string; name: string; email: string | null; role: string | null; status: string; isAdmin: boolean; isBanned: boolean; isBot?: boolean; gender: string | null; createdAt: string; }
 interface Report { id: string; reporterId: string; reporterName: string; reportedId: string; reportedName: string; reportedIsBanned: boolean; reason: string; detail: string | null; createdAt: string; }
 interface Room { id: string; code: string; status: string; chooserName: string | null; winnerName: string | null; currentRound: number; createdAt: string; }
 interface QuestionRow {
@@ -259,6 +259,8 @@ export default function AdminPage() {
     );
   }
 
+  const [userCategoryFilter, setUserCategoryFilter] = useState<"all" | "humans" | "bots">("all");
+
   const TABS = [
     { id: "overview" as Tab, label: "Overview", icon: Tv2 },
     { id: "users" as Tab, label: `Users (${users.length})`, icon: Users },
@@ -269,9 +271,14 @@ export default function AdminPage() {
     { id: "guardian" as Tab, label: "Guardian", icon: Shield },
   ];
 
-  const filteredUsers = userSearch
-    ? users.filter((u) => u.name.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase()))
-    : users;
+  const filteredUsers = users.filter((u) => {
+    const matchesSearch = !userSearch || u.name.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase());
+    const isBot = u.isBot || u.email?.includes(".internal") || u.email?.includes("@example.com") || u.name.startsWith("Bot ");
+
+    if (userCategoryFilter === "humans") return matchesSearch && !isBot;
+    if (userCategoryFilter === "bots") return matchesSearch && isBot;
+    return matchesSearch;
+  });
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground">
@@ -394,24 +401,62 @@ export default function AdminPage() {
         {/* Users */}
         {tab === "users" && (
           <div className="space-y-4">
-            <input value={userSearch} onChange={(e) => setUserSearch(e.target.value)}
-              placeholder="Search by name or email…"
-              className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+              <input value={userSearch} onChange={(e) => setUserSearch(e.target.value)}
+                placeholder="Search by name or email…"
+                className="w-full sm:flex-1 bg-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+
+              {/* 3-Way User Category Filter Control */}
+              <div className="flex rounded-xl bg-[#111218] p-1 border border-[#222538] shrink-0 w-full sm:w-auto justify-around">
+                <button
+                  onClick={() => setUserCategoryFilter("all")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase font-bold transition-all ${
+                    userCategoryFilter === "all" ? "bg-[#d4af37] text-black shadow" : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  ALL ({users.length})
+                </button>
+                <button
+                  onClick={() => setUserCategoryFilter("humans")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase font-bold transition-all ${
+                    userCategoryFilter === "humans" ? "bg-emerald-500 text-black shadow" : "text-slate-400 hover:text-emerald-400"
+                  }`}
+                >
+                  HUMANS 👤
+                </button>
+                <button
+                  onClick={() => setUserCategoryFilter("bots")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase font-bold transition-all ${
+                    userCategoryFilter === "bots" ? "bg-cyan-500 text-black shadow" : "text-slate-400 hover:text-cyan-400"
+                  }`}
+                >
+                  AI BOTS 🤖
+                </button>
+              </div>
+            </div>
+
             <div className="space-y-2">
-              {filteredUsers.map((u) => (
-                <div key={u.id} className={cn(
-                  "flex items-center justify-between bg-card border rounded-xl px-4 py-3",
-                  u.isBanned ? "border-destructive/30 bg-destructive/5" : "border-border"
-                )}>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-sm truncate">{u.name}</span>
-                      {u.isAdmin && <span className="text-[10px] font-mono text-secondary bg-secondary/10 px-1.5 py-0.5 rounded uppercase">Admin</span>}
-                      {u.isBanned && <span className="text-[10px] font-mono text-destructive bg-destructive/10 px-1.5 py-0.5 rounded uppercase">Banned</span>}
-                      {u.role && <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase">{u.role}</span>}
+              {filteredUsers.map((u) => {
+                const isBot = u.isBot || u.email?.includes(".internal") || u.email?.includes("@example.com") || u.name.startsWith("Bot ");
+                return (
+                  <div key={u.id} className={cn(
+                    "flex items-center justify-between bg-card border rounded-xl px-4 py-3",
+                    u.isBanned ? "border-destructive/30 bg-destructive/5" : "border-border"
+                  )}>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm truncate">{u.name}</span>
+                        {isBot ? (
+                          <Badge className="bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 text-[9px] font-mono uppercase">AI BOT 🤖</Badge>
+                        ) : (
+                          <Badge className="bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 text-[9px] font-mono uppercase">HUMAN 👤</Badge>
+                        )}
+                        {u.isAdmin && <span className="text-[10px] font-mono text-secondary bg-secondary/10 px-1.5 py-0.5 rounded uppercase">Admin</span>}
+                        {u.isBanned && <span className="text-[10px] font-mono text-destructive bg-destructive/10 px-1.5 py-0.5 rounded uppercase">Banned</span>}
+                        {u.role && <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase">{u.role}</span>}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{u.email ?? "—"} · Joined {formatDate(u.createdAt)}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">{u.email ?? "—"} · Joined {formatDate(u.createdAt)}</p>
-                  </div>
                   <div className="flex items-center gap-2 shrink-0 ml-4">
                     {u.isBanned ? (
                       <button onClick={() => action(`/admin/users/${u.id}/unban`, u.id)}
@@ -441,7 +486,8 @@ export default function AdminPage() {
                     )}
                   </div>
                 </div>
-              ))}
+              );
+            })}
               {filteredUsers.length === 0 && (
                 <p className="text-center text-muted-foreground text-sm py-8 font-mono">No users found</p>
               )}

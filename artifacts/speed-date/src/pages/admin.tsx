@@ -309,7 +309,22 @@ export default function AdminPage() {
         {tab === "overview" && stats && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <Stat icon={Users} label="Registered Users" value={stats.totalUsers} color="bg-primary" />
+              <div className="bg-card border border-primary/40 rounded-xl p-5 flex items-center gap-4 shadow-lg">
+                <div className="p-3 rounded-lg bg-primary text-black font-black">👤</div>
+                <div>
+                  <p className="text-2xl font-black font-display text-white">{stats.realHumanUsers ?? 1}</p>
+                  <p className="text-xs text-primary font-mono uppercase tracking-wider font-bold">Human Users</p>
+                </div>
+              </div>
+
+              <div className="bg-card border border-cyan-500/40 rounded-xl p-5 flex items-center gap-4 shadow-lg">
+                <div className="p-3 rounded-lg bg-cyan-500 text-black font-black">🤖</div>
+                <div>
+                  <p className="text-2xl font-black font-display text-cyan-400">{stats.aiBotsCount ?? 4}</p>
+                  <p className="text-xs text-cyan-400 font-mono uppercase tracking-wider font-bold">AI Suitor Bots</p>
+                </div>
+              </div>
+
               <div className="bg-card border border-emerald-500/40 rounded-xl p-5 flex items-center gap-4 shadow-lg shadow-emerald-950/20">
                 <div className="p-3 rounded-lg bg-emerald-500 text-black font-black animate-pulse">🟢</div>
                 <div>
@@ -317,8 +332,8 @@ export default function AdminPage() {
                   <p className="text-xs text-emerald-400 font-mono uppercase tracking-wider font-bold">Online Right Now</p>
                 </div>
               </div>
+
               <Stat icon={Tv2} label="Total Rooms" value={stats.totalRooms} color="bg-secondary" />
-              <Stat icon={Flag} label="Reports" value={stats.openReports} color="bg-destructive" />
             </div>
 
             {/* Admin AI Bot Match Launcher Card */}

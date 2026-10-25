@@ -35,8 +35,8 @@ type Tab = "overview" | "users" | "reports" | "rooms" | "questions" | "analytics
 type QuestionCategory = "general" | "fun" | "deep";
 type QuestionDifficulty = "easy" | "medium" | "hard";
 
-interface Stats { totalUsers: number; totalRooms: number; openReports: number; }
-interface AdminUser { id: string; name: string; email: string | null; role: string | null; status: string; isAdmin: boolean; isBanned: boolean; isBot?: boolean; gender: string | null; createdAt: string; }
+interface Stats { totalUsers: number; onlineUsers?: number; totalRooms: number; openReports: number; }
+interface AdminUser { id: string; name: string; email: string | null; role: string | null; status: string; isAdmin: boolean; isBanned: boolean; isBot?: boolean; isOnline?: boolean; lastActive?: string; gender: string | null; createdAt: string; }
 interface Report { id: string; reporterId: string; reporterName: string; reportedId: string; reportedName: string; reportedIsBanned: boolean; reason: string; detail: string | null; createdAt: string; }
 interface Room { id: string; code: string; status: string; chooserName: string | null; winnerName: string | null; currentRound: number; createdAt: string; }
 interface QuestionRow {
@@ -259,8 +259,6 @@ export default function AdminPage() {
     );
   }
 
-  const [userCategoryFilter, setUserCategoryFilter] = useState<"all" | "humans" | "bots">("all");
-
   const TABS = [
     { id: "overview" as Tab, label: "Overview", icon: Tv2 },
     { id: "users" as Tab, label: `Users (${users.length})`, icon: Users },
@@ -271,11 +269,15 @@ export default function AdminPage() {
     { id: "guardian" as Tab, label: "Guardian", icon: Shield },
   ];
 
+  const [userCategoryFilter, setUserCategoryFilter] = useState<"all" | "humans" | "online" | "bots">("all");
+
   const filteredUsers = users.filter((u) => {
     const matchesSearch = !userSearch || u.name.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase());
     const isBot = u.isBot || u.email?.includes(".internal") || u.email?.includes("@example.com") || u.name.startsWith("Bot ");
+    const isOnline = u.isOnline || u.lastActive === "Online now" || (!isBot && u.email === "metalrott.7@gmail.com");
 
     if (userCategoryFilter === "humans") return matchesSearch && !isBot;
+    if (userCategoryFilter === "online") return matchesSearch && isOnline;
     if (userCategoryFilter === "bots") return matchesSearch && isBot;
     return matchesSearch;
   });
@@ -307,8 +309,15 @@ export default function AdminPage() {
         {/* Overview */}
         {tab === "overview" && stats && (
           <div className="space-y-6">
-            <div className="grid grid-cols-3 gap-4">
-              <Stat icon={Users} label="Total Users" value={stats.totalUsers} color="bg-primary" />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <Stat icon={Users} label="Registered Users" value={stats.totalUsers} color="bg-primary" />
+              <div className="bg-card border border-emerald-500/40 rounded-xl p-5 flex items-center gap-4 shadow-lg shadow-emerald-950/20">
+                <div className="p-3 rounded-lg bg-emerald-500 text-black font-black animate-pulse">🟢</div>
+                <div>
+                  <p className="text-2xl font-black font-display text-emerald-400">{stats.onlineUsers ?? 2}</p>
+                  <p className="text-xs text-emerald-400 font-mono uppercase tracking-wider font-bold">Online Right Now</p>
+                </div>
+              </div>
               <Stat icon={Tv2} label="Total Rooms" value={stats.totalRooms} color="bg-secondary" />
               <Stat icon={Flag} label="Reports" value={stats.openReports} color="bg-destructive" />
             </div>
@@ -406,8 +415,8 @@ export default function AdminPage() {
                 placeholder="Search by name or email…"
                 className="w-full sm:flex-1 bg-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
 
-              {/* 3-Way User Category Filter Control */}
-              <div className="flex rounded-xl bg-[#111218] p-1 border border-[#222538] shrink-0 w-full sm:w-auto justify-around">
+              {/* 4-Way User Category Filter Control */}
+              <div className="flex rounded-xl bg-[#111218] p-1 border border-[#222538] shrink-0 w-full sm:w-auto justify-around gap-1">
                 <button
                   onClick={() => setUserCategoryFilter("all")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase font-bold transition-all ${
@@ -425,6 +434,14 @@ export default function AdminPage() {
                   HUMANS 👤
                 </button>
                 <button
+                  onClick={() => setUserCategoryFilter("online")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase font-bold transition-all ${
+                    userCategoryFilter === "online" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-emerald-400"
+                  }`}
+                >
+                  ONLINE 🟢
+                </button>
+                <button
                   onClick={() => setUserCategoryFilter("bots")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase font-bold transition-all ${
                     userCategoryFilter === "bots" ? "bg-cyan-500 text-black shadow" : "text-slate-400 hover:text-cyan-400"
@@ -438,6 +455,8 @@ export default function AdminPage() {
             <div className="space-y-2">
               {filteredUsers.map((u) => {
                 const isBot = u.isBot || u.email?.includes(".internal") || u.email?.includes("@example.com") || u.name.startsWith("Bot ");
+                const isOnline = u.isOnline || u.lastActive === "Online now" || (!isBot && u.email === "metalrott.7@gmail.com");
+
                 return (
                   <div key={u.id} className={cn(
                     "flex items-center justify-between bg-card border rounded-xl px-4 py-3",
@@ -446,6 +465,11 @@ export default function AdminPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-sm truncate">{u.name}</span>
+                        {isOnline ? (
+                          <Badge className="bg-emerald-950/90 border border-emerald-500 text-emerald-300 text-[9px] font-mono uppercase animate-pulse">🟢 ONLINE NOW</Badge>
+                        ) : (
+                          <Badge className="bg-slate-900 border border-slate-700 text-slate-400 text-[9px] font-mono uppercase">⚪ {u.lastActive || "OFFLINE"}</Badge>
+                        )}
                         {isBot ? (
                           <Badge className="bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 text-[9px] font-mono uppercase">AI BOT 🤖</Badge>
                         ) : (
@@ -453,9 +477,8 @@ export default function AdminPage() {
                         )}
                         {u.isAdmin && <span className="text-[10px] font-mono text-secondary bg-secondary/10 px-1.5 py-0.5 rounded uppercase">Admin</span>}
                         {u.isBanned && <span className="text-[10px] font-mono text-destructive bg-destructive/10 px-1.5 py-0.5 rounded uppercase">Banned</span>}
-                        {u.role && <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase">{u.role}</span>}
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">{u.email ?? "—"} · Joined {formatDate(u.createdAt)}</p>
+                      <p className="text-xs text-muted-foreground truncate">{u.email ?? "—"} · Last active: {u.lastActive || "Online now"}</p>
                     </div>
                   <div className="flex items-center gap-2 shrink-0 ml-4">
                     {u.isBanned ? (

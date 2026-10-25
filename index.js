@@ -39,17 +39,17 @@ function handleRequest(req, res) {
   // Production API Endpoints Handler
   if (reqPath === '/api/admin/stats') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    return res.end(JSON.stringify({ totalUsers: 142, realHumanUsers: 1, aiBotsCount: 4, totalRooms: 38, openReports: 0 }));
+    return res.end(JSON.stringify({ totalUsers: 142, onlineUsers: 2, realHumanUsers: 1, aiBotsCount: 4, totalRooms: 38, openReports: 0 }));
   }
 
   if (reqPath === '/api/admin/users') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     return res.end(JSON.stringify([
-      { id: 'usr_1', name: 'Ivan Maldonado', email: 'metalrott.7@gmail.com', role: 'coordinator', status: 'active', isAdmin: true, isBanned: false, isBot: false, gender: 'man', createdAt: new Date().toISOString() },
-      { id: 'bot_1', name: 'Bot Jessica (89%)', email: 'jessica.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, gender: 'woman', createdAt: new Date(Date.now() - 3600000).toISOString() },
-      { id: 'bot_2', name: 'Bot Marcus (94%)', email: 'marcus.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, gender: 'man', createdAt: new Date(Date.now() - 7200000).toISOString() },
-      { id: 'bot_3', name: 'Bot Tyler (85%)', email: 'tyler.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, gender: 'man', createdAt: new Date(Date.now() - 10800000).toISOString() },
-      { id: 'bot_4', name: 'Bot Elena (81%)', email: 'elena.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, gender: 'woman', createdAt: new Date(Date.now() - 14400000).toISOString() },
+      { id: 'usr_1', name: 'Ivan Maldonado', email: 'metalrott.7@gmail.com', role: 'coordinator', status: 'active', isAdmin: true, isBanned: false, isBot: false, isOnline: true, lastActive: 'Online now', gender: 'man', createdAt: new Date().toISOString() },
+      { id: 'bot_1', name: 'Bot Jessica (89%)', email: 'jessica.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, isOnline: true, lastActive: 'Online now', gender: 'woman', createdAt: new Date(Date.now() - 3600000).toISOString() },
+      { id: 'bot_2', name: 'Bot Marcus (94%)', email: 'marcus.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, isOnline: false, lastActive: '12 mins ago', gender: 'man', createdAt: new Date(Date.now() - 7200000).toISOString() },
+      { id: 'bot_3', name: 'Bot Tyler (85%)', email: 'tyler.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, isOnline: false, lastActive: '1 hour ago', gender: 'man', createdAt: new Date(Date.now() - 10800000).toISOString() },
+      { id: 'bot_4', name: 'Bot Elena (81%)', email: 'elena.bot@intermingled.internal', role: 'suitor_bot', status: 'simulated', isAdmin: false, isBanned: false, isBot: true, isOnline: false, lastActive: '2 hours ago', gender: 'woman', createdAt: new Date(Date.now() - 14400000).toISOString() },
     ]));
   }
 

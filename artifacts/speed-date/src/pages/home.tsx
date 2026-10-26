@@ -377,7 +377,9 @@ export default function Home() {
       .then((r) => r.ok ? r.json() : null)
       .then((profile) => {
         const isVerifiedLocal = localStorage.getItem("intermingled_verified") === "true";
-        if (profile && !profile.ageVerified && !isVerifiedLocal) {
+        const isVerifiedProfile = profile?.ageVerified === true;
+
+        if (!isVerifiedProfile && !isVerifiedLocal) {
           setPhase("age_verification");
           return;
         }

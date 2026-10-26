@@ -99,6 +99,47 @@ export default function RoomChooser() {
 
   const isAdminTest = roomId.startsWith("test-room-") || (typeof window !== "undefined" && window.location.search.includes("adminTest=true"));
 
+  const AI_BOT_PROFILES: Record<number, {
+    name: string; photo: string; age: number; location: string; occupation: string; education: string; goal: string; bio: string; likes: string[]; dislikes: string[];
+  }> = {
+    1: {
+      name: "Marcus K.",
+      photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+      age: 27, location: "Austin, TX", occupation: "Architect & Designer", education: "UT Austin M.Arch",
+      goal: "Looking for a meaningful long-term relationship",
+      bio: "Passionate about modern architecture, espresso brewing, and weekend mountain bike trails. Always looking for someone who loves spontaneous road trips!",
+      likes: ["Coffee Brewing", "Modern Art", "Trail Running", "Live Jazz"],
+      dislikes: ["Late Arrivals", "Cold Pizza", "Ghosting"],
+    },
+    2: {
+      name: "Jessica T.",
+      photo: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
+      age: 25, location: "Austin, TX", occupation: "Software Engineer & Musician", education: "Stanford BS CS",
+      goal: "Marriage-minded & adventurous partnership",
+      bio: "Full-stack developer by day, indie synth-pop musician by night. Big fan of vinyl records, outdoor yoga, and cooking authentic Thai curries.",
+      likes: ["Vinyl Records", "Thai Food", "Indie Concerts", "Outdoor Yoga"],
+      dislikes: ["Bad WiFi", "Negative Energy", "Small Talk"],
+    },
+    3: {
+      name: "Tyler R.",
+      photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+      age: 28, location: "Austin, TX", occupation: "Creative Director", education: "NYU Tisch BFA",
+      goal: "Looking for my partner in crime",
+      bio: "Film director, photography enthusiast, and amateur chef. Love deep conversations over craft cocktails and discovering hidden speakeasies.",
+      likes: ["Photography", "Craft Beer", "Film Cameras", "Foodie Trips"],
+      dislikes: ["Monotony", "Cilantro", "Unpunctuality"],
+    },
+    4: {
+      name: "Elena V.",
+      photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
+      age: 26, location: "Austin, TX", occupation: "Biomedical Researcher", education: "Johns Hopkins PhD",
+      goal: "Building a supportive, inspiring future together",
+      bio: "Researching neurobiology, hiking local greenbelts, and baking sourdough bread on Sundays. Looking for genuine connection and shared laughter.",
+      likes: ["Sourdough Baking", "Greenbelt Hikes", "Sci-Fi Books", "Dogs"],
+      dislikes: ["Arrogance", "Crowded Subways", "Dishonesty"],
+    },
+  };
+
   const VECTOR_AI_QUESTIONS: Record<number, string[]> = {
     1: [
       "What is your idea of a perfect, spontaneous weekend getaway?",

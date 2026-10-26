@@ -12,7 +12,7 @@ import {
 import { useSocket } from "@/hooks/useSocket";
 import { Message } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { X, Sparkles, Scissors, Flag, Trophy, Zap } from "lucide-react";
+import { X, Sparkles, Scissors, Flag, Trophy, Zap, Clock } from "lucide-react";
 import CountdownTimer from "@/components/CountdownTimer";
 import RoundProgress from "@/components/RoundProgress";
 import { QuestionRatingPanel } from "@/components/QuestionRatingPanel";

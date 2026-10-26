@@ -99,45 +99,98 @@ export default function RoomChooser() {
 
   const isAdminTest = roomId.startsWith("test-room-") || (typeof window !== "undefined" && window.location.search.includes("adminTest=true"));
 
-  const AI_BOT_PROFILES: Record<number, {
-    name: string; photo: string; age: number; location: string; occupation: string; education: string; goal: string; bio: string; likes: string[]; dislikes: string[];
-  }> = {
-    1: {
-      name: "Marcus K.",
-      photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
-      age: 27, location: "Austin, TX", occupation: "Architect & Designer", education: "UT Austin M.Arch",
-      goal: "Looking for a meaningful long-term relationship",
-      bio: "Passionate about modern architecture, espresso brewing, and weekend mountain bike trails. Always looking for someone who loves spontaneous road trips!",
-      likes: ["Coffee Brewing", "Modern Art", "Trail Running", "Live Jazz"],
-      dislikes: ["Late Arrivals", "Cold Pizza", "Ghosting"],
-    },
-    2: {
-      name: "Jessica T.",
-      photo: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
-      age: 25, location: "Austin, TX", occupation: "Software Engineer & Musician", education: "Stanford BS CS",
-      goal: "Marriage-minded & adventurous partnership",
-      bio: "Full-stack developer by day, indie synth-pop musician by night. Big fan of vinyl records, outdoor yoga, and cooking authentic Thai curries.",
-      likes: ["Vinyl Records", "Thai Food", "Indie Concerts", "Outdoor Yoga"],
-      dislikes: ["Bad WiFi", "Negative Energy", "Small Talk"],
-    },
-    3: {
-      name: "Tyler R.",
-      photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
-      age: 28, location: "Austin, TX", occupation: "Creative Director", education: "NYU Tisch BFA",
-      goal: "Looking for my partner in crime",
-      bio: "Film director, photography enthusiast, and amateur chef. Love deep conversations over craft cocktails and discovering hidden speakeasies.",
-      likes: ["Photography", "Craft Beer", "Film Cameras", "Foodie Trips"],
-      dislikes: ["Monotony", "Cilantro", "Unpunctuality"],
-    },
-    4: {
-      name: "Elena V.",
-      photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
-      age: 26, location: "Austin, TX", occupation: "Biomedical Researcher", education: "Johns Hopkins PhD",
-      goal: "Building a supportive, inspiring future together",
-      bio: "Researching neurobiology, hiking local greenbelts, and baking sourdough bread on Sundays. Looking for genuine connection and shared laughter.",
-      likes: ["Sourdough Baking", "Greenbelt Hikes", "Sci-Fi Books", "Dogs"],
-      dislikes: ["Arrogance", "Crowded Subways", "Dishonesty"],
-    },
+  const VECTOR_AI_QUESTIONS: Record<number, string[]> = {
+    1: [
+      "What is your idea of a perfect, spontaneous weekend getaway?",
+      "How do you balance personal space with quality time in a relationship?",
+      "What is a hobby or passion you could talk about for hours?",
+    ],
+    2: [
+      "How do you handle disagreements when two people have different opinions?",
+      "What is the most meaningful gesture someone has ever done for you?",
+      "What does your ideal work-life balance look like 5 years from now?",
+    ],
+    3: [
+      "What is a core value or belief you will never compromise on?",
+      "What is your love language and how do you best feel appreciated?",
+      "What made you realize you were ready for a serious, committed relationship?",
+    ],
+  };
+
+  const BOT_UNIQUE_ANSWERS: Record<string, string[]> = {
+    "Bot Marcus (94%)": [
+      "I love spontaneous camping in the mountains and brewing fresh espresso on Sunday mornings.",
+      "Communication is everything to me—calm, honest talk over dinner always resolves disagreements.",
+      "Integrity and loyalty. If you don't have trust, you have nothing.",
+    ],
+    "Bot Jessica (89%)": [
+      "A quiet indie music concert followed by cooking authentic Thai curry together.",
+      "I give people space to express themselves and listen deeply before responding.",
+      "Spontaneity and mutual respect. Life is too short not to encourage each other's dreams.",
+    ],
+    "Bot Tyler (85%)": [
+      "Exploring hidden speakeasies and street photography in a new city.",
+      "Humor breaks the tension! A playful perspective helps solve any conflict.",
+      "Kindness and curiosity. Someone who stays curious about the world and empathetic.",
+    ],
+    "Bot Elena (81%)": [
+      "Baking fresh sourdough bread and hiking local greenbelt trails with my dog.",
+      "Empathy first—I put myself in the other person's shoes before jumping to conclusions.",
+      "Authenticity and passion. I value people who are genuinely themselves without pretense.",
+    ],
+  };
+
+  const [hasBroadcastQuestion, setHasBroadcastQuestion] = useState(false);
+  const [questionTimer, setQuestionTimer] = useState(60);
+
+  // Broadcast question to ALL active suitors simultaneously
+  const handleBroadcastQuestion = (questionText: string) => {
+    setHasBroadcastQuestion(true);
+    setQuestionTimer(60);
+
+    activeSlots.forEach((slot) => {
+      const suitor = room?.participants.find((p) => p.suitorSlot === slot);
+      if (!suitor) return;
+
+      // Broadcast Chooser Question
+      const qMsg: Message = {
+        id: `q-${slot}-${Date.now()}`,
+        roomId,
+        userId: "admin-chooser-123",
+        userName: chooserName || "Chooser 👑",
+        content: `❓ Q: ${questionText}`,
+        createdAt: new Date().toISOString(),
+        senderRole: "chooser",
+        suitorSlot: slot,
+        round: currentRound,
+      };
+
+      setMessages((prev) => [...prev, qMsg]);
+
+      // Trigger unique AI Bot response in 1.5s
+      if (isAdminTest && suitor.name) {
+        setTimeout(() => {
+          const botAnswers = BOT_UNIQUE_ANSWERS[suitor.name] || [
+            "I value genuine connection, mutual respect, and shared laughter above all else!",
+          ];
+          const chosenAnswer = botAnswers[(currentRound - 1) % botAnswers.length];
+
+          const ansMsg: Message = {
+            id: `ans-${slot}-${Date.now()}`,
+            roomId,
+            userId: suitor.id,
+            userName: suitor.name,
+            content: `💡 A: ${chosenAnswer}`,
+            createdAt: new Date().toISOString(),
+            senderRole: "suitor",
+            suitorSlot: slot,
+            round: currentRound,
+          };
+
+          setMessages((prev) => [...prev, ansMsg]);
+        }, 1500 + slot * 300);
+      }
+    });
   };
 
   const mockTestRoom = useMemo(() => {
@@ -493,20 +546,10 @@ export default function RoomChooser() {
         {!eliminated && (
           <div className="shrink-0 border-t border-border/60">
             {phase === "messaging" && (
-              <div className="p-2 sm:p-2.5 bg-background/40">
-                <form onSubmit={(e) => { e.preventDefault(); handleSend(slot); }} className="flex gap-1.5">
-                  <Input
-                    value={inputValues[slot] || ""}
-                    onChange={(e) => setInputValues((prev) => ({ ...prev, [slot]: e.target.value }))}
-                    placeholder={canSend ? `Ask ${suitor.name}...` : "✓ Asked"}
-                    disabled={!canSend}
-                    className="h-8 text-xs bg-input border-border focus-visible:ring-primary disabled:opacity-40"
-                  />
-                  <Button type="submit" size="sm" disabled={!canSend}
-                    className="h-8 px-2 bg-primary text-primary-foreground hover:bg-primary/80 text-xs disabled:opacity-30">
-                    ASK
-                  </Button>
-                </form>
+              <div className="p-2 text-center bg-[#181a24]">
+                <span className="text-[10px] font-mono text-[#d4af37] font-bold">
+                  {hasBroadcastQuestion ? "✓ Question Broadcasted · Awaiting Answers" : "Select Broadcast Question Above ↑"}
+                </span>
               </div>
             )}
             {phase === "eliminate" && (
@@ -638,26 +681,57 @@ export default function RoomChooser() {
         </div>
       )}
       {isActive && phase === "messaging" && (
-        <div className="px-4 py-1.5 bg-card/20 border-b border-border/30 flex items-center gap-4 shrink-0 overflow-x-auto">
-          <span className="text-muted-foreground text-[10px] font-mono uppercase tracking-wider shrink-0 flex items-center gap-1.5">
-            <Zap size={10} className="text-primary" />
-            {currentRound <= 3 ? `Ask 1 question per suitor — then eliminate` : `Ask 3 questions — then choose your match`}
-          </span>
-          <div className="flex gap-1.5 ml-auto shrink-0">
-            {activeSlots.map((slot) => {
-              const asked = questionsAskedInRound(slot);
-              const done = asked >= questionsPerRound;
-              const suitor = room.participants.find((p) => p.suitorSlot === slot);
-              return (
-                <div key={slot} className={`flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 rounded border ${
-                  done ? "border-primary/40 text-primary bg-primary/10" : "border-border/30 text-muted-foreground"
-                }`}>
-                  <span>{suitor?.name.slice(0, 4) ?? `#${slot}`}</span>
-                  <span>{done ? "✓" : `${asked}/${questionsPerRound}`}</span>
-                </div>
-              );
-            })}
+        <div className="p-4 bg-[#111218] border-b-2 border-[#d4af37]/40 shadow-2xl space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-[#d4af37] text-black font-black uppercase text-[10px]">
+                ROUND {currentRound} AI QUESTION ENGINE
+              </Badge>
+              <span className="text-xs font-mono text-slate-300 font-bold">
+                BROADCAST 1 QUESTION TO ALL ACTIVE SUITORS
+              </span>
+            </div>
+            {hasBroadcastQuestion && (
+              <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-mono text-xs animate-pulse">
+                60S ANSWER TIMER RUNNING
+              </Badge>
+            )}
           </div>
+
+          {!hasBroadcastQuestion ? (
+            <div className="space-y-2">
+              <p className="text-xs text-slate-300 font-sans">
+                Select 1 question below. It will be sent to all {activeSlots.length} active suitor chatboxes at once:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {(VECTOR_AI_QUESTIONS[currentRound] || VECTOR_AI_QUESTIONS[1]).map((qText, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleBroadcastQuestion(qText)}
+                    className="p-3 rounded-xl border border-[#d4af37]/40 bg-[#181a24] hover:bg-[#222538] hover:border-[#d4af37] text-left text-xs font-sans text-white font-medium transition-all hover:scale-[1.01] flex flex-col justify-between space-y-2 shadow-md"
+                  >
+                    <span>"{qText}"</span>
+                    <span className="text-[10px] font-mono text-[#d4af37] uppercase font-bold text-right block">
+                      BROADCAST TO ALL SUITORS →
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-[#181a24] border border-emerald-500/40 rounded-xl p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-emerald-400 font-bold text-xs">✓ QUESTION BROADCASTED TO ALL SUITORS</span>
+                <span className="text-xs text-slate-300 font-mono">· Inspect unique answers below & eliminate 1 suitor</span>
+              </div>
+              <Button
+                onClick={() => setPhase(currentRound < 3 ? "eliminate" : "choose_winner")}
+                className="bg-[#d4af37] hover:bg-[#b5952f] text-black font-black uppercase text-xs py-1.5 px-3"
+              >
+                PROCEED TO ELIMINATION ✂️
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

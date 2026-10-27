@@ -44,23 +44,27 @@ export default function ConversationPage() {
     if (!clerkUser || !matchId) { setLoading(false); return; }
 
     fetch("/api/profile/me", { credentials: "include" })
-      .then((r) => r.json())
-      .then((me) => setMyUserId(me.id));
+      .then((r) => r.ok ? r.json() : null)
+      .then((me) => { if (me?.id) setMyUserId(me.id); })
+      .catch(() => {});
 
     fetch("/api/matches", { credentials: "include" })
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : null)
       .then((data) => {
+        if (!data) return;
         const match = (data.matches ?? []).find((m: MatchInfo) => m.id === matchId);
         if (match) setMatchInfo(match);
-      });
+      })
+      .catch(() => {});
 
     fetch(`/api/matches/${matchId}/messages`, { credentials: "include" })
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : null)
       .then((data) => {
-        if (data.messages && data.messages.length > 0) {
+        if (data?.messages && data.messages.length > 0) {
           setMessages(data.messages);
         }
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
 
     // Fallback: Check local match storage
@@ -98,24 +102,27 @@ export default function ConversationPage() {
       } catch {}
     }
 
-    const socket = socketIO(window.location.origin, { path: "/ws/socket.io" });
-    socketRef.current = socket;
-    socket.emit("join_match", { matchId });
-    socket.on("dm_received", (msg: DM) => {
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === msg.id)) return prev;
-        return [...prev, msg];
+    // Only open socket connection for remote server matches
+    const isLocalMatch = matchId.startsWith("match-");
+    if (!isLocalMatch) {
+      const socket = socketIO(window.location.origin, { path: "/ws/socket.io", transports: ["websocket", "polling"], autoConnect: true });
+      socketRef.current = socket;
+      socket.emit("join_match", { matchId });
+      socket.on("dm_received", (msg: DM) => {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
       });
-    });
-    socket.on("typing", ({ matchId: mid }: { matchId: string; userId: string }) => {
-      if (mid === matchId) {
-        setIsTyping(true);
-        if (typingTimeout.current) clearTimeout(typingTimeout.current);
-        typingTimeout.current = setTimeout(() => setIsTyping(false), 3000);
-      }
-    });
-
-    return () => { socket.disconnect(); };
+      socket.on("typing", ({ matchId: mid }: { matchId: string; userId: string }) => {
+        if (mid === matchId) {
+          setIsTyping(true);
+          if (typingTimeout.current) clearTimeout(typingTimeout.current);
+          typingTimeout.current = setTimeout(() => setIsTyping(false), 3000);
+        }
+      });
+      return () => { socket.disconnect(); };
+    }
   }, [isLoaded, clerkUser, matchId]);
 
   useEffect(() => {
@@ -149,6 +156,46 @@ export default function ConversationPage() {
       return;
     }
 
+    // Add user message to local chat state immediately
+    const userMsg: DM = {
+      id: `dm-${Date.now()}`,
+      matchId,
+      senderId: myUserId || "me",
+      senderName: clerkUser?.firstName || "You",
+      content: content.trim(),
+      createdAt: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setContent("");
+
+    // AI Bot Chat Auto-Responder (When chatting with matched AI Bots in test mode)
+    if (matchInfo?.otherName && (matchId.startsWith("match-") || matchInfo.otherName.includes("Bot"))) {
+      setTimeout(() => {
+        setIsTyping(true);
+        setTimeout(() => {
+          setIsTyping(false);
+          const botReplies = [
+            `I'm so thrilled we matched in speed dating! I really enjoyed your questions during the 3 rounds!`,
+            `Thank you so much! I loved our conversation during the gameshow! What are your plans for the weekend?`,
+            `It was so exciting matching with you! Tell me more about what you like to do on days off!`,
+          ];
+          const randomReply = botReplies[Math.floor(Math.random() * botReplies.length)];
+
+          const botMsg: DM = {
+            id: `bot-dm-${Date.now()}`,
+            matchId,
+            senderId: matchInfo.otherUserId || "bot",
+            senderName: matchInfo.otherName,
+            content: randomReply,
+            createdAt: new Date().toISOString(),
+          };
+
+          setMessages((prev) => [...prev, botMsg]);
+        }, 2000);
+      }, 1000);
+    }
+
     setSending(true);
     try {
       const res = await fetch(`/api/matches/${matchId}/messages`, {
@@ -160,9 +207,8 @@ export default function ConversationPage() {
       if (res.ok) {
         const msg = await res.json();
         setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
-        setContent("");
       }
-    } finally { setSending(false); }
+    } catch {} finally { setSending(false); }
   };
 
   const handleTyping = (val: string) => {

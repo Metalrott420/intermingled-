@@ -226,7 +226,7 @@ function AppRoutes() {
 function GlobalGoldNavbar() {
   const [location, setLocation] = useLocation();
 
-  if (location.startsWith("/sign-in") || location.startsWith("/sign-up") || location.startsWith("/room")) {
+  if (location.startsWith("/sign-in") || location.startsWith("/sign-up") || location.startsWith("/room") || location.startsWith("/conversation")) {
     return null;
   }
 

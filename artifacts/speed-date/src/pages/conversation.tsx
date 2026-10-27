@@ -274,7 +274,7 @@ export default function ConversationPage() {
   const targetPhoto = matchInfo?.otherPhotos?.[0] || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80";
 
   return (
-    <div className="min-h-[100dvh] bg-[#08080c] text-foreground flex flex-col font-sans pb-20 relative">
+    <div className="min-h-[100dvh] bg-[#08080c] text-foreground flex flex-col font-sans pb-28 relative">
       {/* Top Header */}
       <div className="sticky top-0 z-30 bg-[#0d0e14]/90 backdrop-blur-md border-b border-[#d4af37]/30 px-4 py-3 flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-3">
@@ -419,7 +419,7 @@ export default function ConversationPage() {
       )}
 
       {/* Bottom Modern Dating Input Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0d0e14]/95 backdrop-blur-md border-t border-[#d4af37]/30 p-3">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0d0e14]/98 backdrop-blur-xl border-t border-[#d4af37]/40 p-3 shadow-[0_-5px_25px_rgba(0,0,0,0.8)]">
         <div className="max-w-2xl mx-auto flex items-center gap-2">
           {/* Photo Upload */}
           <button

@@ -56,8 +56,47 @@ export default function ConversationPage() {
 
     fetch(`/api/matches/${matchId}/messages`, { credentials: "include" })
       .then((r) => r.json())
-      .then((data) => setMessages(data.messages ?? []))
+      .then((data) => {
+        if (data.messages && data.messages.length > 0) {
+          setMessages(data.messages);
+        }
+      })
       .finally(() => setLoading(false));
+
+    // Fallback: Check local match storage
+    const localMatchesRaw = localStorage.getItem("intermingled_matches");
+    if (localMatchesRaw) {
+      try {
+        const localMatches = JSON.parse(localMatchesRaw);
+        const currentMatch = localMatches.find((m: any) => m.id === matchId);
+        if (currentMatch) {
+          setMatchInfo({
+            id: currentMatch.id,
+            otherName: currentMatch.otherName,
+            otherPhotos: currentMatch.otherPhotos || ["/logo-192.png"],
+            otherUserId: currentMatch.otherUserId,
+            chooserUserId: "me",
+            suitorUserId: currentMatch.otherUserId,
+          });
+
+          setMessages((prev) => {
+            if (prev.length === 0) {
+              return [
+                {
+                  id: `welcome-${matchId}`,
+                  matchId,
+                  senderId: "system",
+                  senderName: "Intermingled Matchmaker",
+                  content: `🎉 CONGRATULATIONS! You and ${currentMatch.otherName} matched in 3-Round Speed Dating! You can now chat 1-on-1, share photos, and stay connected!`,
+                  createdAt: new Date().toISOString(),
+                },
+              ];
+            }
+            return prev;
+          });
+        }
+      } catch {}
+    }
 
     const socket = socketIO(window.location.origin, { path: "/ws/socket.io" });
     socketRef.current = socket;

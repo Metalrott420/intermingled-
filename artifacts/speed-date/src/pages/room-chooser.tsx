@@ -463,8 +463,59 @@ export default function RoomChooser() {
     } finally { setIsProcessing(false); }
   };
 
+  const [winnerModalData, setWinnerModalData] = useState<{
+    id: string;
+    name: string;
+    photo: string;
+    score: string;
+    bio: string;
+    location: string;
+  } | null>(null);
+
+  const { playWinnerFanfare } = useGameCues();
+
   const handleChoose = (winnerId: string) => {
-    chooseWinner.mutate({ id: roomId, data: { winnerId } });
+    const winnerSuitor = room?.participants.find((p) => p.id === winnerId);
+    const winnerSlot = winnerSuitor?.suitorSlot || 1;
+    const botProfile = AI_BOT_PROFILES[winnerSlot] || AI_BOT_PROFILES[1];
+
+    playWinnerFanfare();
+
+    setWinnerModalData({
+      id: winnerId,
+      name: winnerSuitor?.name || botProfile.name,
+      photo: botProfile.photo,
+      score: "94%",
+      bio: botProfile.bio,
+      location: botProfile.location,
+    });
+  };
+
+  const handleStartDirectChat = () => {
+    if (!winnerModalData) return;
+
+    // Save match to localStorage matches list
+    const newMatch = {
+      id: `match-${winnerModalData.id}-${Date.now()}`,
+      otherName: winnerModalData.name,
+      otherPhotos: [winnerModalData.photo],
+      otherUserId: winnerModalData.id,
+      chooserUserId: "me",
+      suitorUserId: winnerModalData.id,
+      createdAt: new Date().toISOString(),
+    };
+
+    const existingMatchesRaw = localStorage.getItem("intermingled_matches");
+    let existingMatches = [];
+    try { existingMatches = existingMatchesRaw ? JSON.parse(existingMatchesRaw) : []; } catch {}
+
+    if (!existingMatches.some((m: any) => m.otherName === winnerModalData.name)) {
+      existingMatches.unshift(newMatch);
+      localStorage.setItem("intermingled_matches", JSON.stringify(existingMatches));
+    }
+
+    // Redirect directly into 1-on-1 Governed Chat Window!
+    setLocation(`/conversation/${newMatch.id}`);
   };
 
   const handleReport = async (reason: string) => {
@@ -970,13 +1021,55 @@ export default function RoomChooser() {
               <SlotPanel slot={activeTab} />
             </div>
 
-            {/* DESKTOP: grid */}
-            <div className="hidden sm:grid flex-1 grid-cols-3 gap-2 p-3 overflow-hidden">
-              {suitorSlots.map((slot) => <SlotPanel key={slot} slot={slot} />)}
+            {/* DESKTOP: grid of ACTIVE SUITORS ONLY (Eliminated cards removed!) */}
+            <div className={`hidden sm:grid flex-1 gap-3 p-3 overflow-hidden ${
+              activeSlots.length === 4 ? "grid-cols-4" : activeSlots.length === 3 ? "grid-cols-3" : "grid-cols-2 max-w-2xl mx-auto w-full"
+            }`}>
+              {activeSlots.map((slot) => <SlotPanel key={slot} slot={slot} />)}
             </div>
           </>
         )}
       </main>
+
+      {/* 3D Center-Stage Winner Matching Stinger Modal */}
+      {winnerModalData && (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4">
+          <div className="bg-[#111218] border-2 border-[#d4af37] rounded-3xl max-w-md w-full p-6 text-center space-y-5 shadow-[0_0_80px_rgba(212,175,55,0.5)] relative overflow-hidden animate-in zoom-in-75 duration-500">
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158]" />
+
+            <div className="space-y-2 pt-2">
+              <Badge className="bg-[#d4af37] text-black font-black uppercase text-xs tracking-widest px-3 py-1 shadow-lg">
+                🎉 IT'S A PERFECT MATCH! 👑
+              </Badge>
+              <h2 className="text-2xl sm:text-3xl font-black text-gold-hd-3d uppercase tracking-widest pt-1">
+                {winnerModalData.name}
+              </h2>
+              <p className="text-xs font-mono text-[#d4af37] font-bold">
+                MATCH COMPATIBILITY SCORE: {winnerModalData.score}
+              </p>
+            </div>
+
+            {/* Winner Center-Stage Photo Card */}
+            <div className="relative w-40 h-40 mx-auto rounded-3xl overflow-hidden border-4 border-[#d4af37] shadow-2xl">
+              <img src={winnerModalData.photo} alt={winnerModalData.name} className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-center p-2">
+                <span className="text-[10px] font-mono text-white font-bold">📍 {winnerModalData.location}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-200 font-sans leading-relaxed px-2">
+              Congratulations! You and <span className="font-bold text-[#d4af37]">{winnerModalData.name}</span> completed all 3 rounds of speed dating and matched!
+            </p>
+
+            <Button
+              onClick={handleStartDirectChat}
+              className="w-full py-4 bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] hover:from-[#b5952f] hover:to-[#d97706] text-black font-black uppercase text-xs tracking-wider shadow-xl shadow-[#d4af37]/30 hover:scale-[1.03] transition-all"
+            >
+              ADD TO MATCHES & START 1-ON-1 CHAT 💖
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

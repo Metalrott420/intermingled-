@@ -323,6 +323,24 @@ export default function RoomChooser() {
     }
   }, [allQuestionsAsked, currentRound, finalRound, phase]);
 
+  // 3-Minute Pre-Game Profile Review Countdown Interval
+  useEffect(() => {
+    if (phase !== "profile_review") return;
+
+    const interval = setInterval(() => {
+      setReviewRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setPhase("messaging");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [phase]);
+
   useEffect(() => {
     if (phase !== "advancing") return;
     if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);

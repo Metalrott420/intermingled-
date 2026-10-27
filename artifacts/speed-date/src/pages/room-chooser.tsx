@@ -275,8 +275,12 @@ export default function RoomChooser() {
   const chooserName = room?.chooserName ?? undefined;
   const { isConnected, sendMessage, subscribe } = useSocket(isAdminTest ? undefined : roomId, participantId || undefined, chooserName, "chooser", socketToken ?? undefined, room?.roomSnapshotVersion);
 
-  const currentRound = room?.currentRound ?? 1;
-  const eliminatedParticipants = (room?.eliminatedParticipants ?? []) as string[];
+  const [testEliminatedIds, setTestEliminatedIds] = useState<string[]>([]);
+  const [testCurrentRound, setTestCurrentRound] = useState<number>(1);
+  const [customQuestionInput, setCustomQuestionInput] = useState<string>("");
+
+  const currentRound = isAdminTest ? testCurrentRound : (room?.currentRound ?? 1);
+  const eliminatedParticipants = isAdminTest ? testEliminatedIds : ((room?.eliminatedParticipants ?? []) as string[]);
   const finalRound = (room?.maxSuitors ?? 4) - 1;
   const questionsPerRound = 1;
   const suitorSlots = Array.from({ length: 4 }, (_, i) => i + 1);
@@ -423,8 +427,21 @@ export default function RoomChooser() {
       setPhase("eliminate");
       if (eliminationTimerRef.current) clearTimeout(eliminationTimerRef.current);
       await new Promise((resolve) => {
-        eliminationTimerRef.current = setTimeout(resolve, 700);
+        eliminationTimerRef.current = setTimeout(resolve, 800);
       });
+
+      if (isAdminTest) {
+        setTestEliminatedIds((prev) => [...prev, pId]);
+        setTestCurrentRound((prevRound) => {
+          const nextRound = prevRound + 1;
+          setHasBroadcastQuestion(false); // Reset question broadcast so Round 2 or Round 3 questions display!
+          setPhase("messaging");
+          return nextRound;
+        });
+        setPendingElimination(null);
+        return;
+      }
+
       const t = await getToken();
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (t) headers["Authorization"] = `Bearer ${t}`;
@@ -740,10 +757,12 @@ export default function RoomChooser() {
           </div>
 
           {!hasBroadcastQuestion ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <p className="text-xs text-slate-300 font-sans">
-                Select 1 question below. It will be sent to all {activeSlots.length} active suitor chatboxes at once:
+                Select 1 AI question below or type your own custom question to send to all {activeSlots.length} active suitors simultaneously:
               </p>
+
+              {/* 3 AI Vector Questions */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {(VECTOR_AI_QUESTIONS[currentRound] || VECTOR_AI_QUESTIONS[1]).map((qText, i) => (
                   <button
@@ -757,6 +776,27 @@ export default function RoomChooser() {
                     </span>
                   </button>
                 ))}
+              </div>
+
+              {/* Custom Question Input Bar */}
+              <div className="pt-2 border-t border-[#d4af37]/20 flex flex-col sm:flex-row gap-2">
+                <Input
+                  value={customQuestionInput}
+                  onChange={(e) => setCustomQuestionInput(e.target.value)}
+                  placeholder="Or write your own custom question here..."
+                  className="bg-[#181a24] border-[#222538] text-xs font-sans text-white flex-1 h-11 focus:border-[#d4af37]"
+                />
+                <Button
+                  onClick={() => {
+                    if (!customQuestionInput.trim()) return;
+                    handleBroadcastQuestion(customQuestionInput.trim());
+                    setCustomQuestionInput("");
+                  }}
+                  disabled={!customQuestionInput.trim()}
+                  className="bg-[#d4af37] hover:bg-[#b5952f] text-black font-black uppercase text-xs h-11 px-5 disabled:opacity-40"
+                >
+                  BROADCAST CUSTOM QUESTION 🚀
+                </Button>
               </div>
             </div>
           ) : (

@@ -278,6 +278,7 @@ export default function RoomChooser() {
   const [testEliminatedIds, setTestEliminatedIds] = useState<string[]>([]);
   const [testCurrentRound, setTestCurrentRound] = useState<number>(1);
   const [customQuestionInput, setCustomQuestionInput] = useState<string>("");
+  const [inspectedSlotProfile, setInspectedSlotProfile] = useState<number | null>(null);
 
   const currentRound = isAdminTest ? testCurrentRound : (room?.currentRound ?? 1);
   const eliminatedParticipants = isAdminTest ? testEliminatedIds : ((room?.eliminatedParticipants ?? []) as string[]);
@@ -340,7 +341,7 @@ export default function RoomChooser() {
     };
   }, []);
 
-  useEffect(() => { setPhase("messaging"); }, [currentRound]);
+  useEffect(() => { if (currentRound > 1) setPhase("messaging"); }, [currentRound]);
 
   useEffect(() => {
     if (phase !== "advancing") return;
@@ -600,13 +601,12 @@ export default function RoomChooser() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {!eliminated && (
-              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-                quotaMet
-                  ? "bg-primary/20 text-primary border-primary/30"
-                  : "text-muted-foreground border-border/30"
-              }`}>
-                {askedThisRound}/{questionsPerRound}
-              </span>
+              <button
+                onClick={() => setInspectedSlotProfile(slot)}
+                className="text-[9px] font-mono px-2 py-0.5 rounded border border-[#d4af37]/40 bg-[#d4af37]/10 text-[#d4af37] hover:bg-[#d4af37] hover:text-black transition-colors font-bold uppercase"
+              >
+                Inspect 📄
+              </button>
             )}
             {!eliminated && (
               <button
@@ -1066,6 +1066,66 @@ export default function RoomChooser() {
               className="w-full py-4 bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] hover:from-[#b5952f] hover:to-[#d97706] text-black font-black uppercase text-xs tracking-wider shadow-xl shadow-[#d4af37]/30 hover:scale-[1.03] transition-all"
             >
               ADD TO MATCHES & START 1-ON-1 CHAT 💖
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Inspected Suitor Profile Modal */}
+      {inspectedSlotProfile !== null && AI_BOT_PROFILES[inspectedSlotProfile] && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-[#111218] border-2 border-[#d4af37] rounded-3xl max-w-md w-full p-6 text-left space-y-4 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-[#d4af37]/30 pb-3">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-[#d4af37] text-black font-black uppercase text-[10px]">VERIFIED SUITOR PROFILE</Badge>
+              </div>
+              <button onClick={() => setInspectedSlotProfile(null)} className="text-slate-400 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex gap-4 items-start">
+              <div className="w-28 h-28 rounded-2xl overflow-hidden border-2 border-[#d4af37] shadow-xl shrink-0">
+                <img src={AI_BOT_PROFILES[inspectedSlotProfile].photo} alt={AI_BOT_PROFILES[inspectedSlotProfile].name} className="w-full h-full object-cover" />
+              </div>
+              <div className="space-y-1 flex-1">
+                <h3 className="text-lg font-black text-white">{AI_BOT_PROFILES[inspectedSlotProfile].name}, {AI_BOT_PROFILES[inspectedSlotProfile].age}</h3>
+                <p className="text-xs text-slate-300 font-mono">📍 {AI_BOT_PROFILES[inspectedSlotProfile].location}</p>
+                <p className="text-xs text-slate-300 font-mono">💼 {AI_BOT_PROFILES[inspectedSlotProfile].occupation}</p>
+                <p className="text-xs text-slate-300 font-mono">🎓 {AI_BOT_PROFILES[inspectedSlotProfile].education}</p>
+                <p className="text-xs font-bold text-[#d4af37] pt-1">🎯 {AI_BOT_PROFILES[inspectedSlotProfile].goal}</p>
+              </div>
+            </div>
+
+            <div className="space-y-1 border-t border-[#d4af37]/20 pt-3">
+              <p className="text-[10px] font-mono uppercase text-[#d4af37] font-bold">About Me</p>
+              <p className="text-xs text-slate-200 leading-relaxed font-sans">{AI_BOT_PROFILES[inspectedSlotProfile].bio}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 border-t border-[#d4af37]/20 pt-3 text-xs">
+              <div>
+                <p className="text-[10px] font-mono uppercase text-emerald-400 font-bold mb-1">💚 Likes</p>
+                <div className="flex flex-wrap gap-1">
+                  {AI_BOT_PROFILES[inspectedSlotProfile].likes.map((like) => (
+                    <Badge key={like} className="bg-emerald-950/60 border border-emerald-800/40 text-emerald-300 text-[9px]">{like}</Badge>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-mono uppercase text-rose-400 font-bold mb-1">💔 Dislikes</p>
+                <div className="flex flex-wrap gap-1">
+                  {AI_BOT_PROFILES[inspectedSlotProfile].dislikes.map((dislike) => (
+                    <Badge key={dislike} className="bg-rose-950/60 border border-rose-800/40 text-rose-300 text-[9px]">{dislike}</Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => setInspectedSlotProfile(null)}
+              className="w-full py-3 bg-[#181a24] hover:bg-[#222538] text-white font-bold uppercase text-xs border border-[#d4af37]/40 mt-2"
+            >
+              Close Profile Inspection
             </Button>
           </div>
         </div>

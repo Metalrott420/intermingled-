@@ -148,6 +148,35 @@ export default function Pool() {
   // Floating Picture-in-Picture (PiP) Stream Window State
   const [isStreamDocked, setIsStreamDocked] = useState(false);
 
+  // 3D Sonar Radar Engine State
+  const [selectedRadarBlip, setSelectedRadarBlip] = useState<{
+    id: string;
+    name: string;
+    type: "dater" | "venue" | "stream";
+    distanceMi: number;
+    matchScore: string;
+    photo: string;
+    top: number;
+    left: number;
+  } | null>(null);
+
+  const [isSonarPulsing, setIsSonarPulsing] = useState(false);
+
+  const handlePulseSonar = () => {
+    setIsSonarPulsing(true);
+    toast({
+      title: "PULSING SONAR RADAR SCOPE ⚡",
+      description: `Scanning 360° radar sweep across ${radiusFilter} Mile Radius for active daters...`,
+    });
+    setTimeout(() => {
+      setIsSonarPulsing(false);
+      toast({
+        title: "Radar Sweep Complete! 📡",
+        description: "4 Active Speed-Daters & 2 Hotspot Venues locked on Radar Scope!",
+      });
+    }, 2000);
+  };
+
   // TikTok-Style Live Stream Overlay Chat State
   const [streamChatMessages, setStreamChatMessages] = useState<Array<{ id: string; sender: string; text: string }>>([
     { id: "s1", sender: "System", text: "💖 MATCHED STREAM CHAT UNLOCKED" },
@@ -770,16 +799,151 @@ export default function Pool() {
               </button>
             </div>
           ) : (
-            /* Radar Animation */
-            <div className="relative mx-auto w-64 h-64 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-2 border-[#d4af37]/20 animate-ping" />
-              <div className="absolute inset-4 rounded-full border-2 border-[#d4af37]/35 animate-ping [animation-delay:0.3s]" />
-              <div className="absolute inset-8 rounded-full border-2 border-[#d4af37]/50 animate-ping [animation-delay:0.6s]" />
-              <div className="absolute inset-0 rounded-full border-2 border-[#d4af37] border-t-transparent animate-spin" />
-              <div className="absolute inset-0 flex items-center justify-center flex-col text-center">
-                <Zap size={28} className="text-[#d4af37] mb-1" />
-                <p className="text-xs font-mono text-[#d4af37] font-bold">RADAR ACTIVE</p>
-                <p className="text-[10px] text-muted-foreground">{radiusFilter} MILE RADIUS</p>
+            /* 3D High-Tech Interactive Sonar Radar Scope */
+            <div className="relative w-full max-w-md aspect-square bg-[#080910] border-2 border-[#d4af37]/40 rounded-full p-4 flex items-center justify-center shadow-[0_0_80px_rgba(212,175,55,0.25)] overflow-hidden my-auto">
+              {/* Concentric Distance Grid Rings */}
+              <div className="absolute inset-4 rounded-full border border-[#d4af37]/20 flex items-start justify-center pt-2 pointer-events-none">
+                <span className="text-[9px] font-mono text-[#d4af37]/60">{radiusFilter} Mi Edge</span>
+              </div>
+              <div className="absolute inset-16 rounded-full border border-[#d4af37]/30 flex items-start justify-center pt-2 pointer-events-none">
+                <span className="text-[9px] font-mono text-[#d4af37]/70">10 Mi Outer</span>
+              </div>
+              <div className="absolute inset-28 rounded-full border border-[#d4af37]/40 flex items-start justify-center pt-2 pointer-events-none">
+                <span className="text-[9px] font-mono text-[#d4af37]/80">5 Mi Mid</span>
+              </div>
+              <div className="absolute inset-40 rounded-full border border-[#d4af37]/60 flex items-start justify-center pt-2 pointer-events-none">
+                <span className="text-[9px] font-mono text-[#d4af37] font-bold">2 Mi Inner</span>
+              </div>
+
+              {/* Crosshair Axes */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-full h-[1px] bg-[#d4af37]/30" />
+                <div className="h-full w-[1px] bg-[#d4af37]/30 absolute" />
+              </div>
+
+              {/* 360° Rotating Gold Laser Sonar Sweep Beam */}
+              <div className={`absolute inset-0 rounded-full bg-[conic-gradient(from_0deg_at_50%_50%,rgba(212,175,55,0.4)_0deg,transparent_60deg)] pointer-events-none ${
+                isSonarPulsing ? "animate-spin [animation-duration:1s]" : "animate-spin [animation-duration:4s]"
+              }`} />
+
+              {/* Center Self-Location Pin */}
+              <div className="z-20 w-8 h-8 rounded-full bg-[#d4af37] border-2 border-black flex items-center justify-center font-bold text-xs shadow-lg text-black">
+                📍
+              </div>
+
+              {/* Interactive Radar Blip 1: Jessica T. (Green Dater) */}
+              <button
+                onClick={() => setSelectedRadarBlip({
+                  id: "blip-1",
+                  name: "Jessica T.",
+                  type: "dater",
+                  distanceMi: 1.2,
+                  matchScore: "94%",
+                  photo: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80",
+                  top: 25, left: 68,
+                })}
+                style={{ top: "25%", left: "68%" }}
+                className="absolute z-20 -translate-x-1/2 -translate-y-1/2 group"
+              >
+                <div className="relative flex items-center justify-center">
+                  <div className="w-4 h-4 rounded-full bg-emerald-500 border border-black shadow-[0_0_12px_rgba(16,185,129,0.8)] animate-pulse" />
+                  <span className="absolute -bottom-5 text-[9px] font-mono font-bold text-emerald-400 bg-black/80 px-1.5 py-0.5 rounded border border-emerald-500/40 whitespace-nowrap">
+                    🟢 Jessica T. (1.2 mi)
+                  </span>
+                </div>
+              </button>
+
+              {/* Interactive Radar Blip 2: Marcus K. (Green Dater) */}
+              <button
+                onClick={() => setSelectedRadarBlip({
+                  id: "blip-2",
+                  name: "Marcus K.",
+                  type: "dater",
+                  distanceMi: 2.8,
+                  matchScore: "89%",
+                  photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+                  top: 70, left: 30,
+                })}
+                style={{ top: "70%", left: "30%" }}
+                className="absolute z-20 -translate-x-1/2 -translate-y-1/2 group"
+              >
+                <div className="relative flex items-center justify-center">
+                  <div className="w-4 h-4 rounded-full bg-emerald-500 border border-black shadow-[0_0_12px_rgba(16,185,129,0.8)] animate-pulse" />
+                  <span className="absolute -bottom-5 text-[9px] font-mono font-bold text-emerald-400 bg-black/80 px-1.5 py-0.5 rounded border border-emerald-500/40 whitespace-nowrap">
+                    🟢 Marcus K. (2.8 mi)
+                  </span>
+                </div>
+              </button>
+
+              {/* Interactive Radar Blip 3: Rio Grande Plaza (Gold Venue) */}
+              <button
+                onClick={() => setSelectedRadarBlip({
+                  id: "blip-3",
+                  name: "Rio Grande Plaza Hotspot",
+                  type: "venue",
+                  distanceMi: 0.6,
+                  matchScore: "HOTSPOT",
+                  photo: "/logo-192.png",
+                  top: 35, left: 32,
+                })}
+                style={{ top: "35%", left: "32%" }}
+                className="absolute z-20 -translate-x-1/2 -translate-y-1/2 group"
+              >
+                <div className="relative flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full bg-[#d4af37] border border-black text-black font-black text-[10px] flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.8)]">
+                    👑
+                  </div>
+                  <span className="absolute -bottom-5 text-[9px] font-mono font-bold text-[#d4af37] bg-black/80 px-1.5 py-0.5 rounded border border-[#d4af37]/40 whitespace-nowrap">
+                    👑 Rio Grande Plaza (0.6 mi)
+                  </span>
+                </div>
+              </button>
+
+              {/* Interactive Radar Blip 4: Elena V. Stream (Blue Live Broadcast) */}
+              <button
+                onClick={() => setSelectedRadarBlip({
+                  id: "blip-4",
+                  name: "Elena V. Live Broadcast",
+                  type: "stream",
+                  distanceMi: 1.8,
+                  matchScore: "LIVE 📹",
+                  photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
+                  top: 62, left: 72,
+                })}
+                style={{ top: "62%", left: "72%" }}
+                className="absolute z-20 -translate-x-1/2 -translate-y-1/2 group"
+              >
+                <div className="relative flex items-center justify-center">
+                  <div className="w-4 h-4 rounded-full bg-cyan-400 border border-black shadow-[0_0_12px_rgba(34,211,238,0.8)] animate-pulse" />
+                  <span className="absolute -bottom-5 text-[9px] font-mono font-bold text-cyan-300 bg-black/80 px-1.5 py-0.5 rounded border border-cyan-400/40 whitespace-nowrap">
+                    📹 Elena V. Live (1.8 mi)
+                  </span>
+                </div>
+              </button>
+
+              {/* Sonar Controls Bar Overlay */}
+              <div className="absolute bottom-3 left-3 right-3 z-30 bg-black/80 backdrop-blur-md p-2 rounded-xl border border-[#d4af37]/40 flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-mono text-[#d4af37] font-bold">RANGE:</span>
+                  {[1, 5, 10, 25].map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setRadiusFilter(r)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        radiusFilter === r ? "bg-[#d4af37] text-black" : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      {r}Mi
+                    </button>
+                  ))}
+                </div>
+
+                <Button
+                  onClick={handlePulseSonar}
+                  className="bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-[10px] h-7 px-3"
+                >
+                  PULSE SONAR WAVE ⚡
+                </Button>
               </div>
             </div>
           )}
@@ -787,7 +951,53 @@ export default function Pool() {
 
         {/* RIGHT: Driving Directions & Target Selection Drawer */}
         <div className="lg:w-96 p-6 bg-[#0e1018] flex flex-col justify-between space-y-4">
-          {selectedTarget ? (
+          {/* Radar Target Card Modal */}
+          {selectedRadarBlip ? (
+            <div className="bg-[#141622] border-2 border-[#d4af37] rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95">
+              <div className="flex items-center justify-between border-b border-[#d4af37]/20 pb-3">
+                <div className="flex items-center gap-2">
+                  <Zap className="text-[#d4af37] animate-pulse" />
+                  <h3 className="font-bold text-sm text-white uppercase">RADAR LOCK: {selectedRadarBlip.name}</h3>
+                </div>
+                <button onClick={() => setSelectedRadarBlip(null)} className="text-slate-400 hover:text-white">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex gap-4 items-center">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-[#d4af37] shadow-lg shrink-0">
+                  <img src={selectedRadarBlip.photo} alt={selectedRadarBlip.name} className="w-full h-full object-cover" />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-bold text-white text-sm">{selectedRadarBlip.name}</p>
+                  <p className="text-xs text-slate-300 font-mono">📍 {selectedRadarBlip.distanceMi} Miles Away from Your GPS Pin</p>
+                  <Badge className="bg-[#d4af37] text-black font-black uppercase text-[9px]">
+                    COMPATIBILITY: {selectedRadarBlip.matchScore}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <Button
+                  onClick={() => {
+                    toast({ title: "Dater Pinged! ⚡", description: `A high-priority sonar ping was sent to ${selectedRadarBlip.name}!` });
+                    setSelectedRadarBlip(null);
+                  }}
+                  className="bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-xs py-2.5"
+                >
+                  PING DATER ⚡
+                </Button>
+                <Button
+                  onClick={() => {
+                    setLocation("/match?spin=true");
+                  }}
+                  className="bg-[#181a24] hover:bg-[#222538] border border-[#d4af37]/40 text-[#d4af37] font-bold uppercase text-xs py-2.5"
+                >
+                  INVITE TO SPEED DATE 💖
+                </Button>
+              </div>
+            </div>
+          ) : selectedTarget ? (
             <div className="bg-[#141622] border border-[#d4af37]/40 rounded-2xl p-5 space-y-4 shadow-2xl">
               <div className="flex items-center justify-between border-b border-[#d4af37]/20 pb-3">
                 <div className="flex items-center gap-2">

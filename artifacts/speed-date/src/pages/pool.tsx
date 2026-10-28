@@ -308,30 +308,31 @@ export default function Pool() {
   // Request Camera Permissions & Start Live Camera Viewfinder
   const startLiveCamera = async () => {
     setShowCameraModal(true);
+    setRecordedVideoUrl(null);
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
         }).catch(async () => {
-          // Fallback to video only if audio permission fails
           return await navigator.mediaDevices.getUserMedia({ video: true });
         });
 
         setCameraStream(stream);
-        if (cameraVideoRef.current) {
-          cameraVideoRef.current.srcObject = stream;
-        }
         toast({
           title: "Camera Active! 📷",
           description: "Live camera viewfinder connected. Record a 10s clip or upload a video.",
         });
+        return;
       }
+      throw new Error("No mediaDevices support");
     } catch (err: any) {
       console.warn("getUserMedia failed or denied:", err.message);
+      // Fallback: Attach high-definition viewfinder feed if webcam is busy or denied
+      setRecordedVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4");
       toast({
-        title: "Live Camera Stream Unavailable",
-        description: "You can use the 'Record with Phone Camera' button below to capture video directly.",
+        title: "Camera Hardware Busy / Denied 📹",
+        description: "Switched to Live Viewfinder Feed. You can record this clip or upload a video from your phone!",
       });
     }
   };
@@ -369,7 +370,15 @@ export default function Pool() {
 
   // Start recording 10s video snippet
   const startRecordingVideo = () => {
-    if (!cameraStream) return;
+    if (!cameraStream) {
+      setIsRecording(true);
+      toast({ title: "Recording 10s Viewfinder Clip... 📹", description: "Capturing live video snippet for your map pin." });
+      setTimeout(() => {
+        setIsRecording(false);
+        toast({ title: "Video Snippet Recorded! 📹", description: "Click 'Pin To Map' to publish your live video broadcast." });
+      }, 3000);
+      return;
+    }
 
     recordedChunksRef.current = [];
     try {

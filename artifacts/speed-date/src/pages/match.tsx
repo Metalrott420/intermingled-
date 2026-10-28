@@ -327,20 +327,20 @@ export default function Match() {
         </button>
       </div>
 
-      {/* Matchmaking Reel Feature Onboarding Tutorial Modal */}
+      {/* Matchmaking Feature Onboarding Tutorial Modal */}
       <FeatureTutorialModal
         featureId="match"
-        featureTitle="Casino Slot Machine Matchmaking Reel"
+        featureTitle="Vector Compatibility Engine"
         steps={[
           {
             icon: Sparkles,
-            headline: "Vector Matchmaking Reel",
-            description: "Spin the 4-column Casino Matchmaking Reel to evaluate live suitors matched against your 7-question personality vector.",
+            headline: "Vector Compatibility Matching",
+            description: "Analyze your 4-suitor chemistry alignment in real time based on your 7-question personality vector.",
           },
           {
             icon: Zap,
-            headline: "4 Suitor Match Slots",
-            description: "The reel populates 4 suitor slots with compatibility percentages (e.g. 94% Match) based on your dating preferences.",
+            headline: "4 Curated Suitor Matches",
+            description: "Curates 4 top-matched suitors with compatibility scores (e.g. 94% Match) tailored to your dating expectations.",
           },
           {
             icon: Crown,

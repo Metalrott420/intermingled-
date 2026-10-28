@@ -41,6 +41,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import FeatureTutorialModal from "@/components/FeatureTutorialModal";
 
 declare const L: any; // Leaflet global from CDN
 
@@ -1204,6 +1205,29 @@ export default function Pool() {
           </form>
         </div>
       )}
+
+      {/* Map Feature Onboarding Tutorial Modal */}
+      <FeatureTutorialModal
+        featureId="map"
+        featureTitle="Live GPS Map & Venue Hotspots"
+        steps={[
+          {
+            icon: MapPin,
+            headline: "Discover Local Daters & Meeting Spots",
+            description: "View real-time GPS distances, driving ETAs, and verified local hotspot venues (bars, cafes, malls) around you.",
+          },
+          {
+            icon: Video,
+            headline: "Floating Live Video Camera Stream",
+            description: "Watch or broadcast live video clips from trusted venue pins in a floating, minimizable Picture-in-Picture window while browsing the map!",
+          },
+          {
+            icon: Crown,
+            headline: "Admin Event Hosting",
+            description: "Host official speed dating events or request event pings at your favorite local venue pins.",
+          },
+        ]}
+      />
     </div>
   );
 }

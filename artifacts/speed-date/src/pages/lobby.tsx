@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@clerk/react";
+import FeatureTutorialModal from "@/components/FeatureTutorialModal";
 
 interface IRCMessage {
   id: string;
@@ -343,6 +344,29 @@ export default function Lobby() {
           </div>
         </div>
       </div>
+
+      {/* Elimination Lounge Feature Onboarding Tutorial Modal */}
+      <FeatureTutorialModal
+        featureId="lobby"
+        featureTitle="Elimination Lounge & Spectator Feed"
+        steps={[
+          {
+            icon: Users,
+            headline: "Human Audience Channel",
+            description: "The Elimination Lounge is a live channel for human speed-daters and spectators to chat, discuss strategy, and watch gameshow results.",
+          },
+          {
+            icon: Trophy,
+            headline: "Live Contender Leaderboard",
+            description: "View top speed-dating contenders ranked by match wins and compatibility scores in real time.",
+          },
+          {
+            icon: Sparkles,
+            headline: "Spectator Chat",
+            description: "Chat with fellow speed-daters, send reactions, and cheer on active gameshow contestants!",
+          },
+        ]}
+      />
     </div>
   );
 }

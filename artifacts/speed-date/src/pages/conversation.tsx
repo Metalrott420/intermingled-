@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import FeatureTutorialModal from "@/components/FeatureTutorialModal";
 
 interface DM {
   id: string;
@@ -608,6 +609,29 @@ export default function ConversationPage() {
           </div>
         </div>
       )}
+
+      {/* Governed 1-on-1 Chat Feature Onboarding Tutorial Modal */}
+      <FeatureTutorialModal
+        featureId="conversation"
+        featureTitle="1-on-1 Governed Direct Messaging"
+        steps={[
+          {
+            icon: Heart,
+            headline: "Private Matched Chat",
+            description: "Chat 1-on-1 with your speed dating match in a secure, governed messaging window.",
+          },
+          {
+            icon: Sparkles,
+            headline: "Media, Stickers & Emojis",
+            description: "Share photos, send reaction emojis, and generate custom 3D TikTok-Style Sticker Badges!",
+          },
+          {
+            icon: Calendar,
+            headline: "Date Planner, Calendar & Alarm Reminders",
+            description: "Use 'Plan A Date 📅' to send date invitations with venue, date, and time. Click 'Add To Calendar & Alarm' to export .ics event files and set date alarms!",
+          },
+        ]}
+      />
     </div>
   );
 }

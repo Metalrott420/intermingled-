@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useUser } from "@clerk/react";
 import { useLocation } from "wouter";
-import { Camera, Pencil, Trash2, Check, X, ArrowLeft, Plus, MessageSquare, Flag, Heart } from "lucide-react";
+import { Camera, Pencil, Trash2, Check, X, ArrowLeft, Plus, MessageSquare, Flag, Heart, Sparkles, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProfilePrompt { question: string; answer: string; }
 
@@ -166,6 +167,8 @@ function ReportModal({ targetId, targetName, onClose }: { targetId: string; targ
 export default function ProfilePage() {
   const { user: clerkUser, isLoaded } = useUser();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -173,6 +176,34 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false);
   const [ageError, setAgeError] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
+
+  const [tutorialsEnabled, setTutorialsEnabled] = useState<boolean>(() => {
+    return localStorage.getItem("intermingled_tutorials_enabled") !== "false";
+  });
+
+  const toggleTutorials = () => {
+    const nextState = !tutorialsEnabled;
+    setTutorialsEnabled(nextState);
+    localStorage.setItem("intermingled_tutorials_enabled", String(nextState));
+    toast({
+      title: nextState ? "Onboarding Tutorials Enabled 💡" : "Onboarding Tutorials Disabled 🔕",
+      description: nextState ? "Feature tutorial popups will show when entering pages for the first time." : "Popups suppressed for uninterrupted browsing.",
+    });
+  };
+
+  const resetAllTutorials = () => {
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith("intermingled_tutorial_seen_")) {
+        localStorage.removeItem(key);
+      }
+    });
+    localStorage.setItem("intermingled_tutorials_enabled", "true");
+    setTutorialsEnabled(true);
+    toast({
+      title: "All Feature Tutorials Reset! 🔄",
+      description: "Entering any feature page will now replay the onboarding tutorial popups.",
+    });
+  };
 
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
@@ -473,6 +504,44 @@ export default function ProfilePage() {
             >
               Reset 7-Question Quiz & Matching Algorithm 🔄
             </button>
+          </div>
+
+          {/* Onboarding Feature Tutorials Settings Card */}
+          <div className="pt-4 border-t border-[#d4af37]/20 space-y-3">
+            <h4 className="text-xs font-mono uppercase text-[#d4af37] tracking-wider font-bold flex items-center gap-1.5">
+              <Sparkles size={14} /> Platform Onboarding Tutorials & Guidance
+            </h4>
+            <p className="text-xs text-slate-300 leading-relaxed font-sans">
+              Enable or disable the pop-up feature tutorial guides that help new users navigate Intermingled features.
+            </p>
+
+            <div className="bg-[#111218] border border-[#d4af37]/30 rounded-2xl p-4 flex items-center justify-between shadow-md">
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-white uppercase">Feature Onboarding Popups</p>
+                <p className="text-[10px] text-slate-400 font-mono">
+                  {tutorialsEnabled ? "ON — Popups show on first visit" : "OFF — All tutorial popups suppressed"}
+                </p>
+              </div>
+
+              <button
+                onClick={toggleTutorials}
+                className={`w-12 h-6 rounded-full transition-colors relative p-0.5 border ${
+                  tutorialsEnabled ? "bg-emerald-500 border-emerald-400" : "bg-[#181a24] border-[#222538]"
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                  tutorialsEnabled ? "translate-x-6" : "translate-x-0"
+                }`} />
+              </button>
+            </div>
+
+            <Button
+              onClick={resetAllTutorials}
+              variant="outline"
+              className="w-full bg-[#181a24] hover:bg-[#222538] border border-[#d4af37]/40 text-[#d4af37] font-bold uppercase text-xs py-2"
+            >
+              🔄 Reset & Replay All Feature Tutorials
+            </Button>
           </div>
 
           {/* Photos */}

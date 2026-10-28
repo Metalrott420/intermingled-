@@ -5,6 +5,7 @@ import { useUser, useClerk, Show } from "@clerk/react";
 import { User, MessageCircle, Lock, Clock, ArrowRight, ShieldCheck, Shield, Fingerprint, Loader2, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import FeatureTutorialModal from "@/components/FeatureTutorialModal";
 
 const QUIZ_QUESTIONS = [
   {
@@ -962,6 +963,29 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Home Feature Onboarding Tutorial Modal */}
+      <FeatureTutorialModal
+        featureId="home"
+        featureTitle="User Profile Control Center"
+        steps={[
+          {
+            icon: Sparkles,
+            headline: "Welcome to Intermingled!",
+            description: "Your homepage is your central command hub for speed dating, live GPS map discovery, active gameshow rooms, and direct messaging.",
+          },
+          {
+            icon: ShieldCheck,
+            headline: "Verified 18+ Security & Rank Badges",
+            description: "View your verified age badge, current gameshow rank (Member -> Speed Dater -> Coordinator), and match statistics.",
+          },
+          {
+            icon: Heart,
+            headline: "Quick Access Shortcuts",
+            description: "Use 1-click action buttons to launch Casino Matchmaking, explore the Live GPS Map, inspect Who Liked You, or visit the Elimination Lounge!",
+          },
+        ]}
+      />
     </div>
   );
 }

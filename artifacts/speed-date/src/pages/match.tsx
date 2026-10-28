@@ -5,6 +5,8 @@ import { useMatchRoom, MatchResult } from "@workspace/api-client-react";
 import { useChooserSocket } from "@/hooks/useSocket";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Sparkles, Zap, Crown } from "lucide-react";
+import FeatureTutorialModal from "@/components/FeatureTutorialModal";
 
 interface FilledSlot {
   slot: number;
@@ -319,6 +321,29 @@ export default function Match() {
           ← Back
         </button>
       </div>
+
+      {/* Matchmaking Reel Feature Onboarding Tutorial Modal */}
+      <FeatureTutorialModal
+        featureId="match"
+        featureTitle="Casino Slot Machine Matchmaking Reel"
+        steps={[
+          {
+            icon: Sparkles,
+            headline: "Vector Matchmaking Reel",
+            description: "Spin the 4-column Casino Matchmaking Reel to evaluate live suitors matched against your 7-question personality vector.",
+          },
+          {
+            icon: Zap,
+            headline: "4 Suitor Match Slots",
+            description: "The reel populates 4 suitor slots with compatibility percentages (e.g. 94% Match) based on your dating preferences.",
+          },
+          {
+            icon: Crown,
+            headline: "Launch 3-Round Speed Dating",
+            description: "Click 'LAUNCH SPEED DATE MATCH' to enter the live gameshow stage for Round 1 pre-game profile review and broadcast AI questions!",
+          },
+        ]}
+      />
     </div>
   );
 }

@@ -17,6 +17,7 @@ import CountdownTimer from "@/components/CountdownTimer";
 import RoundProgress from "@/components/RoundProgress";
 import { QuestionRatingPanel } from "@/components/QuestionRatingPanel";
 import { useGameCues } from "@/hooks/useGameCues";
+import FeatureTutorialModal from "@/components/FeatureTutorialModal";
 
 type Phase = "profile_review" | "messaging" | "eliminate" | "advancing" | "choose_winner";
 
@@ -1148,6 +1149,29 @@ export default function RoomChooser() {
           </div>
         </div>
       )}
+
+      {/* Gameshow Stage Feature Onboarding Tutorial Modal */}
+      <FeatureTutorialModal
+        featureId="room"
+        featureTitle="3-Round Speed Dating Stage"
+        steps={[
+          {
+            icon: Clock,
+            headline: "3-Minute Profile Review Phase",
+            description: "Inspect all 4 suitor profile cards (photos, age, occupation, schooling, goal, bio, and likes/dislikes) before questions begin.",
+          },
+          {
+            icon: Zap,
+            headline: "Broadcast AI & Custom Questions",
+            description: "Select 1 vector-matched AI question OR type a custom question to send to all active suitors at once with a 60s answer timer.",
+          },
+          {
+            icon: Scissors,
+            headline: "3-Round Elimination Cuts",
+            description: "Compare suitor answers and cut 1 suitor per round to reach the final winner match!",
+          },
+        ]}
+      />
     </div>
   );
 }

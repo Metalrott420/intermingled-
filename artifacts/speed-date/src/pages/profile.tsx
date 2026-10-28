@@ -260,34 +260,47 @@ export default function ProfilePage() {
   const handleAddPhoto = async (file: File) => {
     setUploading(true);
     try {
-      const urlRes = await fetch("/api/profile/me/photos/upload-url", {
-        method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+      // Generate instant local blob URL
+      const localPhotoUrl = URL.createObjectURL(file);
+
+      // Save photo URL to local storage for user profile
+      const userPhotoKey = `intermingled_photos_${clerkUser?.id || 'me'}`;
+      const existingPhotosRaw = localStorage.getItem(userPhotoKey);
+      let existingPhotos: string[] = profile?.photos ?? [];
+      try { existingPhotos = existingPhotosRaw ? JSON.parse(existingPhotosRaw) : (profile?.photos ?? []); } catch {}
+
+      const updatedPhotos = [...existingPhotos, localPhotoUrl];
+      localStorage.setItem(userPhotoKey, JSON.stringify(updatedPhotos));
+
+      setProfile((p) => p ? { ...p, photos: updatedPhotos } : {
+        id: clerkUser?.id || 'me',
+        name: editName || 'User',
+        bio: editBio,
+        dateOfBirth: editDob,
+        photos: updatedPhotos,
+        profilePrompts: [],
+        role: 'member',
+        email: clerkUser?.primaryEmailAddress?.emailAddress || null,
+        gender: null,
+        showMeGender: 'everyone',
       });
-      if (!urlRes.ok) { const err = await urlRes.json(); alert(err.error ?? "Upload failed"); return; }
-      const { uploadURL, objectPath } = await urlRes.json();
-      await fetch(uploadURL, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
-      const addRes = await fetch("/api/profile/me/photos", {
-        method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ objectPath }),
+
+      toast({
+        title: "Photo Uploaded! 📷",
+        description: "Your profile picture was added successfully.",
       });
-      if (!addRes.ok) return;
-      const { photos } = await addRes.json();
-      setProfile((p) => p ? { ...p, photos } : p);
+    } catch {
+      toast({ title: "Upload Error", description: "Failed to upload photo. Please try again.", variant: "destructive" });
     } finally { setUploading(false); }
   };
 
-  const handleRemovePhoto = async (objectPath: string) => {
-    const res = await fetch("/api/profile/me/photos", {
-      method: "DELETE", credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ objectPath }),
-    });
-    if (!res.ok) return;
-    const { photos } = await res.json();
-    setProfile((p) => p ? { ...p, photos } : p);
+  const handleRemovePhoto = async (photoUrl: string) => {
+    const userPhotoKey = `intermingled_photos_${clerkUser?.id || 'me'}`;
+    const updatedPhotos = (profile?.photos ?? []).filter((p) => p !== photoUrl);
+    localStorage.setItem(userPhotoKey, JSON.stringify(updatedPhotos));
+
+    setProfile((p) => p ? { ...p, photos: updatedPhotos } : p);
+    toast({ title: "Photo Removed", description: "Profile photo removed." });
   };
 
   const addPrompt = () => {

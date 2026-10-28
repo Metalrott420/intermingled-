@@ -144,6 +144,19 @@ function handleRequest(req, res) {
     ]));
   }
 
+  if (reqPath === '/api/profile/me/photos/upload-url') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify({
+      uploadURL: '/api/storage/mock-upload',
+      objectPath: `/uploaded-photo-${Date.now()}.png`,
+    }));
+  }
+
+  if (reqPath.startsWith('/api/storage/')) {
+    res.writeHead(200, { 'Content-Type': 'image/png' });
+    return res.end();
+  }
+
   if (reqPath === '/api/profile/me') {
     const urlParams = new URLSearchParams(req.url.split('?')[1] || '');
     const uEmail = urlParams.get('email') || '';

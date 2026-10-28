@@ -899,9 +899,9 @@ export default function Pool() {
             {/* Live Camera Viewfinder Video Stream */}
             <div className="relative aspect-[3/4] w-full bg-black rounded-xl overflow-hidden border border-[#222538] shadow-inner flex items-center justify-center">
               {recordedVideoUrl ? (
-                <video src={recordedVideoUrl} autoPlay loop playsInline className="w-full h-full object-cover" />
+                <video src={recordedVideoUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
               ) : (
-                <video ref={cameraVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                <video ref={cameraVideoRef} autoPlay loop muted playsInline className="w-full h-full object-cover" />
               )}
 
               {/* Status Badge Overlay */}

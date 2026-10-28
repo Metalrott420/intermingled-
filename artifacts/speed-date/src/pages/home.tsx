@@ -757,7 +757,7 @@ export default function Home() {
                   {sessionName || [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() || user?.primaryEmailAddress?.emailAddress?.split("@")[0] || "Registered Dater"}
                 </h2>
                 <Badge variant="outline" className="border-[#d4af37]/40 text-[#d4af37] text-[10px] font-mono">
-                  {userRankBadge}
+                  {isAdmin ? "COORDINATOR L2 (ADMIN FULL UNLOCKED) 👑" : userRankBadge}
                 </Badge>
                 <Badge className="bg-emerald-950/90 border border-emerald-500 text-emerald-400 text-[10px] font-mono uppercase">
                   💚 VERIFIED GREEN FLAG
@@ -808,9 +808,15 @@ export default function Home() {
               <Badge className="bg-[#d4af37] text-black font-black uppercase text-[10px] tracking-wider px-3 py-0.5">
                 CORE GAMESHOW ENGINE
               </Badge>
-              <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-mono text-[10px] uppercase font-bold">
-                💖 FREE PASS: 5/5 MATCHES REMAINING TODAY
-              </Badge>
+              {isAdmin ? (
+                <Badge className="bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] text-black font-black uppercase text-[10px] tracking-wider px-3 py-0.5 shadow-lg">
+                  👑 ADMIN COORDINATOR PASS: UNLIMITED MATCHES UNLOCKED
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-mono text-[10px] uppercase font-bold">
+                  💖 FREE PASS: 5/5 MATCHES REMAINING TODAY
+                </Badge>
+              )}
             </div>
             <h3 className="text-xl md:text-2xl font-black text-gold-hd-3d uppercase tracking-widest pt-1">
               3-Round Elimination Matchmaking

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useSearch } from "wouter";
-import { useAuth } from "@clerk/react";
+import { useAuth, useUser } from "@clerk/react";
 import { useMatchRoom, MatchResult } from "@workspace/api-client-react";
 import { useChooserSocket } from "@/hooks/useSocket";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,11 @@ export default function Match() {
   const userId = params.get("userId") || "";
   const name = params.get("name") || "";
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+  const { user: clerkUser } = useUser();
+  const ALLOWED_ADMIN_EMAIL = "metalrott.7@gmail.com";
+  const userEmail = clerkUser?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? "";
+  const isAdmin = userEmail === ALLOWED_ADMIN_EMAIL;
 
   const [matching, setMatching] = useState<boolean>(search.includes("spin=true"));
   const [filledSlots, setFilledSlots] = useState<FilledSlot[]>([]);
@@ -239,9 +244,15 @@ export default function Match() {
 
         <div className="bg-card/80 backdrop-blur border border-primary/20 rounded-xl p-6 sm:p-8 shadow-[0_0_30px_hsl(var(--primary)/0.15)] space-y-5">
           <div className="flex flex-col items-center gap-2">
-            <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-mono text-xs uppercase font-bold px-3 py-1">
-              💖 FREE PASS: 5/5 MATCHES REMAINING TODAY
-            </Badge>
+            {isAdmin ? (
+              <Badge className="bg-[#d4af37] text-black font-black uppercase text-xs tracking-wider px-3 py-1 shadow-md">
+                👑 ADMIN COORDINATOR PASS: UNLIMITED MATCHES UNLOCKED
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-mono text-xs uppercase font-bold px-3 py-1">
+                💖 FREE PASS: 5/5 MATCHES REMAINING TODAY
+              </Badge>
+            )}
             <h2 className="text-lg sm:text-xl font-bold uppercase tracking-wider">Find Your 4 Suitor Matches</h2>
           </div>
           <p className="text-sm text-muted-foreground font-mono leading-relaxed">

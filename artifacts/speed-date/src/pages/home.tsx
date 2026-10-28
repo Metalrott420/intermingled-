@@ -795,15 +795,20 @@ export default function Home() {
 
         {/* Core 3-Round Elimination Matchmaking Hero Launcher */}
         <div className="bg-[#111218] border-2 border-[#d4af37]/50 rounded-2xl p-6 shadow-[0_0_50px_rgba(212,175,55,0.2)] space-y-4 text-center">
-          <div className="flex flex-col items-center gap-1">
-            <Badge className="bg-[#d4af37] text-black font-black uppercase text-[10px] tracking-wider px-3 py-0.5">
-              CORE GAMESHOW ENGINE
-            </Badge>
+          <div className="flex flex-col items-center gap-1.5">
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              <Badge className="bg-[#d4af37] text-black font-black uppercase text-[10px] tracking-wider px-3 py-0.5">
+                CORE GAMESHOW ENGINE
+              </Badge>
+              <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-mono text-[10px] uppercase font-bold">
+                💖 FREE PASS: 5/5 MATCHES REMAINING TODAY
+              </Badge>
+            </div>
             <h3 className="text-xl md:text-2xl font-black text-gold-hd-3d uppercase tracking-widest pt-1">
               3-Round Elimination Matchmaking
             </h3>
             <p className="text-xs text-slate-300 font-sans max-w-md">
-              Select your role today and launch directly into real-time speed dating session!
+              Select your role today and launch directly into a real-time speed dating session!
             </p>
           </div>
 

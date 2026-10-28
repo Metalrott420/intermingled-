@@ -46,20 +46,21 @@ export default function Subscribe() {
           {/* Free Freemium Tier */}
           <Card className="bg-[#111218] border border-border text-white flex flex-col justify-between">
             <CardHeader className="pb-3">
-              <Badge variant="outline" className="w-fit text-[10px] border-muted-foreground text-muted-foreground mb-2">
-                FREEMIUM
+              <Badge variant="outline" className="w-fit text-[10px] border-emerald-500 text-emerald-400 font-mono mb-2">
+                FREEMIUM PASS 💖
               </Badge>
               <CardTitle className="text-lg text-white">Free Pass</CardTitle>
               <p className="text-2xl font-black text-[#d4af37]">$0 <span className="text-xs font-mono text-muted-foreground">/mo</span></p>
               <CardDescription className="text-xs text-muted-foreground">
-                Free daily speed dating pass with basic matching
+                Enjoy 5 free gameshow speed-dating matches every single day.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <ul className="space-y-2 text-xs text-muted-foreground">
-                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> 1 Free Suitor Match per day</li>
-                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Map Radar & Nearby Profiles</li>
-                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> 7-Question Algorithm Profile</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> 5 Free Speed-Dating Matches Per Day 💖</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Interactive GPS Map & Local Hotspots</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> 1-on-1 Governed Chat & Date Planner</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Verified 18+ ID Security Badge</li>
               </ul>
               <Button
                 onClick={() => navigate("/")}

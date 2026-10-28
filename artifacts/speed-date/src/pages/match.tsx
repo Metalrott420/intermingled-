@@ -238,9 +238,14 @@ export default function Match() {
         )}
 
         <div className="bg-card/80 backdrop-blur border border-primary/20 rounded-xl p-6 sm:p-8 shadow-[0_0_30px_hsl(var(--primary)/0.15)] space-y-5">
-          <h2 className="text-lg sm:text-xl font-bold uppercase tracking-wider">Find Your 4 Suitor Matches</h2>
+          <div className="flex flex-col items-center gap-2">
+            <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-mono text-xs uppercase font-bold px-3 py-1">
+              💖 FREE PASS: 5/5 MATCHES REMAINING TODAY
+            </Badge>
+            <h2 className="text-lg sm:text-xl font-bold uppercase tracking-wider">Find Your 4 Suitor Matches</h2>
+          </div>
           <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-            We rank all live suitors by personality compatibility and instantly connect you with your top 4.
+            We rank all live suitors by personality compatibility and instantly connect you with your top 4. Enjoy 5 free matches daily!
           </p>
 
           {/* Live suitor pool count */}

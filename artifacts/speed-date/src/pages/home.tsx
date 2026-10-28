@@ -423,8 +423,13 @@ export default function Home() {
         setSetupError(err.error ?? "Failed to save profile.");
         return;
       }
-      const updated = await res.json();
-      const profileName = (updated.name as string) || setupName;
+      if (user?.id) {
+        localStorage.setItem(`intermingled_dob_${user.id}`, setupDob);
+        if (setupName.trim()) {
+          localStorage.setItem(`intermingled_username_${user.id}`, setupName.trim());
+        }
+      }
+      const profileName = setupName.trim() || clerkName;
       setSessionName(profileName);
 
       // Advance to quiz (or role if quiz cached)

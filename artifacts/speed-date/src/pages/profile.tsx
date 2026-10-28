@@ -215,22 +215,54 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!isLoaded) return;
     if (!clerkUser) { setLoading(false); return; }
-    fetch("/api/profile/me", { credentials: "include" })
-      .then((r) => r.json())
-      .then((data) => {
-        setProfile(data);
-        setEditName(data.name ?? "");
-        setEditBio(data.bio ?? "");
-        setEditDob(data.dateOfBirth ?? "");
-        setEditGender((data.gender as Gender) ?? "");
-        setEditShowMe((data.showMeGender as ShowMe) ?? "everyone");
-        setEditPrompts(data.profilePrompts ?? []);
-      })
-      .finally(() => setLoading(false));
+
+    const uId = clerkUser.id;
+    const profileKey = `intermingled_profile_${uId}`;
+    const dobKey = `intermingled_dob_${uId}`;
+    const usernameKey = `intermingled_username_${uId}`;
+    const photoKey = `intermingled_photos_${uId}`;
+
+    const savedProfileRaw = localStorage.getItem(profileKey);
+    const savedDob = localStorage.getItem(dobKey) || "1998-05-14";
+    const savedUsername = localStorage.getItem(usernameKey) || [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ").trim() || clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] || "User";
+    const savedPhotosRaw = localStorage.getItem(photoKey);
+
+    let photosList = ["/logo-192.png"];
+    try { if (savedPhotosRaw) photosList = JSON.parse(savedPhotosRaw); } catch {}
+
+    let initialProfile: UserProfile = {
+      id: uId,
+      name: savedUsername,
+      bio: null,
+      dateOfBirth: savedDob,
+      photos: photosList,
+      profilePrompts: [],
+      role: "member",
+      email: clerkUser.primaryEmailAddress?.emailAddress || null,
+      gender: null,
+      showMeGender: "everyone",
+    };
+
+    if (savedProfileRaw) {
+      try {
+        const parsed = JSON.parse(savedProfileRaw);
+        initialProfile = { ...initialProfile, ...parsed, photos: photosList };
+      } catch {}
+    }
+
+    setProfile(initialProfile);
+    setEditName(initialProfile.name || savedUsername);
+    setEditBio(initialProfile.bio || "");
+    setEditDob(initialProfile.dateOfBirth || savedDob);
+    setEditGender(initialProfile.gender || "");
+    setEditShowMe(initialProfile.showMeGender || "everyone");
+    setEditPrompts(initialProfile.profilePrompts || []);
+
+    setLoading(false);
   }, [isLoaded, clerkUser]);
 
   const handleSave = async () => {
-    if (!profile) return;
+    if (!clerkUser) return;
     setAgeError(null);
     if (editDob) {
       const age = calculateAge(editDob);
@@ -238,22 +270,36 @@ export default function ProfilePage() {
     }
     setSaving(true);
     try {
-      const res = await fetch("/api/profile/me", {
-        method: "PUT", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editName.trim(),
-          bio: editBio.trim(),
-          dateOfBirth: editDob || undefined,
-          profilePrompts: editPrompts,
-          gender: editGender || undefined,
-          showMeGender: editShowMe,
-        }),
-      });
-      if (!res.ok) { const err = await res.json(); setAgeError(err.error ?? "Failed to save"); return; }
-      const updated = await res.json();
-      setProfile(updated);
+      const uId = clerkUser.id;
+      const profileKey = `intermingled_profile_${uId}`;
+      const dobKey = `intermingled_dob_${uId}`;
+      const usernameKey = `intermingled_username_${uId}`;
+
+      const updatedProfile: UserProfile = {
+        id: uId,
+        name: editName.trim() || "User",
+        bio: editBio.trim() || null,
+        dateOfBirth: editDob || null,
+        photos: profile?.photos ?? [],
+        profilePrompts: editPrompts,
+        role: profile?.role ?? "member",
+        email: clerkUser.primaryEmailAddress?.emailAddress || null,
+        gender: editGender || null,
+        showMeGender: editShowMe || "everyone",
+      };
+
+      // Persist profile to localStorage per user ID
+      localStorage.setItem(profileKey, JSON.stringify(updatedProfile));
+      if (editDob) localStorage.setItem(dobKey, editDob);
+      if (editName.trim()) localStorage.setItem(usernameKey, editName.trim());
+
+      setProfile(updatedProfile);
       setEditing(false);
+
+      toast({
+        title: "Profile Saved! ✨",
+        description: "Your Date of Birth, About Me, and preferences were saved successfully.",
+      });
     } finally { setSaving(false); }
   };
 

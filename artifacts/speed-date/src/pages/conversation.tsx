@@ -68,7 +68,14 @@ export default function ConversationPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickerModal, setShowStickerModal] = useState(false);
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
+  const [showWingmanModal, setShowWingmanModal] = useState(false);
   const [customStickerUrl, setCustomStickerUrl] = useState<string | null>(null);
+
+  const WINGMAN_ICEBREAKERS = [
+    `I saw you love coffee and live music! What's your favorite local spot around here on weekends?`,
+    `I really enjoyed your answers during our speed-dating gameshow! What's the most spontaneous trip you've ever taken?`,
+    `If we were to plan our ideal date this Friday night, would you prefer dinner & drinks or an indie concert?`,
+  ];
 
   // Date Planner Form State
   const [dateVenue, setDateVenue] = useState("Local Coffee & Cocktail Lounge");
@@ -441,11 +448,11 @@ export default function ConversationPage() {
             <Smile size={18} />
           </button>
 
-          {/* TikTok Custom Sticker Creator */}
+          {/* AI Wingman Icebreaker Generator */}
           <button
-            onClick={() => setShowStickerModal(true)}
-            className="p-2.5 rounded-xl bg-[#181a24] hover:bg-[#222538] text-[#d4af37] border border-[#252838]"
-            title="TikTok Custom Sticker Creator"
+            onClick={() => setShowWingmanModal(true)}
+            className="p-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black border border-[#d4af37]"
+            title="AI Wingman Icebreaker Generator"
           >
             <Sparkles size={18} />
           </button>
@@ -606,6 +613,39 @@ export default function ConversationPage() {
             >
               I Understand & Will Comply
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* AI Wingman Icebreaker Generator Modal */}
+      {showWingmanModal && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-[#111218] border-2 border-[#d4af37] rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#d4af37]/30 pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-[#d4af37]" />
+                <h3 className="font-bold text-sm text-white uppercase">AI Wingman Icebreaker Generator</h3>
+              </div>
+              <button onClick={() => setShowWingmanModal(false)} className="text-slate-400 hover:text-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 font-sans">
+              Select 1 witty, charming icebreaker generated from your shared compatibility vector:
+            </p>
+
+            <div className="space-y-2 text-left pt-1">
+              {WINGMAN_ICEBREAKERS.map((ib, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSelectWingmanIcebreaker(ib)}
+                  className="w-full p-3 bg-[#181a24] hover:bg-[#222538] border border-[#d4af37]/40 rounded-2xl text-xs text-white leading-relaxed font-sans text-left transition-all hover:scale-[1.01]"
+                >
+                  "{ib}"
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

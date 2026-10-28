@@ -759,6 +759,9 @@ export default function Home() {
                 <Badge variant="outline" className="border-[#d4af37]/40 text-[#d4af37] text-[10px] font-mono">
                   {userRankBadge}
                 </Badge>
+                <Badge className="bg-emerald-950/90 border border-emerald-500 text-emerald-400 text-[10px] font-mono uppercase">
+                  💚 VERIFIED GREEN FLAG
+                </Badge>
               </div>
 
               <p className="text-xs text-muted-foreground font-mono">

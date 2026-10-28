@@ -281,6 +281,18 @@ export default function RoomChooser() {
   const [customQuestionInput, setCustomQuestionInput] = useState<string>("");
   const [inspectedSlotProfile, setInspectedSlotProfile] = useState<number | null>(null);
 
+  // World-Class Innovations State
+  const [isBlindDateMode, setIsBlindDateMode] = useState<boolean>(false);
+  const [playingVoiceNoteId, setPlayingVoiceNoteId] = useState<string | null>(null);
+  const [showTikTokPreviewModal, setShowTikTokPreviewModal] = useState<boolean>(false);
+
+  const handlePlayVoiceNote = (msgId: string) => {
+    setPlayingVoiceNoteId(msgId);
+    setTimeout(() => {
+      setPlayingVoiceNoteId(null);
+    }, 4000);
+  };
+
   const currentRound = isAdminTest ? testCurrentRound : (room?.currentRound ?? 1);
   const eliminatedParticipants = isAdminTest ? testEliminatedIds : ((room?.eliminatedParticipants ?? []) as string[]);
   const finalRound = (room?.maxSuitors ?? 4) - 1;
@@ -651,18 +663,40 @@ export default function RoomChooser() {
           </div>
         )}
 
-        {/* Messages */}
+        {/* Messages Feed with Voice Note Audio Player */}
         <ScrollArea className="flex-1 p-2 sm:p-3">
           <div className="flex flex-col gap-2">
             {slotMessages.map((msg) => {
               const isMine = msg.senderRole === "chooser";
+              const isVoicePlaying = playingVoiceNoteId === msg.id;
+
               return (
-                <div key={msg.id} className={`max-w-[90%] rounded-lg p-2 text-xs sm:text-sm ${
+                <div key={msg.id} className={`max-w-[95%] rounded-xl p-2.5 text-xs sm:text-sm space-y-1.5 ${
                   isMine
                     ? "bg-primary/20 border border-primary/40 self-end"
-                    : "bg-card border border-border self-start"
+                    : "bg-[#141622] border border-[#d4af37]/30 self-start text-white shadow-md"
                 }`}>
-                  {msg.content}
+                  <p className="leading-relaxed">{msg.content}</p>
+
+                  {/* 10-Second Voice Note Audio Player */}
+                  {!isMine && (
+                    <button
+                      onClick={() => handlePlayVoiceNote(msg.id)}
+                      className="flex items-center gap-2 bg-[#181a24] hover:bg-[#222538] border border-[#d4af37]/40 text-[#d4af37] px-2.5 py-1 rounded-lg text-[10px] font-mono uppercase font-bold transition-all w-full justify-between"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs">{isVoicePlaying ? "⏸" : "▶"}</span>
+                        <span>{isVoicePlaying ? "Playing 10s Voice Note..." : "Play 10s Voice Note 🎙️"}</span>
+                      </div>
+                      {isVoicePlaying && (
+                        <div className="flex items-center gap-0.5">
+                          <span className="w-1 h-3 bg-[#d4af37] animate-bounce [animation-delay:0ms]" />
+                          <span className="w-1 h-3 bg-[#d4af37] animate-bounce [animation-delay:150ms]" />
+                          <span className="w-1 h-3 bg-[#d4af37] animate-bounce [animation-delay:300ms]" />
+                        </div>
+                      )}
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -1080,12 +1114,21 @@ export default function RoomChooser() {
               Congratulations! You and <span className="font-bold text-[#d4af37]">{winnerModalData.name}</span> completed all 3 rounds of speed dating and matched!
             </p>
 
-            <Button
-              onClick={handleStartDirectChat}
-              className="w-full py-4 bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] hover:from-[#b5952f] hover:to-[#d97706] text-black font-black uppercase text-xs tracking-wider shadow-xl shadow-[#d4af37]/30 hover:scale-[1.03] transition-all"
-            >
-              ADD TO MATCHES & START 1-ON-1 CHAT 💖
-            </Button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+              <Button
+                onClick={handleStartDirectChat}
+                className="w-full py-3.5 bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] hover:from-[#b5952f] hover:to-[#d97706] text-black font-black uppercase text-xs tracking-wider shadow-xl shadow-[#d4af37]/30 hover:scale-[1.03] transition-all"
+              >
+                ADD TO MATCHES & CHAT 💖
+              </Button>
+
+              <Button
+                onClick={() => setShowTikTokPreviewModal(true)}
+                className="w-full py-3.5 bg-[#181a24] hover:bg-[#222538] border border-[#d4af37]/50 text-[#d4af37] font-bold uppercase text-xs tracking-wider transition-all"
+              >
+                EXPORT TIKTOK HIGHLIGHT 🎬
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -1172,6 +1215,53 @@ export default function RoomChooser() {
           },
         ]}
       />
+
+      {/* TikTok / Reels "Speed Date Highlights" Viral Clip Generator Modal */}
+      {showTikTokPreviewModal && winnerModalData && (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4">
+          <div className="bg-[#111218] border-2 border-[#d4af37] rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-[0_0_80px_rgba(212,175,55,0.5)] relative overflow-hidden">
+            <div className="flex items-center justify-between border-b border-[#d4af37]/30 pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-[#d4af37]" />
+                <h3 className="font-bold text-sm text-white uppercase">TikTok / Reels Clip Generator</h3>
+              </div>
+              <button onClick={() => setShowTikTokPreviewModal(false)} className="text-slate-400 hover:text-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* 15s Vertical Video Preview Frame */}
+            <div className="relative aspect-[9/16] w-full max-w-[220px] mx-auto bg-black rounded-2xl overflow-hidden border-2 border-[#d4af37] shadow-2xl flex flex-col justify-between p-3">
+              <img src={winnerModalData.photo} alt={winnerModalData.name} className="absolute inset-0 w-full h-full object-cover opacity-80" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/60" />
+
+              <div className="relative z-10 text-left space-y-1">
+                <Badge className="bg-[#d4af37] text-black font-black uppercase text-[8px]">
+                  #INTERMINGLED MATCH 👑
+                </Badge>
+                <p className="font-bold text-white text-xs">Match: {winnerModalData.name} ({winnerModalData.score})</p>
+              </div>
+
+              <div className="relative z-10 space-y-2 text-center">
+                <p className="text-[10px] font-mono text-[#d4af37] font-bold uppercase">
+                  3-ROUND SPEED DATING GAMESHOW
+                </p>
+                <p className="text-[9px] text-white/80 font-mono">intermingledapp.com</p>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => {
+                alert("🎉 TikTok Highlight Clip exported successfully! Post to TikTok / Reels with #IntermingledApp!");
+                setShowTikTokPreviewModal(false);
+              }}
+              className="w-full py-3.5 bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-xs"
+            >
+              DOWNLOAD TIKTOK CLIP (.MP4) 🎬
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

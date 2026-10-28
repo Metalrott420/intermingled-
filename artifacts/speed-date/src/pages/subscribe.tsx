@@ -12,6 +12,10 @@ export default function Subscribe() {
   const { signOut } = useClerk();
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
+  const ALLOWED_ADMIN_EMAIL = "metalrott.7@gmail.com";
+  const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? "";
+  const isAdmin = userEmail === ALLOWED_ADMIN_EMAIL;
+
   const accountAgeDays = 95; // Simulated 95 days in good standing
   const isGoodStanding90Days = accountAgeDays >= 90;
 
@@ -132,13 +136,17 @@ export default function Subscribe() {
           </Card>
 
           {/* Tier 3: Event Coordinator Pass ($25/mo - 90 Days Requirement) */}
-          <Card className="bg-[#111218] border border-[#d4af37]/40 text-white flex flex-col justify-between relative shadow-xl">
+          <Card className="bg-[#111218] border-2 border-[#d4af37] text-white flex flex-col justify-between relative shadow-2xl shadow-[#d4af37]/20">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <Badge className="w-fit text-[10px] bg-[#d4af37] text-black font-bold mb-2">
-                  TIER 3
+                  TIER 3 (COORDINATOR)
                 </Badge>
-                {isGoodStanding90Days ? (
+                {isAdmin ? (
+                  <Badge className="bg-emerald-500 text-black text-[9px] font-black uppercase">
+                    ADMIN FULLY UNLOCKED 👑
+                  </Badge>
+                ) : isGoodStanding90Days ? (
                   <Badge variant="outline" className="border-emerald-500/50 text-emerald-400 text-[9px]">
                     ELIGIBLE (90+ DAYS)
                   </Badge>
@@ -164,15 +172,10 @@ export default function Subscribe() {
                 <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Coordinator Event Analytics</li>
               </ul>
               <Button
-                onClick={() => handleSelectTier("Coordinator Pass")}
-                disabled={!isGoodStanding90Days}
-                className="w-full bg-[#181a24] hover:bg-[#222538] border border-[#d4af37]/50 text-[#d4af37] font-bold text-xs"
+                onClick={() => navigate("/map")}
+                className="w-full bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] text-black font-black uppercase text-xs"
               >
-                {isGoodStanding90Days
-                  ? loadingTier === "Coordinator Pass"
-                    ? "Processing..."
-                    : "Subscribe Coordinator ($25/mo)"
-                  : "Requires 90 Days Good Standing"}
+                {isAdmin ? "Host Map Event Now 👑" : "Subscribe Coordinator ($25/mo)"}
               </Button>
             </CardContent>
           </Card>

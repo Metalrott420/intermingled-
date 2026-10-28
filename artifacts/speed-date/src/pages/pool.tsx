@@ -148,6 +148,32 @@ export default function Pool() {
   // Floating Picture-in-Picture (PiP) Stream Window State
   const [isStreamDocked, setIsStreamDocked] = useState(false);
 
+  // TikTok-Style Live Stream Overlay Chat State
+  const [streamChatMessages, setStreamChatMessages] = useState<Array<{ id: string; sender: string; text: string }>>([
+    { id: "s1", sender: "System", text: "💖 MATCHED STREAM CHAT UNLOCKED" },
+    { id: "s2", sender: "Matchmaker", text: "Welcome to live broadcast overlay chat!" },
+  ]);
+  const [streamCommentInput, setStreamCommentInput] = useState("");
+  const [floatingHearts, setFloatingHearts] = useState<Array<{ id: number; left: number }>>([]);
+
+  const handleSendStreamComment = () => {
+    if (!streamCommentInput.trim()) return;
+    const newMsg = {
+      id: `stream-msg-${Date.now()}`,
+      sender: clerkUser?.firstName || "You",
+      text: streamCommentInput.trim(),
+    };
+    setStreamChatMessages((prev) => [...prev, newMsg]);
+    setStreamCommentInput("");
+
+    // Trigger floating heart animation
+    const heartId = Date.now();
+    setFloatingHearts((prev) => [...prev, { id: heartId, left: Math.floor(Math.random() * 60) + 20 }]);
+    setTimeout(() => {
+      setFloatingHearts((prev) => prev.filter((h) => h.id !== heartId));
+    }, 2000);
+  };
+
   // Selected Map Pin Directions State
   const [selectedTarget, setSelectedTarget] = useState<{
     title: string;
@@ -687,10 +713,10 @@ export default function Pool() {
 
             <Button
               onClick={() => setShowEventModal(true)}
-              className="bg-[#181a24] hover:bg-[#222536] text-[#d4af37] border border-[#d4af37]/50 font-bold uppercase text-xs h-10"
+              className="bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] hover:from-[#b5952f] hover:to-[#d97706] text-black font-black uppercase text-xs h-10 shadow-lg shadow-[#d4af37]/20"
             >
-              <Plus size={16} className="mr-1" />
-              Create Event
+              <Crown size={16} className="mr-1" />
+              Host Event Pin 👑
             </Button>
           </div>
         </div>
@@ -1036,7 +1062,7 @@ export default function Pool() {
                 </div>
               </div>
 
-              {/* Video Player */}
+              {/* Video Player & TikTok-Style Live Scrolling Overlay Chat */}
               <div className="relative w-full aspect-[9/16] bg-black">
                 <video
                   src={activeVideoBroadcast.videoUrl}
@@ -1047,52 +1073,57 @@ export default function Pool() {
                   className="w-full h-full object-cover"
                 />
 
-                {/* Limited Interactions Overlay Bar (No Chatting Allowed) */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent space-y-3">
-                  <div className="flex items-center justify-around">
-                    <button
-                      onClick={handleLikeBroadcast}
-                      className={`flex flex-col items-center gap-1 p-2 rounded-full transition-transform active:scale-125 ${
-                        activeVideoBroadcast.hasLiked ? "text-pink-500" : "text-white hover:text-pink-400"
-                      }`}
-                    >
-                      <Heart size={26} className={activeVideoBroadcast.hasLiked ? "fill-pink-500" : ""} />
-                      <span className="text-[10px] font-mono text-white">{activeVideoBroadcast.likesCount}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setSelectedTarget({
-                          title: activeVideoBroadcast.trustedVenueName,
-                          type: "venue",
-                          latitude: activeVideoBroadcast.latitude,
-                          longitude: activeVideoBroadcast.longitude,
-                          distanceMi: 0.4,
-                          etaMinutes: 2,
-                        });
-                        setActiveVideoBroadcast(null);
-                      }}
-                      className="flex flex-col items-center gap-1 p-2 rounded-full text-white hover:text-[#d4af37]"
-                    >
-                      <MapPin size={26} className="text-[#d4af37]" />
-                      <span className="text-[10px] font-mono text-white">Location</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setShowEventModal(true);
-                        setActiveVideoBroadcast(null);
-                      }}
-                      className="flex flex-col items-center gap-1 p-2 rounded-full text-white hover:text-[#d4af37]"
-                    >
-                      <Crown size={26} className="text-[#d4af37]" />
-                      <span className="text-[10px] font-mono text-white">Join Event</span>
-                    </button>
+                {/* TikTok-Style Live Scrolling Overlay Chat (For Matched Partners & Friends) */}
+                <div className="absolute inset-0 p-4 flex flex-col justify-between pointer-events-none">
+                  {/* Floating Heart Animations */}
+                  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    {floatingHearts.map((h) => (
+                      <div
+                        key={h.id}
+                        style={{ left: `${h.left}%` }}
+                        className="absolute bottom-16 text-2xl animate-bounce text-pink-500 drop-shadow-[0_0_10px_rgba(236,72,153,0.8)]"
+                      >
+                        💖
+                      </div>
+                    ))}
                   </div>
 
-                  <p className="text-[10px] font-mono text-center text-muted-foreground">
-                    🔒 Stream Mode Active · Direct Chatting Disabled for Safety
-                  </p>
+                  <div className="mt-14 space-y-2 pointer-events-auto max-h-48 overflow-y-auto">
+                    {streamChatMessages.map((m) => (
+                      <div key={m.id} className="bg-black/60 backdrop-blur-md border border-[#d4af37]/30 rounded-xl p-2 max-w-[85%] text-xs shadow-lg animate-in fade-in slide-in-from-bottom-2">
+                        <span className="font-bold text-[#d4af37] font-mono mr-1.5">{m.sender}:</span>
+                        <span className="text-white font-sans">{m.text}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Live Stream Interactions & Comment Input Bar */}
+                  <div className="pointer-events-auto space-y-2 pt-2 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 rounded-2xl">
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        value={streamCommentInput}
+                        onChange={(e) => setStreamCommentInput(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSendStreamComment()}
+                        placeholder={`Chat with ${activeVideoBroadcast.creatorName}...`}
+                        className="bg-black/70 border-[#d4af37]/40 text-xs text-white h-9 focus:border-[#d4af37]"
+                      />
+                      <Button
+                        onClick={handleSendStreamComment}
+                        className="bg-[#d4af37] hover:bg-[#b5952f] text-black font-black text-xs h-9 px-3 shrink-0"
+                      >
+                        <Send size={14} />
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] font-mono text-[#d4af37]">
+                      <span className="flex items-center gap-1 font-bold">
+                        <Sparkles size={11} /> 💖 MATCHED STREAM CHAT UNLOCKED
+                      </span>
+                      <button onClick={handleLikeBroadcast} className="text-pink-400 font-bold hover:scale-110 transition-transform">
+                        💖 Send Hearts ({activeVideoBroadcast.likesCount})
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

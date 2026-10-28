@@ -147,16 +147,16 @@ function handleRequest(req, res) {
   if (reqPath === '/api/profile/me') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     return res.end(JSON.stringify({
-      id: 'usr_1',
-      name: 'Ivan Maldonado',
-      email: 'metalrott.7@gmail.com',
-      dateOfBirth: '1996-05-14',
-      ageVerified: true,
-      isAdmin: true,
-      role: 'coordinator',
-      photos: ['/logo-192.png'],
-      bio: 'Administrator & Founder of Intermingled.',
-      gender: 'man',
+      id: 'usr_crazy4broly_fresh',
+      name: '',
+      email: 'crazy4broly@gmail.com',
+      dateOfBirth: null,
+      ageVerified: false,
+      isAdmin: false,
+      role: 'member',
+      photos: [],
+      bio: '',
+      gender: null,
       showMeGender: 'everyone',
     }));
   }

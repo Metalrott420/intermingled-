@@ -157,15 +157,15 @@ export default function Match() {
           <div className="space-y-2">
             <a href={`${base}/`} className="inline-block group">
               <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-widest text-gold-hd-3d group-hover:scale-105 transition-transform">
-                🎰 CASINO MATCHMAKING REEL 🎰
+                ✨ VECTOR COMPATIBILITY ENGINE ✨
               </h1>
             </a>
             <p className="text-xs font-mono text-[#d4af37] uppercase tracking-wider font-bold">
-              SPINNING SUITOR POOL · MATCHING PERSONALITY VECTORS...
+              ANALYZING SUITOR POOL · MATCHING PERSONALITY VECTORS...
             </p>
           </div>
 
-          {/* 4 Casino Slot Machine Reel Columns */}
+          {/* 4 Curated Compatibility Columns */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#111218] border-2 border-[#d4af37]/50 rounded-2xl p-4 shadow-[0_0_50px_rgba(212,175,55,0.3)]">
             {demoSuitors.map((suitor, i) => {
               const isLocked = lockedReels >= i + 1;
@@ -179,14 +179,14 @@ export default function Match() {
                   }`}
                 >
                   <div className="text-[10px] font-mono uppercase text-[#d4af37] font-bold mb-1">
-                    SLOT {i + 1}
+                    MATCH {i + 1}
                   </div>
 
                   {isLocked ? (
                     <div className="space-y-1 animate-in zoom-in-50">
-                      <div className="text-2xl">🎰</div>
+                      <div className="text-2xl">✨</div>
                       <div className="font-bold text-xs text-white uppercase tracking-wider">{suitor.name}</div>
-                      <Badge className="bg-emerald-500 text-black text-[8px] font-black uppercase">LOCKED ✓</Badge>
+                      <Badge className="bg-emerald-500 text-black text-[8px] font-black uppercase">CURATED ✓</Badge>
                     </div>
                   ) : (
                     <div className="space-y-1 animate-pulse">
@@ -194,7 +194,7 @@ export default function Match() {
                       <div className="text-[11px] font-mono text-slate-400 font-bold uppercase">
                         {spinNames[(i * 2 + Math.floor(Date.now() / 200)) % spinNames.length]}
                       </div>
-                      <div className="text-[9px] font-mono text-amber-400">SPINNING…</div>
+                      <div className="text-[9px] font-mono text-amber-400">ANALYZING…</div>
                     </div>
                   )}
                 </div>
@@ -206,7 +206,7 @@ export default function Match() {
           {lockedReels >= 4 ? (
             <div className="space-y-3 animate-in zoom-in-75">
               <p className="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider animate-pulse">
-                🎰 ALL 4 SUITORS MATCHED & LOCKED!
+                ✨ ALL 4 SUITORS CURATED & MATCHED!
               </p>
               <Button
                 onClick={() => setLocation(`/room/${targetRoomId || "test-room-1"}/chooser?adminTest=true`)}
@@ -217,7 +217,7 @@ export default function Match() {
             </div>
           ) : (
             <div className="text-xs font-mono text-[#d4af37] font-bold animate-pulse">
-              ROLLING SUITOR POOL MATCHES ({lockedReels} / 4 LOCKED)…
+              CURATING COMPATIBLE MATCHES ({lockedReels} / 4 MATCHED)…
             </div>
           )}
         </div>

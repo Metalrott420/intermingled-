@@ -117,6 +117,7 @@ function AgeVerificationGate({
   signOut: () => void;
   onVerified: () => void;
 }) {
+  const { user } = useUser();
   const [step, setStep] = useState<"intro" | "id_upload" | "selfie" | "scanning" | "verified">("intro");
   const [idFile, setIdFile] = useState<File | null>(null);
   const [selfieFile, setSelfieFile] = useState<File | null>(null);

@@ -379,38 +379,24 @@ export default function Home() {
     const resolvedName = customSavedUsername || clerkName;
     setSessionName(resolvedName);
 
-    // Fetch profile to check mandatory ID & Facial Recognition verification status per user ID
-    fetch(`${base}/api/profile/me`, { credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
-      .then((profile) => {
-        const userVerifiedKey = `intermingled_verified_${user.id}`;
-        const isVerifiedUser = profile?.ageVerified === true || localStorage.getItem(userVerifiedKey) === "true";
+    // Mandatory Government ID & Selfie Verification Check per User Account ID
+    const userVerifiedKey = `intermingled_verified_${user.id}`;
+    const isVerifiedUser = localStorage.getItem(userVerifiedKey) === "true";
 
-        if (!isVerifiedUser) {
-          setPhase("age_verification");
-          return;
-        }
+    if (!isVerifiedUser) {
+      setPhase("age_verification");
+      return;
+    }
 
-        // Check for explicit retake parameter
-        const isRetake = typeof window !== "undefined" && window.location.search.includes("retake=true");
+    // Check for explicit retake parameter
+    const isRetake = typeof window !== "undefined" && window.location.search.includes("retake=true");
 
-        if (isRetake) {
-          setPhase("quiz");
-          return;
-        }
+    if (isRetake) {
+      setPhase("quiz");
+      return;
+    }
 
-        const activeName = profile?.name && profile.name !== "Anonymous" ? profile.name : resolvedName;
-        setSessionName(activeName);
-        setPhase("role");
-      })
-      .catch(() => {
-        const userVerifiedKey = `intermingled_verified_${user.id}`;
-        if (localStorage.getItem(userVerifiedKey) !== "true") {
-          setPhase("age_verification");
-          return;
-        }
-        setPhase("role");
-      });
+    setPhase("role");
   }, [isLoaded, isSignedIn, user, base]);
 
   // ── Profile setup handlers ─────────────────────────────────────────────────

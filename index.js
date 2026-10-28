@@ -145,15 +145,19 @@ function handleRequest(req, res) {
   }
 
   if (reqPath === '/api/profile/me') {
+    const urlParams = new URLSearchParams(req.url.split('?')[1] || '');
+    const uEmail = urlParams.get('email') || '';
+    const uName = urlParams.get('name') || '';
+
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     return res.end(JSON.stringify({
-      id: 'usr_crazy4broly_fresh',
-      name: '',
-      email: 'crazy4broly@gmail.com',
+      id: uEmail || 'usr_dynamic',
+      name: uName || '',
+      email: uEmail,
       dateOfBirth: null,
       ageVerified: false,
-      isAdmin: false,
-      role: 'member',
+      isAdmin: uEmail === 'metalrott.7@gmail.com',
+      role: uEmail === 'metalrott.7@gmail.com' ? 'coordinator' : 'member',
       photos: [],
       bio: '',
       gender: null,

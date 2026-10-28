@@ -762,7 +762,7 @@ export default function Home() {
             <div className="flex-1 space-y-1">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                 <h2 className="text-2xl font-black text-white">
-                  {sessionName || user?.firstName || "Ivan Maldonado"}
+                  {sessionName || [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() || user?.primaryEmailAddress?.emailAddress?.split("@")[0] || "Registered Dater"}
                 </h2>
                 <Badge variant="outline" className="border-[#d4af37]/40 text-[#d4af37] text-[10px] font-mono">
                   {userRankBadge}
@@ -770,7 +770,7 @@ export default function Home() {
               </div>
 
               <p className="text-xs text-muted-foreground font-mono">
-                {user?.primaryEmailAddress?.emailAddress || "metalrott.7@gmail.com"}
+                {user?.primaryEmailAddress?.emailAddress || ""}
               </p>
 
               <div className="flex flex-wrap gap-2 pt-2 justify-center sm:justify-start">

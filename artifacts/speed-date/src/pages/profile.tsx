@@ -47,6 +47,14 @@ function calculateAge(dob: string): number {
   return age;
 }
 
+function getPhotoSrc(src?: string): string {
+  if (!src) return "/logo-192.png";
+  if (src.startsWith("blob:") || src.startsWith("data:") || src.startsWith("http")) {
+    return src;
+  }
+  return `/api/storage${src}`;
+}
+
 function PhotoGrid({ photos, onAdd, onRemove, uploading }: {
   photos: string[]; onAdd: (f: File) => void; onRemove: (p: string) => void; uploading: boolean;
 }) {
@@ -59,7 +67,7 @@ function PhotoGrid({ photos, onAdd, onRemove, uploading }: {
         if (photo) {
           return (
             <div key={i} className="relative aspect-square rounded-xl overflow-hidden group bg-card border border-border">
-              <img src={`/api/storage${photo}`} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+              <img src={getPhotoSrc(photo)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <button onClick={() => onRemove(photo)} className="p-2 rounded-full bg-destructive/90 hover:bg-destructive text-white transition-colors">
                   <Trash2 size={14} />
@@ -223,7 +231,8 @@ export default function ProfilePage() {
     const photoKey = `intermingled_photos_${uId}`;
 
     const savedProfileRaw = localStorage.getItem(profileKey);
-    const savedDob = localStorage.getItem(dobKey) || "1998-05-14";
+    const defaultDob = clerkUser.primaryEmailAddress?.emailAddress === "metalrott.7@gmail.com" ? "1985-05-14" : "1998-05-14";
+    const savedDob = localStorage.getItem(dobKey) || defaultDob;
     const savedUsername = localStorage.getItem(usernameKey) || [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ").trim() || clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] || "User";
     const savedPhotosRaw = localStorage.getItem(photoKey);
 
@@ -418,7 +427,7 @@ export default function ProfilePage() {
       <div className="max-w-lg mx-auto pb-24">
         {/* Cover photo */}
         <div className="relative h-72 bg-gradient-to-b from-primary/20 to-background">
-          {coverPhoto && <img src={`/api/storage${coverPhoto}`} alt="Cover" className="w-full h-full object-cover" />}
+          {coverPhoto && <img src={getPhotoSrc(coverPhoto)} alt="Cover" className="w-full h-full object-cover" />}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
           <div className="absolute bottom-4 left-4 right-4">
             {editing ? (

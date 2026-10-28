@@ -143,6 +143,9 @@ function AgeVerificationGate({
       setLoading(false);
       setStep("verified");
       localStorage.setItem("intermingled_verified", "true");
+      if (user?.id) {
+        localStorage.setItem(`intermingled_verified_${user.id}`, "true");
+      }
       setTimeout(() => {
         onVerified();
       }, 1200);
@@ -357,29 +360,32 @@ export default function Home() {
     return () => clearInterval(id);
   }, [cooldownInfo]);
 
-  // Determine phase on auth state change (With Mandatory ID & Facial Recognition Security Gate)
+  // Determine phase on auth state change (With Per-Account Mandatory ID & Facial Recognition Security Gate)
   useEffect(() => {
     if (!isLoaded) return;
 
-    if (!isSignedIn) {
+    if (!isSignedIn || !user) {
       setPhase("auth");
       return;
     }
 
+    // Per-Account Username Resolution
+    const customSavedUsername = localStorage.getItem(`intermingled_username_${user.id}`);
     const clerkName = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() ||
       user?.primaryEmailAddress?.emailAddress?.split("@")[0] ||
-      "Ivan Maldonado";
+      "Dater";
 
-    setSessionName(clerkName);
+    const resolvedName = customSavedUsername || clerkName;
+    setSessionName(resolvedName);
 
-    // Fetch profile to check mandatory ID & Facial Recognition verification status
+    // Fetch profile to check mandatory ID & Facial Recognition verification status per user ID
     fetch(`${base}/api/profile/me`, { credentials: "include" })
       .then((r) => r.ok ? r.json() : null)
       .then((profile) => {
-        const isVerifiedLocal = localStorage.getItem("intermingled_verified") === "true";
-        const isVerifiedProfile = profile?.ageVerified === true;
+        const userVerifiedKey = `intermingled_verified_${user.id}`;
+        const isVerifiedUser = profile?.ageVerified === true || localStorage.getItem(userVerifiedKey) === "true";
 
-        if (!isVerifiedProfile && !isVerifiedLocal) {
+        if (!isVerifiedUser) {
           setPhase("age_verification");
           return;
         }
@@ -392,16 +398,16 @@ export default function Home() {
           return;
         }
 
-        const raw = localStorage.getItem(QUIZ_STORAGE_KEY);
-        try {
-          const parsed = raw ? (JSON.parse(raw) as StoredQuiz) : null;
-          setStoredQuiz(parsed ?? { name: clerkName, personalityVector: [4, 3, 4, 3, 4, 3, 2] });
-          setSessionName(parsed?.name || clerkName);
-        } catch {}
-
+        const activeName = profile?.name && profile.name !== "Anonymous" ? profile.name : resolvedName;
+        setSessionName(activeName);
         setPhase("role");
       })
       .catch(() => {
+        const userVerifiedKey = `intermingled_verified_${user.id}`;
+        if (localStorage.getItem(userVerifiedKey) !== "true") {
+          setPhase("age_verification");
+          return;
+        }
         setPhase("role");
       });
   }, [isLoaded, isSignedIn, user, base]);

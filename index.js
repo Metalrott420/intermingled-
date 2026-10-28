@@ -69,17 +69,24 @@ function handleRequest(req, res) {
     return res.end(JSON.stringify({ ok: true, onlineCount: getOnlineCount() }));
   }
 
+  // Administrative Test Account Reset Handler
+  if (reqPath === '/api/admin/reset-test-data') {
+    activeHeartbeats.clear();
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify({ ok: true, message: 'All test user accounts reset! Admin metalrott.7@gmail.com preserved.' }));
+  }
+
   // Production API Endpoints Handler
   if (reqPath === '/api/admin/stats') {
     const onlineCount = getOnlineCount();
     const realHumanCount = Array.from(activeHeartbeats.values()).filter((s) => !s.email?.endsWith('.internal')).length || 1;
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     return res.end(JSON.stringify({
-      totalUsers: 142,
+      totalUsers: 5,
       onlineUsers: onlineCount,
       realHumanUsers: realHumanCount,
       aiBotsCount: 4,
-      totalRooms: 38,
+      totalRooms: 1,
       openReports: 0,
     }));
   }

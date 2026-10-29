@@ -288,6 +288,9 @@ export default function AdminPage() {
         <div className="flex items-center gap-2">
           <Shield size={18} className="text-secondary" />
           <span className="font-display font-black text-lg uppercase tracking-wide">Admin Panel</span>
+          <Badge variant="outline" className="border-amber-500/60 text-amber-400 font-mono text-[9px] uppercase font-bold ml-2">
+            🛠️ IN DEVELOPMENT
+          </Badge>
         </div>
         <button onClick={() => setLocation("/")} className="text-xs text-muted-foreground hover:text-foreground font-mono">← Exit</button>
       </div>

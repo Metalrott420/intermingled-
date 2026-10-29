@@ -724,6 +724,9 @@ export default function Home() {
       <div className="z-10 w-full max-w-2xl space-y-6 pt-4">
         {/* Brand Header */}
         <div className="text-center space-y-2 flex flex-col items-center">
+          <Badge variant="outline" className="border-amber-500/60 bg-amber-500/10 text-amber-400 font-mono text-[10px] uppercase font-bold px-3 py-1 shadow-md animate-pulse">
+            🛠️ IN DEVELOPMENT · BETA VERSION
+          </Badge>
           <img src="/logo.svg" alt="Intermingled Logo" className="h-20 w-auto filter drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]" />
           <h1 className="text-3xl md:text-4xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158]">
             INTERMINGLED

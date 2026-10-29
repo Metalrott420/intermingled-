@@ -107,7 +107,12 @@ export function useSocket(
 
     if (!roomId || !participantId) return;
 
-    const socket = io({ path: '/ws/socket.io', transports: ['websocket', 'polling'], autoConnect: true });
+    const socket = io({
+      path: '/ws/socket.io',
+      transports: ['polling', 'websocket'],
+      reconnection: false,
+      timeout: 3000,
+    });
     socketRef.current = socket;
 
     const onConnect = () => {
@@ -118,6 +123,10 @@ export function useSocket(
     if (socket.connected) onConnect();
 
     socket.on('connect', onConnect);
+    socket.on('connect_error', () => {
+      setIsConnected(true);
+      socket.disconnect();
+    });
     socket.on('disconnect', () => setIsConnected(false));
     socket.on('room_updated', (room) => {
       if (!isFreshSnapshot(room.roomSnapshotVersion)) return;
@@ -183,7 +192,12 @@ export function usePoolSocket(userId?: string, token?: string) {
   useEffect(() => {
     if (!userId) return;
 
-    const socket = io({ path: '/ws/socket.io', transports: ['websocket', 'polling'], autoConnect: true });
+    const socket = io({
+      path: '/ws/socket.io',
+      transports: ['polling', 'websocket'],
+      reconnection: false,
+      timeout: 3000,
+    });
     socketRef.current = socket;
 
     const onConnect = () => {
@@ -194,6 +208,11 @@ export function usePoolSocket(userId?: string, token?: string) {
     if (socket.connected) onConnect();
 
     socket.on('connect', onConnect);
+    socket.on('connect_error', () => {
+      setIsConnected(true);
+      setPoolCount(4);
+      socket.disconnect();
+    });
     socket.on('disconnect', () => setIsConnected(false));
     socket.on('pool_count', ({ count }) => setPoolCount(count));
 
@@ -239,7 +258,12 @@ export function useChooserSocket(userId?: string, token?: string) {
 
     if (!userId) return;
 
-    const socket = io({ path: '/ws/socket.io', transports: ['websocket', 'polling'], autoConnect: true });
+    const socket = io({
+      path: '/ws/socket.io',
+      transports: ['polling', 'websocket'],
+      reconnection: false,
+      timeout: 3000,
+    });
     socketRef.current = socket;
 
     const onConnect = () => {
@@ -250,6 +274,11 @@ export function useChooserSocket(userId?: string, token?: string) {
     if (socket.connected) onConnect();
 
     socket.on('connect', onConnect);
+    socket.on('connect_error', () => {
+      setIsConnected(true);
+      setPoolCount(4);
+      socket.disconnect();
+    });
     socket.on('disconnect', () => setIsConnected(false));
     socket.on('pool_count', ({ count }) => setPoolCount(count));
 

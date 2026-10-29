@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useUser } from "@clerk/react";
 import { useLocation } from "wouter";
-import { Camera, Pencil, Trash2, Check, X, ArrowLeft, Plus, MessageSquare, Flag, Heart, Sparkles, HelpCircle } from "lucide-react";
+import { Camera, Pencil, Trash2, Check, X, ArrowLeft, Plus, MessageSquare, Flag, Heart, Sparkles, HelpCircle, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

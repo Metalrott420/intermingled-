@@ -67,7 +67,14 @@ function PhotoGrid({ photos, onAdd, onRemove, uploading }: {
         if (photo) {
           return (
             <div key={i} className="relative aspect-square rounded-xl overflow-hidden group bg-card border border-border">
-              <img src={getPhotoSrc(photo)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+              <img
+                src={getPhotoSrc(photo)}
+                alt={`Photo ${i + 1}`}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/logo-192.png";
+                }}
+                className="w-full h-full object-cover"
+              />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <button onClick={() => onRemove(photo)} className="p-2 rounded-full bg-destructive/90 hover:bg-destructive text-white transition-colors">
                   <Trash2 size={14} />
@@ -315,35 +322,42 @@ export default function ProfilePage() {
   const handleAddPhoto = async (file: File) => {
     setUploading(true);
     try {
-      // Generate instant local blob URL
-      const localPhotoUrl = URL.createObjectURL(file);
+      // Read file as persistent Base64 Data URL so it NEVER expires or throws ERR_FILE_NOT_FOUND on reload!
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64DataUrl = e.target?.result as string;
+        if (!base64DataUrl) return;
 
-      // Save photo URL to local storage for user profile
-      const userPhotoKey = `intermingled_photos_${clerkUser?.id || 'me'}`;
-      const existingPhotosRaw = localStorage.getItem(userPhotoKey);
-      let existingPhotos: string[] = profile?.photos ?? [];
-      try { existingPhotos = existingPhotosRaw ? JSON.parse(existingPhotosRaw) : (profile?.photos ?? []); } catch {}
+        const userPhotoKey = `intermingled_photos_${clerkUser?.id || 'me'}`;
+        const existingPhotosRaw = localStorage.getItem(userPhotoKey);
+        let existingPhotos: string[] = profile?.photos ?? [];
+        try { if (existingPhotosRaw) existingPhotos = JSON.parse(existingPhotosRaw); } catch {}
 
-      const updatedPhotos = [...existingPhotos, localPhotoUrl];
-      localStorage.setItem(userPhotoKey, JSON.stringify(updatedPhotos));
+        // Filter out any revoked blob URLs
+        const cleanExistingPhotos = existingPhotos.filter((p) => !p.startsWith("blob:"));
+        const updatedPhotos = [...cleanExistingPhotos, base64DataUrl];
 
-      setProfile((p) => p ? { ...p, photos: updatedPhotos } : {
-        id: clerkUser?.id || 'me',
-        name: editName || 'User',
-        bio: editBio,
-        dateOfBirth: editDob,
-        photos: updatedPhotos,
-        profilePrompts: [],
-        role: 'member',
-        email: clerkUser?.primaryEmailAddress?.emailAddress || null,
-        gender: null,
-        showMeGender: 'everyone',
-      });
+        localStorage.setItem(userPhotoKey, JSON.stringify(updatedPhotos));
 
-      toast({
-        title: "Photo Uploaded! 📷",
-        description: "Your profile picture was added successfully.",
-      });
+        setProfile((p) => p ? { ...p, photos: updatedPhotos } : {
+          id: clerkUser?.id || 'me',
+          name: editName || 'User',
+          bio: editBio,
+          dateOfBirth: editDob,
+          photos: updatedPhotos,
+          profilePrompts: [],
+          role: 'member',
+          email: clerkUser?.primaryEmailAddress?.emailAddress || null,
+          gender: null,
+          showMeGender: 'everyone',
+        });
+
+        toast({
+          title: "Photo Saved Permanently! 📷",
+          description: "Your profile picture was saved to your profile.",
+        });
+      };
+      reader.readAsDataURL(file);
     } catch {
       toast({ title: "Upload Error", description: "Failed to upload photo. Please try again.", variant: "destructive" });
     } finally { setUploading(false); }
@@ -427,7 +441,16 @@ export default function ProfilePage() {
       <div className="max-w-lg mx-auto pb-24">
         {/* Cover photo */}
         <div className="relative h-72 bg-gradient-to-b from-primary/20 to-background">
-          {coverPhoto && <img src={getPhotoSrc(coverPhoto)} alt="Cover" className="w-full h-full object-cover" />}
+          {coverPhoto && (
+            <img
+              src={getPhotoSrc(coverPhoto)}
+              alt="Cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/logo-192.png";
+              }}
+              className="w-full h-full object-cover"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
           <div className="absolute bottom-4 left-4 right-4">
             {editing ? (

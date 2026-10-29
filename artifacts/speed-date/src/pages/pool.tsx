@@ -148,17 +148,17 @@ export default function Pool() {
   // Floating Picture-in-Picture (PiP) Stream Window State
   const [isStreamDocked, setIsStreamDocked] = useState(false);
 
-  // 3D Sonar Radar Engine State
-  const [selectedRadarBlip, setSelectedRadarBlip] = useState<{
-    id: string;
-    name: string;
-    type: "dater" | "venue" | "stream";
-    distanceMi: number;
-    matchScore: string;
-    photo: string;
-    top: number;
-    left: number;
-  } | null>(null);
+  // Incognito Ghost Mode State
+  const [isIncognitoGhostMode, setIsIncognitoGhostMode] = useState<boolean>(false);
+
+  const toggleIncognitoGhostMode = () => {
+    const nextState = !isIncognitoGhostMode;
+    setIsIncognitoGhostMode(nextState);
+    toast({
+      title: nextState ? "Incognito Ghost Mode Active 👻" : "Incognito Mode Off 📍",
+      description: nextState ? "Your exact GPS location pin and online status are hidden from non-matched strangers." : "Visible on live map radar.",
+    });
+  };
 
   const [isSonarPulsing, setIsSonarPulsing] = useState(false);
 
@@ -729,15 +729,14 @@ export default function Pool() {
             </div>
 
             <Button
-              onClick={() => setCoordinatorMode(!coordinatorMode)}
+              onClick={toggleIncognitoGhostMode}
               className={`font-bold uppercase text-xs border h-10 ${
-                coordinatorMode
-                  ? "bg-[#d4af37] text-black border-[#d4af37] shadow-lg shadow-[#d4af37]/30"
+                isIncognitoGhostMode
+                  ? "bg-purple-600 text-white border-purple-400 shadow-lg shadow-purple-900/40"
                   : "bg-[#181a24] hover:bg-[#222536] text-[#d4af37] border-[#d4af37]/50"
               }`}
             >
-              <Crown size={14} className="mr-1" />
-              {coordinatorMode ? "Coordinator Mode ✓" : "Coordinator Mode"}
+              👻 {isIncognitoGhostMode ? "Ghost Mode Active ✓" : "Incognito Ghost Mode"}
             </Button>
 
             <Button

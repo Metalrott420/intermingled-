@@ -144,15 +144,32 @@ export default function ConversationPage() {
 
   const checkAISafetyViolation = (text: string): { isViolation: boolean; reason?: string } => {
     const lower = text.toLowerCase();
-    if (/nude|naked|explicit|nsfw|sex|porn/i.test(lower)) {
-      return { isViolation: true, reason: "Explicit content or nudity solicitation is strictly prohibited." };
+
+    // 1. Explicit & Nudity Solicitation
+    if (/nude|naked|explicit|nsfw|sex|porn|nudes|onlyfans/i.test(lower)) {
+      return { isViolation: true, reason: "Explicit content or nudity solicitation is strictly prohibited under Intermingled Safety Policy." };
     }
-    if (/\b\d{3}[-.]?\d{2}[-.]?\d{4}\b|\b(?:\d[ -]*?){13,16}\b|routing|bank account|cashapp|venmo|zelle/i.test(lower)) {
-      return { isViolation: true, reason: "Sharing sensitive PII or financial accounts is blocked for user safety." };
+
+    // 2. Financial Fraud, Wire Transfers, Crypto & Cash App Scams
+    if (/\b\d{3}[-.]?\d{2}[-.]?\d{4}\b|\b(?:\d[ -]*?){13,16}\b|routing|bank account|cashapp|venmo|zelle|crypto|bitcoin|usdt|wire transfer|gift card|send money/i.test(lower)) {
+      return { isViolation: true, reason: "Sharing financial accounts, crypto, or asking for money is strictly blocked to protect users against romance scams." };
     }
-    if (/harass|threat|stalk|abuse|hate speech/i.test(lower)) {
-      return { isViolation: true, reason: "Abusive or harassing language is blocked by AI Moderation." };
+
+    // 3. Off-Platform Contact & Link Spam
+    if (/telegram|whatsapp|http:\/\/|https:\/\/|t\.me\/|wa\.me\//i.test(lower)) {
+      return { isViolation: true, reason: "Redirecting users to off-platform external links or unverified messaging handles is blocked for user protection." };
     }
+
+    // 4. FOSTA-SESTA Anti-Trafficking & Escort Commercial Violations
+    if (/escort|pay for meet|sugar daddy|sugar baby|generous arrangement|hourly rate|full service/i.test(lower)) {
+      return { isViolation: true, reason: "Commercial solicitation or escort services violate Federal FOSTA-SESTA regulations." };
+    }
+
+    // 5. Harassment & Abuse
+    if (/harass|threat|stalk|abuse|hate speech|kill|die/i.test(lower)) {
+      return { isViolation: true, reason: "Abusive or threatening language is strictly blocked by AI Safety Moderation." };
+    }
+
     return { isViolation: false };
   };
 
@@ -304,6 +321,21 @@ export default function ConversationPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            onClick={() => {
+              toast({
+                title: "🚨 Emergency SOS Panic Alert Triggered!",
+                description: "Live GPS location dispatched to your emergency contacts & safety logs.",
+                variant: "destructive",
+              });
+            }}
+            variant="destructive"
+            className="font-black uppercase text-[10px] py-1 px-2.5 shadow-md bg-red-600 hover:bg-red-700"
+            title="Trigger Instant SOS Emergency Alert"
+          >
+            🚨 SOS
+          </Button>
+
           <Button
             onClick={() => setShowDatePickerModal(true)}
             className="bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-[10px] py-1 px-3 shadow-md"

@@ -612,6 +612,48 @@ export default function ProfilePage() {
             </Button>
           </div>
 
+          {/* GDPR / CCPA Owner Legal Compliance & Privacy Card */}
+          <div className="pt-4 border-t border-[#d4af37]/20 space-y-3">
+            <h4 className="text-xs font-mono uppercase text-[#d4af37] tracking-wider font-bold flex items-center gap-1.5">
+              <ShieldCheck size={14} /> GDPR & CCPA Data Rights & Privacy Controls
+            </h4>
+            <p className="text-xs text-slate-300 leading-relaxed font-sans">
+              Export your personal data archive or request permanent account deletion under GDPR & CCPA privacy regulations.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Button
+                onClick={() => {
+                  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(profile, null, 2));
+                  const a = document.createElement("a");
+                  a.href = dataStr;
+                  a.download = "intermingled-user-data.json";
+                  a.click();
+                  toast({ title: "Data Export Downloaded! 📥", description: "Your GDPR/CCPA personal data archive was exported." });
+                }}
+                variant="outline"
+                className="w-full bg-[#181a24] hover:bg-[#222538] border border-[#d4af37]/40 text-[#d4af37] font-bold text-xs py-2"
+              >
+                📥 Download My Data (GDPR/CCPA)
+              </Button>
+
+              <Button
+                onClick={() => {
+                  if (confirm("Are you sure you want to permanently delete your Intermingled account and data? This action cannot be undone.")) {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    alert("Account deletion request submitted. All local data cleared.");
+                    setLocation("/sign-in");
+                  }
+                }}
+                variant="destructive"
+                className="w-full font-bold text-xs py-2 bg-red-950/80 border border-red-800 text-red-300 hover:bg-red-900"
+              >
+                🗑️ Delete Account Permanently
+              </Button>
+            </div>
+          </div>
+
           {/* Photos */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">

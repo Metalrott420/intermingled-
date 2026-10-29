@@ -188,9 +188,49 @@ function ClientHeartbeatPingTracker() {
   return null;
 }
 
+function QuickCamouflageShield() {
+  const [isCamouflaged, setIsCamouflaged] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsCamouflaged((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  if (!isCamouflaged) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-slate-900 text-slate-100 p-8 flex flex-col justify-between font-sans">
+      <div className="flex items-center justify-between border-b border-slate-700 pb-4">
+        <h1 className="text-xl font-bold font-serif text-slate-200">The Daily Weather & News Portal</h1>
+        <button onClick={() => setIsCamouflaged(false)} className="text-xs font-mono text-slate-400 hover:text-white border border-slate-600 px-3 py-1 rounded">
+          Press Esc / Click to Exit Camouflage
+        </button>
+      </div>
+
+      <div className="max-w-xl mx-auto space-y-4 my-auto text-left">
+        <h2 className="text-3xl font-serif text-amber-400">☀️ Local Austin Weather & Forecast</h2>
+        <p className="text-sm text-slate-300">72°F · Clear Skies · Humidity 45% · Wind 6 mph NW</p>
+        <p className="text-xs text-slate-400 leading-relaxed">
+          High pressure system moving across central Texas bringing mild temperatures and clear evening skies through the weekend.
+        </p>
+      </div>
+
+      <div className="text-center text-[10px] text-slate-500 font-mono">
+        Discreet Privacy Camouflage Active · Press Esc Key or Click Top Button to Restore
+      </div>
+    </div>
+  );
+}
+
 function AppRoutes() {
   return (
     <>
+      <QuickCamouflageShield />
       <ClientHeartbeatPingTracker />
       <Switch>
       <Route path="/" component={Home} />

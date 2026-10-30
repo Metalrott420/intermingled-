@@ -718,7 +718,7 @@ export default function Home() {
 
   // ── HOMEPAGE USER PROFILE CONTROL CENTER & SHORTCUT DASHBOARD ─────────────────
   return (
-    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-start p-4 md:p-6 bg-[#08080c] text-foreground relative overflow-y-auto pb-32">
+    <div className="min-h-screen w-full flex flex-col items-center justify-start p-4 md:p-6 bg-[#08080c] text-foreground relative pb-48">
       <NavBar base={base} signOut={signOut} isAdmin={isAdmin} isSignedIn={isSignedIn} />
 
       <div className="z-10 w-full max-w-2xl space-y-6 pt-4">
@@ -918,7 +918,7 @@ export default function Home() {
         </div>
 
         {/* Public Profile Visibility & Preferences Controls */}
-        <div className="bg-[#111218] border border-[#d4af37]/30 rounded-2xl p-5 space-y-4 shadow-xl">
+        <div className="bg-[#111218] border border-[#d4af37]/30 rounded-2xl p-5 space-y-4 shadow-xl mb-36">
           <h3 className="text-xs font-mono uppercase text-[#d4af37] tracking-wider font-bold">
             Personality & Public Visibility Controls
           </h3>

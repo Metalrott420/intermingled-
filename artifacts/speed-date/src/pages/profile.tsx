@@ -244,7 +244,13 @@ export default function ProfilePage() {
     const savedPhotosRaw = localStorage.getItem(photoKey);
 
     let photosList = ["/logo-192.png"];
-    try { if (savedPhotosRaw) photosList = JSON.parse(savedPhotosRaw); } catch {}
+    try {
+      if (savedPhotosRaw) {
+        const rawList: string[] = JSON.parse(savedPhotosRaw);
+        const cleanList = rawList.filter((p) => typeof p === "string" && !p.startsWith("blob:"));
+        photosList = cleanList.length > 0 ? cleanList : ["/logo-192.png"];
+      }
+    } catch {}
 
     let initialProfile: UserProfile = {
       id: uId,

@@ -151,6 +151,18 @@ export default function Pool() {
   // Incognito Ghost Mode State
   const [isIncognitoGhostMode, setIsIncognitoGhostMode] = useState<boolean>(false);
 
+  // 3D Sonar Radar Engine State
+  const [selectedRadarBlip, setSelectedRadarBlip] = useState<{
+    id: string;
+    name: string;
+    type: "dater" | "venue" | "stream";
+    distanceMi: number;
+    matchScore: string;
+    photo: string;
+    top: number;
+    left: number;
+  } | null>(null);
+
   const toggleIncognitoGhostMode = () => {
     const nextState = !isIncognitoGhostMode;
     setIsIncognitoGhostMode(nextState);

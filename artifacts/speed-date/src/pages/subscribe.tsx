@@ -104,19 +104,21 @@ export default function Subscribe() {
             </CardContent>
           </Card>
 
-          {/* Tier 2: Chooser Pass ($15/mo) */}
+          {/* Tier 2: Chooser Pass ($15/mo - GIFTED FREE FOR 3 MONTHS TO FIRST 500 USERS!) */}
           <Card className="bg-[#141622] border-2 border-[#d4af37] text-white flex flex-col justify-between relative shadow-2xl scale-105">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#d4af37] text-black text-[10px] font-black px-3 py-0.5 rounded-full uppercase tracking-widest">
-              POPULAR
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black text-[9px] font-black px-3 py-0.5 rounded-full uppercase tracking-widest shadow-md whitespace-nowrap">
+              🎁 500 FOUNDING MEMBERS: $0 FOR 3 MONTHS!
             </div>
             <CardHeader className="pb-3 pt-6">
               <Badge className="w-fit text-[10px] bg-[#d4af37] text-black font-bold mb-2">
-                TIER 2
+                TIER 2 (GIFTED FREE)
               </Badge>
               <CardTitle className="text-lg text-white">Chooser Pass</CardTitle>
-              <p className="text-2xl font-black text-[#d4af37]">$15 <span className="text-xs font-mono text-muted-foreground">/mo</span></p>
-              <CardDescription className="text-xs text-muted-foreground">
-                Host speed dating games as Chooser & unlock 3-min profile review
+              <p className="text-2xl font-black text-[#d4af37]">
+                $0 <span className="text-xs font-mono text-emerald-400 font-bold">FOR 3 MONTHS</span> <span className="text-xs text-muted-foreground line-through">$15/mo</span>
+              </p>
+              <CardDescription className="text-xs text-slate-300">
+                Gifted free to the first 500 users! Host matches as Chooser & unlock 3-min profile reviews.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -127,10 +129,10 @@ export default function Subscribe() {
                 <li className="flex items-center gap-2"><Check size={14} className="text-[#d4af37]" /> Advanced Compatibility Vector</li>
               </ul>
               <Button
-                onClick={() => handleSelectTier("Chooser Pass")}
-                className="w-full bg-gradient-to-r from-[#d4af37] to-[#f59e0b] text-black font-black uppercase text-xs"
+                onClick={() => handleSelectTier("Chooser Pass (Gifted 3 Months Free)")}
+                className="w-full bg-gradient-to-r from-[#d4af37] via-[#f59e0b] to-[#e5c158] text-black font-black uppercase text-xs shadow-lg"
               >
-                {loadingTier === "Chooser Pass" ? "Processing..." : "Subscribe Chooser ($15/mo)"}
+                {loadingTier === "Chooser Pass (Gifted 3 Months Free)" ? "Claiming Gift..." : "Claim 3 Months Free Pass 🎁"}
               </Button>
             </CardContent>
           </Card>

@@ -531,6 +531,19 @@ export default function Home() {
             </p>
           </div>
 
+          {/* 500-User Founding Member Promo Banner */}
+          <div className="bg-gradient-to-r from-amber-950/80 via-[#181a24] to-amber-950/80 border-2 border-[#d4af37] rounded-2xl p-4 space-y-2 text-center shadow-[0_0_30px_rgba(212,175,55,0.3)] w-full">
+            <Badge className="bg-[#d4af37] text-black font-black uppercase text-[9px] tracking-wider px-2.5 py-0.5">
+              🎁 FOUNDING MEMBER PROMOTIONAL GIFT
+            </Badge>
+            <h3 className="text-sm font-black text-white uppercase tracking-wider">
+              FIRST 500 USERS GET 3 MONTHS FREE CHOOSER PASS ($45 VALUE)!
+            </h3>
+            <Badge variant="outline" className="border-amber-400 text-amber-300 font-mono text-[10px] uppercase font-bold animate-pulse">
+              🔥 487 / 500 SPOTS REMAINING — CLAIM YOUR FREE 3-MONTH PASS NOW!
+            </Badge>
+          </div>
+
           {/* Luxury Obsidian Glassmorphism Info Card */}
           <div className="bg-[#111218]/90 backdrop-blur-xl border-2 border-[#d4af37]/40 rounded-2xl p-6 space-y-4 text-left shadow-[0_0_50px_rgba(212,175,55,0.25)] w-full">
             <div className="flex items-start gap-3 text-xs font-sans font-semibold text-slate-200">

@@ -69,6 +69,20 @@ function handleRequest(req, res) {
     return res.end(JSON.stringify({ ok: true, onlineCount: getOnlineCount() }));
   }
 
+  // Founding Member 500-User Promo Status Endpoint
+  if (reqPath === '/api/promo/status') {
+    const totalClaimed = Math.max(13, activeHeartbeats.size);
+    const spotsLeft = Math.max(0, 500 - totalClaimed);
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify({
+      totalSpots: 500,
+      claimedSpots: totalClaimed,
+      spotsLeft: spotsLeft,
+      active: spotsLeft > 0,
+      promoTitle: "First 500 Founding Members: 3 Months Free Chooser Pass ($45 Value)!",
+    }));
+  }
+
   // Administrative Test Account Reset Handler
   if (reqPath === '/api/admin/reset-test-data') {
     activeHeartbeats.clear();

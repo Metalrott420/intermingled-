@@ -444,34 +444,46 @@ export default function ProfilePage() {
         )}
       </div>
 
-      <div className="max-w-lg mx-auto pb-24">
-        {/* Cover photo */}
-        <div className="relative h-72 bg-gradient-to-b from-primary/20 to-background">
-          {coverPhoto && (
-            <img
-              src={getPhotoSrc(coverPhoto)}
-              alt="Cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = "/logo-192.png";
-              }}
-              className="w-full h-full object-cover"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
-          <div className="absolute bottom-4 left-4 right-4">
-            {editing ? (
-              <input value={editName} onChange={(e) => setEditName(e.target.value)} maxLength={80}
-                placeholder="Your name"
-                className="font-display text-3xl font-black bg-transparent border-b-2 border-primary text-white w-full outline-none placeholder:text-white/40 uppercase tracking-wide" />
-            ) : (
-              <h1 className="font-display text-3xl font-black text-white drop-shadow uppercase tracking-wide">
-                {profile?.name}{age !== null && <span className="font-normal normal-case text-white/70 text-2xl">, {age}</span>}
-              </h1>
-            )}
+      <div className="max-w-6xl mx-auto pb-32 md:pl-64 px-4 md:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-6">
+          {/* LEFT COLUMN: Cover Photo, Name, Age & Quick Controls */}
+          <div className="md:col-span-5 space-y-6">
+            <div className="relative h-80 rounded-2xl overflow-hidden border border-[#d4af37]/40 shadow-2xl bg-gradient-to-b from-primary/20 to-background">
+              {coverPhoto && (
+                <img
+                  src={getPhotoSrc(coverPhoto)}
+                  alt="Cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/logo-192.png";
+                  }}
+                  className="w-full h-full object-cover"
+                />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+              <div className="absolute bottom-4 left-4 right-4 space-y-1">
+                {editing ? (
+                  <input value={editName} onChange={(e) => setEditName(e.target.value)} maxLength={80}
+                    placeholder="Your name"
+                    className="font-display text-3xl font-black bg-transparent border-b-2 border-primary text-white w-full outline-none placeholder:text-white/40 uppercase tracking-wide" />
+                ) : (
+                  <h1 className="font-display text-3xl font-black text-white drop-shadow uppercase tracking-wide flex flex-wrap items-center gap-2">
+                    <span>{profile?.name}</span>{age !== null && <span className="font-normal normal-case text-white/70 text-2xl">, {age}</span>}
+                  </h1>
+                )}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Badge className="bg-[#d4af37] text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 shadow-md">
+                    VERIFIED 18+
+                  </Badge>
+                  <Badge className="bg-emerald-950/90 border border-emerald-500 text-emerald-400 text-[9px] font-mono uppercase">
+                    💚 VERIFIED GREEN FLAG
+                  </Badge>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div className="px-4 py-5 space-y-6">
+          {/* RIGHT COLUMN: Bio, Photos, Prompts, Algorithm, Privacy Center */}
+          <div className="md:col-span-7 space-y-6">
           {/* Age */}
           {(editing || !profile?.dateOfBirth) && (
             <div className="space-y-1.5">
@@ -748,5 +760,6 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
+  </div>
   );
 }

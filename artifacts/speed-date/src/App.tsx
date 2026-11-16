@@ -281,7 +281,14 @@ function GlobalGoldNavbar() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0c0d14]/95 backdrop-blur-lg border-t border-[#d4af37]/30 px-2 py-2 flex items-center justify-around shadow-2xl">
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0c0d14]/95 backdrop-blur-lg border-t border-[#d4af37]/30 px-2 py-2 flex items-center justify-around shadow-2xl md:top-0 md:bottom-0 md:right-auto md:w-64 md:flex-col md:justify-start md:pt-6 md:px-4 md:space-y-2 md:border-t-0 md:border-r md:border-[#d4af37]/30">
+      {/* Desktop Widescreen Brand Header */}
+      <div className="hidden md:flex flex-col items-center mb-4 space-y-1.5 text-center w-full pb-4 border-b border-[#d4af37]/20">
+        <img src="/logo.svg" alt="Logo" className="h-10 w-auto filter drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]" />
+        <span className="font-black text-xs uppercase tracking-widest text-gold-hd-3d">INTERMINGLED</span>
+        <span className="text-[8px] font-mono text-[#d4af37] font-bold uppercase">DESKTOP DASHBOARD</span>
+      </div>
+
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = location === item.path;
@@ -291,14 +298,14 @@ function GlobalGoldNavbar() {
             onClick={() => setLocation(item.path)}
             aria-label={`Navigate to ${item.label}`}
             aria-current={isActive ? "page" : undefined}
-            className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
+            className={`flex flex-col md:flex-row items-center gap-1 md:gap-3 px-3 py-1.5 md:px-4 md:py-3 md:w-full md:rounded-2xl transition-all ${
               isActive
-                ? "bg-[#d4af37] text-[#08080c] font-black scale-105 shadow-md shadow-[#d4af37]/20"
-                : "text-muted-foreground hover:text-white"
+                ? "bg-[#d4af37] text-[#08080c] font-black scale-105 md:scale-100 shadow-md shadow-[#d4af37]/20"
+                : "text-muted-foreground hover:text-white md:hover:bg-[#181a24]"
             }`}
           >
             <Icon size={18} />
-            <span className="text-[10px] font-mono tracking-wider uppercase">{item.label}</span>
+            <span className="text-[10px] md:text-xs font-mono tracking-wider uppercase font-bold">{item.label}</span>
           </button>
         );
       })}

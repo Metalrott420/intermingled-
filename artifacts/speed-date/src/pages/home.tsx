@@ -731,7 +731,7 @@ export default function Home() {
 
   // ── HOMEPAGE USER PROFILE CONTROL CENTER & SHORTCUT DASHBOARD ─────────────────
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-start p-4 md:p-6 bg-[#08080c] text-foreground relative pb-48">
+    <div className="min-h-screen w-full flex flex-col items-center justify-start p-4 md:p-6 md:pl-64 bg-[#08080c] text-foreground relative pb-48">
       <NavBar base={base} signOut={signOut} isAdmin={isAdmin} isSignedIn={isSignedIn} />
 
       <div className="z-10 w-full max-w-2xl space-y-6 pt-4">

@@ -148,6 +148,25 @@ export default function Pool() {
   // Floating Picture-in-Picture (PiP) Stream Window State
   const [isStreamDocked, setIsStreamDocked] = useState(false);
 
+  // Snapchat-Style 10 AR Camera Lenses State
+  type ArLensId = "none" | "gold_crown" | "cyber_glasses" | "romantic_hearts" | "beauty_glow" | "cinematic" | "puppy_ears" | "fire_aura" | "diamond_sparkle" | "vhs_retro" | "cosmic_galaxy";
+
+  const [selectedArLens, setSelectedArLens] = useState<ArLensId>("gold_crown");
+
+  const AR_LENSES: Array<{ id: ArLensId; name: string; icon: string; badge: string }> = [
+    { id: "gold_crown", name: "Gold VIP Crown", icon: "👑", badge: "👑 GOLD VIP CROWN ACTIVE" },
+    { id: "cyber_glasses", name: "Cyber Sunglasses", icon: "🕶️", badge: "🕶️ CYBER NEON ACTIVE" },
+    { id: "romantic_hearts", name: "Hearts Aura", icon: "💖", badge: "💖 ROMANTIC HEARTS ACTIVE" },
+    { id: "beauty_glow", name: "Beauty Glow", icon: "✨", badge: "✨ BEAUTY GLOW ACTIVE" },
+    { id: "cinematic", name: "Hollywood Grade", icon: "🌆", badge: "🌆 CINEMATIC GRADE ACTIVE" },
+    { id: "puppy_ears", name: "Puppy Ears", icon: "🐶", badge: "🐶 PUPPY EARS ACTIVE" },
+    { id: "fire_aura", name: "Fire Aura", icon: "🔥", badge: "🔥 HYPE FIRE ACTIVE" },
+    { id: "diamond_sparkle", name: "Diamond VIP", icon: "💎", badge: "💎 DIAMOND SPARKLE ACTIVE" },
+    { id: "vhs_retro", name: "90s VHS Retro", icon: "🎭", badge: "🎭 90s RETRO VHS ACTIVE" },
+    { id: "cosmic_galaxy", name: "Cosmic Galaxy", icon: "🌌", badge: "🌌 COSMIC GALAXY ACTIVE" },
+    { id: "none", name: "Natural Feed", icon: "🚫", badge: "NATURAL CAMERA FEED" },
+  ];
+
   // Incognito Ghost Mode State
   const [isIncognitoGhostMode, setIsIncognitoGhostMode] = useState<boolean>(false);
 
@@ -1151,10 +1170,84 @@ export default function Pool() {
                 <video ref={cameraVideoRef} autoPlay loop muted playsInline className="w-full h-full object-cover" />
               )}
 
+              {/* Snapchat-Style 3D AR Lens Overlays */}
+              {selectedArLens === "gold_crown" && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none text-4xl animate-bounce drop-shadow-[0_0_15px_rgba(212,175,55,0.9)]">
+                  👑
+                </div>
+              )}
+              {selectedArLens === "cyber_glasses" && (
+                <div className="absolute top-16 left-1/2 -translate-x-1/2 pointer-events-none text-5xl drop-shadow-[0_0_15px_rgba(34,211,238,0.9)]">
+                  🕶️
+                </div>
+              )}
+              {selectedArLens === "romantic_hearts" && (
+                <div className="absolute inset-0 pointer-events-none overflow-hidden flex justify-around items-end pb-12">
+                  <span className="text-3xl animate-bounce text-pink-500">💖</span>
+                  <span className="text-2xl animate-bounce [animation-delay:200ms] text-pink-400">💕</span>
+                  <span className="text-3xl animate-bounce [animation-delay:400ms] text-pink-500">💗</span>
+                </div>
+              )}
+              {selectedArLens === "beauty_glow" && (
+                <div className="absolute inset-0 pointer-events-none bg-amber-400/10 mix-blend-overlay border-4 border-amber-400/40 rounded-xl" />
+              )}
+              {selectedArLens === "cinematic" && (
+                <div className="absolute inset-0 pointer-events-none bg-indigo-900/20 mix-blend-color-burn border-8 border-black/80" />
+              )}
+              {selectedArLens === "puppy_ears" && (
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 pointer-events-none text-5xl drop-shadow-md">
+                  🐶
+                </div>
+              )}
+              {selectedArLens === "fire_aura" && (
+                <div className="absolute bottom-4 left-0 right-0 pointer-events-none text-3xl flex justify-around animate-pulse">
+                  <span>🔥</span><span>🔥</span><span>🔥</span>
+                </div>
+              )}
+              {selectedArLens === "diamond_sparkle" && (
+                <div className="absolute inset-0 pointer-events-none bg-[#d4af37]/10 flex items-center justify-around text-2xl animate-spin [animation-duration:8s]">
+                  <span>💎</span><span>✨</span><span>💎</span>
+                </div>
+              )}
+              {selectedArLens === "vhs_retro" && (
+                <div className="absolute inset-0 pointer-events-none border-2 border-red-500/30 p-2 flex justify-between items-start font-mono text-[9px] text-red-500 bg-black/10">
+                  <span>REC ● 1998</span>
+                  <span>SP PLAY</span>
+                </div>
+              )}
+              {selectedArLens === "cosmic_galaxy" && (
+                <div className="absolute inset-0 pointer-events-none bg-purple-950/20 mix-blend-screen flex justify-around items-center text-xl">
+                  <span>🌌</span><span>⭐</span><span>✨</span>
+                </div>
+              )}
+
               {/* Status Badge Overlay */}
-              <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg border border-red-500/50 flex items-center gap-1.5 text-[10px] font-mono text-red-400">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                <span>{isRecording ? "RECORDING (10s Max)..." : "CAMERA ACTIVE"}</span>
+              <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#d4af37]/50 flex items-center gap-1.5 text-[10px] font-mono text-[#d4af37] font-bold">
+                <Sparkles size={11} className="text-[#d4af37] animate-pulse" />
+                <span>{AR_LENSES.find((l) => l.id === selectedArLens)?.badge || "AR LENS ACTIVE"}</span>
+              </div>
+            </div>
+
+            {/* Snapchat-Style 10 AR Lens Carousel */}
+            <div className="space-y-1 pt-1">
+              <label className="text-[10px] font-mono uppercase text-[#d4af37] font-bold tracking-widest flex items-center gap-1">
+                <Sparkles size={11} /> Snapchat 3D AR Camera Lenses ({AR_LENSES.length})
+              </label>
+              <div className="flex gap-2 overflow-x-auto pb-1 text-xs">
+                {AR_LENSES.map((lens) => (
+                  <button
+                    key={lens.id}
+                    onClick={() => setSelectedArLens(lens.id)}
+                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl border transition-all shrink-0 ${
+                      selectedArLens === lens.id
+                        ? "bg-[#d4af37] text-black border-[#d4af37] font-black scale-105 shadow-md shadow-[#d4af37]/20"
+                        : "bg-[#181a24] hover:bg-[#222538] text-slate-300 border-[#222538]"
+                    }`}
+                  >
+                    <span className="text-xl">{lens.icon}</span>
+                    <span className="text-[9px] font-mono font-bold whitespace-nowrap">{lens.name}</span>
+                  </button>
+                ))}
               </div>
             </div>
 

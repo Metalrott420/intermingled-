@@ -71,6 +71,21 @@ export default function ConversationPage() {
   const [showWingmanModal, setShowWingmanModal] = useState(false);
   const [customStickerUrl, setCustomStickerUrl] = useState<string | null>(null);
 
+  const [selectedChatArLens, setSelectedChatArLens] = useState("gold_crown");
+
+  const CHAT_AR_LENSES = [
+    { id: "gold_crown", name: "Gold VIP Crown", icon: "👑" },
+    { id: "cyber_glasses", name: "Cyber Sunglasses", icon: "🕶️" },
+    { id: "romantic_hearts", name: "Hearts Aura", icon: "💖" },
+    { id: "beauty_glow", name: "Beauty Glow", icon: "✨" },
+    { id: "cinematic", name: "Hollywood Grade", icon: "🌆" },
+    { id: "puppy_ears", name: "Puppy Ears", icon: "🐶" },
+    { id: "fire_aura", name: "Fire Aura", icon: "🔥" },
+    { id: "diamond_sparkle", name: "Diamond VIP", icon: "💎" },
+    { id: "vhs_retro", name: "90s VHS Retro", icon: "🎭" },
+    { id: "cosmic_galaxy", name: "Cosmic Galaxy", icon: "🌌" },
+  ];
+
   const WINGMAN_ICEBREAKERS = [
     `I saw you love coffee and live music! What's your favorite local spot around here on weekends?`,
     `I really enjoyed your answers during our speed-dating gameshow! What's the most spontaneous trip you've ever taken?`,
